@@ -22,4 +22,5 @@ class MockMMKV {
   }
 }
 
-export const MMKV = MockMMKV;
+export const createMMKV = (_config?: unknown) => new MockMMKV();
+export type MMKV = MockMMKV;
