@@ -15,12 +15,25 @@ interface TableItem {
 
 interface Props {
   items: TableItem[];
+  startDate: string;
   currency: CurrencyCode;
   pageSize?: number;
 }
 
-export const AmortisationTable = ({ items, currency, pageSize = 12 }: Props) => {
-  const { t } = useTranslation();
+const formatPeriodLabel = (startDate: string, periodNumber: number, language: string) => {
+  const date = new Date(startDate);
+  if (Number.isNaN(date.getTime())) return String(periodNumber);
+
+  date.setMonth(date.getMonth() + periodNumber - 1);
+
+  return date.toLocaleDateString(language === 'pl' ? 'pl-PL' : 'en-GB', {
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+export const AmortisationTable = ({ items, startDate, currency, pageSize = 12 }: Props) => {
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(0);
   const totalPages = Math.ceil(items.length / pageSize);
   const pageItems = items.slice(page * pageSize, (page + 1) * pageSize);
@@ -30,17 +43,17 @@ export const AmortisationTable = ({ items, currency, pageSize = 12 }: Props) => 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View>
           <View style={styles.headerRow}>
-            {[t('results.month'), t('results.payment'), t('results.principal'), t('results.interest'), t('results.balance')].map((h, i) => (
+            {[t('results.period'), t('results.openingBalance'), t('results.principal'), t('results.interest'), t('results.closingBalance')].map((h, i) => (
               <Text key={i} style={[styles.headerCell, i === 0 && styles.indexCell]}>{h}</Text>
             ))}
           </View>
           {pageItems.map((item, i) => (
             <View key={item.itemNo} style={[styles.dataRow, i % 2 === 0 && styles.evenRow]}>
-              <Text style={[styles.cell, styles.indexCell]}>{item.itemNo}</Text>
+              <Text style={[styles.cell, styles.indexCell]}>{formatPeriodLabel(startDate, item.itemNo, i18n.language)}</Text>
               <Text style={styles.cell}>{formatCurrency(+item.remaining, currency)}</Text>
               <Text style={styles.cell}>{formatCurrency(+item.principal, currency)}</Text>
-              <Text style={[styles.cell, styles.interestCell]}>{formatCurrency(+item.interest, currency)}</Text>
-              <Text style={styles.cell}>{formatCurrency(+item.ending, currency)}</Text>
+              <Text style={styles.cell}>{formatCurrency(+item.interest, currency)}</Text>
+              <Text style={[styles.cell, styles.closingCell]}>{formatCurrency(+item.ending, currency)}</Text>
             </View>
           ))}
         </View>
@@ -104,12 +117,12 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   indexCell: {
-    width: 60,
-    textAlign: 'center',
-    color: colours.textSecondary,
+    width: 96,
+    textAlign: 'left',
   },
-  interestCell: {
-    color: colours.accent,
+  closingCell: {
+    color: colours.primary,
+    fontWeight: fontWeights.bold,
   },
   pagination: {
     flexDirection: 'row',

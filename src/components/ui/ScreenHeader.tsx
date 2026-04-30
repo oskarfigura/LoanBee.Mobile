@@ -1,0 +1,71 @@
+import React from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+
+const logo = require('../../../assets/bee-logo.png');
+
+interface Props {
+  title: string;
+  subtitle?: string;
+}
+
+export const ScreenHeader = ({ title, subtitle }: Props) => {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+      <View style={styles.logoWrap}>
+        <Image source={logo} style={styles.logo} resizeMode="contain" />
+      </View>
+      <View style={styles.copy}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: colours.primary,
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colours.primaryDark,
+  },
+  logoWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: 16,
+    backgroundColor: colours.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: colours.accent,
+    overflow: 'hidden',
+  },
+  logo: {
+    width: 46,
+    height: 46,
+  },
+  copy: {
+    flex: 1,
+  },
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes['2xl'],
+    fontWeight: fontWeights.extrabold,
+    color: colours.white,
+  },
+  subtitle: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colours.whiteSubtle,
+    lineHeight: 20,
+    marginTop: 4,
+  },
+});

@@ -1,17 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { DownPaymentType } from '@/core/DownPaymentType';
 import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 
 interface Props {
   value: DownPaymentType;
   onChange: (v: DownPaymentType) => void;
+  currencySymbol: string;
 }
 
-export const DownPaymentToggle = ({ value, onChange }: Props) => {
-  const { t } = useTranslation();
-  return (
+export const DownPaymentToggle = ({ value, onChange, currencySymbol }: Props) => (
     <View style={styles.container}>
       {([DownPaymentType.CASH, DownPaymentType.PERCENT] as const).map(type => (
         <TouchableOpacity
@@ -21,23 +19,23 @@ export const DownPaymentToggle = ({ value, onChange }: Props) => {
           activeOpacity={0.8}
         >
           <Text style={[styles.label, value === type && styles.labelActive]}>
-            {type === DownPaymentType.CASH ? t('calculator.cash') : '%'}
+            {type === DownPaymentType.CASH ? currencySymbol : '%'}
           </Text>
         </TouchableOpacity>
       ))}
     </View>
-  );
-};
+);
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: colours.surface,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colours.border,
     overflow: 'hidden',
-    height: 36,
+    height: 48,
+    width: 96,
   },
   btn: {
     flex: 1,

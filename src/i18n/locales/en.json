@@ -1,23 +1,25 @@
 {
   "calculator": {
-    "title": "LoanBee",
-    "subtitle": "Loan Calculator",
+    "title": "Loan Parameters",
+    "subtitle": "Enter your loan details and choose how to calculate repayment",
     "loanAmount": "Loan Amount",
     "loanAmountPlaceholder": "e.g. 300000",
-    "interestRate": "Interest Rate (%)",
+    "interestRate": "Interest Rate",
     "interestPlaceholder": "e.g. 3.5",
     "downPayment": "Down Payment",
     "downPaymentPlaceholder": "0",
     "startDate": "Start Date",
-    "termYears": "Term (Years)",
+    "termYears": "Years",
     "termMonths": "Months",
-    "additionalPayment": "Extra Monthly Payment",
+    "additionalPayment": "Additional Monthly Payment",
     "additionalPaymentPlaceholder": "0",
     "desiredPayment": "Desired Monthly Payment",
     "desiredPaymentPlaceholder": "e.g. 2000",
-    "byTerm": "By Term",
-    "byPayment": "By Payment",
-    "generate": "Generate Schedule",
+    "byTerm": "By term",
+    "byPayment": "By payment",
+    "modeTermHelp": "Enter the loan term to calculate the monthly payment",
+    "modePaymentHelp": "Enter desired monthly payment to calculate the payoff time",
+    "generate": "Calculate",
     "currency": "Currency",
     "cash": "Cash",
     "percent": "Percent"
@@ -29,25 +31,30 @@
     "totalInterest": "Total Interest",
     "totalCost": "Total Cost",
     "loanTerm": "Loan Term",
+    "payoffDate": "Payoff Date",
     "years": "yrs",
     "months": "mo",
     "and": "&",
     "saveThisLoan": "Save This Loan",
+    "amortisation": "Amortisation",
     "amortisationTable": "Amortisation Schedule",
-    "month": "Month",
+    "period": "Period",
+    "openingBalance": "Opening Balance",
     "payment": "Payment",
     "principal": "Principal",
     "interest": "Interest",
-    "balance": "Balance",
+    "closingBalance": "Closing Balance",
     "totalPaid": "Total Paid",
-    "remaining": "Remaining",
+    "remaining": "To Pay",
+    "interestPaid": "Interest Paid",
     "page": "Page",
     "of": "of",
     "previous": "Previous",
     "next": "Next",
     "charts": "Charts",
-    "repaymentBreakdown": "Repayment Breakdown",
-    "loanBreakdown": "Loan Breakdown",
+    "schedule": "Schedule",
+    "repaymentBreakdown": "Repayment Projection",
+    "loanBreakdown": "Loan Breakdown (%)",
     "cumulativePayments": "Cumulative Payments"
   },
   "saved": {
@@ -96,13 +103,40 @@
     "title": "About",
     "formula": "How It Works",
     "formulaDesc": "LoanBee uses the standard annuity formula to calculate monthly payments:",
-    "formulaEquation": "M = P × [r(1+r)ⁿ] / [(1+r)ⁿ−1]",
+    "formulaEquation": "A = P × [r(1+r)ⁿ] / [(1+r)ⁿ−1]",
     "variables": "Where:",
-    "varM": "M = Monthly payment",
+    "varA": "A = Monthly payment",
     "varP": "P = Principal (loan amount after down payment)",
     "varR": "r = Monthly interest rate (annual rate ÷ 12)",
     "varN": "n = Total number of payments (term in months)",
-    "disclaimer": "This calculator is for illustrative purposes only. Always consult a qualified financial advisor before making borrowing decisions."
+    "disclaimer": "This calculator is for illustrative purposes only. Always consult a qualified financial advisor before making borrowing decisions.",
+    "faqTitle": "Frequently Asked Questions",
+    "faqItems": [
+      {
+        "q": "What is loan amortisation?",
+        "a": "Loan amortisation is the systematic repayment of a loan over time through regular instalments. Each payment is usually split between principal and interest. Early payments often contain more interest because the balance is high, then more of each payment goes toward principal as the balance falls."
+      },
+      {
+        "q": "Scheduling loan repayments over time",
+        "a": "An amortisation schedule shows how each payment may be split between principal and interest, and how the balance may reduce over time. It is useful for planning, but actual lender schedules can differ because of fees, variable rates, rounding, or lender-specific rules."
+      },
+      {
+        "q": "Should I make extra payments to pay off a loan quicker?",
+        "a": "Extra payments can reduce the principal balance faster, which may lower the total interest paid and shorten the repayment time. Before overpaying, consider emergency savings, other high-interest debt, retirement saving, and whether your lender charges early repayment fees."
+      },
+      {
+        "q": "Things to consider when calculating extra loan payments",
+        "a": "Consider your budget, high-interest debt, emergency fund, retirement goals, and whether professional advice would help. Extra payments can be useful, but they should fit your wider financial plan."
+      },
+      {
+        "q": "Common loan terms explained simply",
+        "a": "Principal is the amount you borrow. Interest is the extra cost charged by the lender. Term is how long you take to repay the loan. Monthly payment is what you pay each month. Balance is what you still owe."
+      },
+      {
+        "q": "What are the two calculator modes?",
+        "a": "By Term means you enter the loan length and the calculator works out the monthly payment. By Payment means you enter the monthly payment you want and the calculator works out how long the loan could take to repay."
+      }
+    ]
   },
   "settings": {
     "title": "Settings",
@@ -113,6 +147,11 @@
     "privacyPolicy": "Privacy Policy"
   },
   "disclaimer": {
+    "label": "Disclaimer:",
+    "shortText": "Results are estimates and do not constitute financial advice.",
+    "fullText": "This app provides general information and calculation tools for educational purposes only. Nothing in this app constitutes financial, legal, tax, or investment advice. All calculations and examples are illustrative and may not reflect your personal circumstances. Always consult a qualified financial adviser before making financial decisions. The Tech Narrative Ltd. accepts no liability for decisions made based on information or tools provided in this app.",
+    "more": "[More]",
+    "less": "[Less]",
     "text": "For illustrative purposes only. Not financial advice."
   },
   "errors": {

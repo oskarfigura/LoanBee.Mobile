@@ -2,9 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
-import { colours, fonts, fontSizes } from '@/theme';
-import { formatCurrencyCompact } from '@/currency/format';
-import { CurrencyCode } from '@/currency/currencies';
+import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
 
 interface Props {
   monthlyArray: number[];
@@ -17,52 +16,113 @@ const SAMPLE_STEP = 12;
 
 export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArray, currency }: Props) => {
   const { t } = useTranslation();
-  const width = Dimensions.get('window').width - 64;
+  const width = Math.max(240, Dimensions.get('window').width - 112);
+  const symbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
 
-  const sample = (arr: number[]) => {
-    const result = [];
-    for (let i = 0; i < arr.length; i += SAMPLE_STEP) result.push({ value: arr[i] });
-    return result;
+  const formatChartCurrency = (value: number) => {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000) return `${symbol}${Math.round(abs / 1_000_000)}M`;
+    if (abs >= 1_000) return `${symbol}${Math.round(abs / 1_000)}K`;
+    return `${symbol}${Math.round(abs)}`;
   };
 
-  const totalData = sample(monthlyArray).map(d => ({ ...d, color: colours.accent, dataPointColor: colours.accent }));
-  const interestData = sample(interestArray).map(d => ({ ...d, color: colours.primary, dataPointColor: colours.primary }));
-  const remainingData = sample(remainingArray).map(d => ({ ...d, color: colours.teal, dataPointColor: colours.teal }));
+  const buildYearlyData = () => {
+    const lastIndex = monthlyArray.length - 1;
+    const indexes: number[] = [];
+
+    for (let i = SAMPLE_STEP - 1; i <= lastIndex; i += SAMPLE_STEP) {
+      indexes.push(i);
+    }
+
+    if (lastIndex >= 0 && indexes[indexes.length - 1] !== lastIndex) {
+      indexes.push(lastIndex);
+    }
+
+    const labelEvery = indexes.length <= 12 ? 1 : Math.ceil(indexes.length / 6);
+
+    return indexes.map((index, position) => ({
+      index,
+      label: position % labelEvery === 0 || index === lastIndex
+        ? `Yr ${Math.ceil((index + 1) / SAMPLE_STEP)}`
+        : '',
+    }));
+  };
+
+  const yearlyData = buildYearlyData();
+  const remainingData = yearlyData.map(({ index, label }) => ({
+    value: remainingArray[index],
+    label,
+    color: colours.accent,
+    dataPointColor: colours.accent,
+  }));
+  const totalData = yearlyData.map(({ index, label }) => ({
+    value: monthlyArray[index],
+    label,
+    color: colours.primary,
+    dataPointColor: colours.primary,
+  }));
+  const interestData = yearlyData.map(({ index, label }) => ({
+    value: interestArray[index],
+    label,
+    color: colours.teal,
+    dataPointColor: colours.teal,
+  }));
 
   if (totalData.length < 2) return null;
 
   const legendItems = [
-    { labelKey: 'results.totalPaid', color: colours.accent },
-    { labelKey: 'results.interest', color: colours.primary },
-    { labelKey: 'results.remaining', color: colours.teal },
+    { labelKey: 'results.remaining', color: colours.accent },
+    { labelKey: 'results.totalPaid', color: colours.primary },
+    { labelKey: 'results.interestPaid', color: colours.teal },
   ] as const;
 
   return (
     <View style={styles.container}>
       <LineChart
-        data={totalData}
-        data2={interestData}
-        data3={remainingData}
+        data={remainingData}
+        data2={totalData}
+        data3={interestData}
         width={width}
-        height={180}
+        height={196}
         areaChart
         areaChart2
         areaChart3
+        thickness1={3}
+        thickness2={3}
+        thickness3={3}
+        color={colours.accent}
+        color2={colours.primary}
+        color3={colours.teal}
         startFillColor={colours.accent}
         startFillColor2={colours.primary}
         startFillColor3={colours.teal}
-        startOpacity={0.3}
-        startOpacity2={0.2}
-        startOpacity3={0.2}
+        startOpacity={0.12}
+        startOpacity2={0.1}
+        startOpacity3={0.08}
         endOpacity={0.01}
         endOpacity2={0.01}
         endOpacity3={0.01}
         yAxisTextStyle={styles.axisText}
         xAxisLabelTextStyle={styles.axisText}
+        yAxisLabelWidth={46}
+        xAxisLabelsHeight={24}
+        rulesColor={colours.border}
+        rulesThickness={1}
+        rulesType="dashed"
+        dashWidth={5}
+        dashGap={6}
+        xAxisColor={colours.white}
+        yAxisColor={colours.white}
+        yAxisThickness={0}
+        xAxisThickness={0}
+        initialSpacing={8}
+        endSpacing={8}
         noOfSections={4}
-        formatYLabel={v => formatCurrencyCompact(+v, currency)}
+        formatYLabel={v => formatChartCurrency(+v)}
         hideDataPoints
+        disableScroll
         curved
+        curvature={0.16}
         isAnimated
       />
       <View style={styles.legend}>
@@ -78,7 +138,7 @@ export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArra
 };
 
 const styles = StyleSheet.create({
-  container: { paddingVertical: 8 },
+  container: { paddingTop: 4, paddingBottom: 2 },
   axisText: {
     fontFamily: fonts.body,
     fontSize: fontSizes.tiny,
@@ -86,15 +146,23 @@ const styles = StyleSheet.create({
   },
   legend: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    marginTop: 8,
+    justifyContent: 'flex-start',
+    columnGap: 18,
+    rowGap: 10,
+    marginTop: 18,
+    flexWrap: 'wrap',
   },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dot: { width: 11, height: 11, borderRadius: 6 },
   legendText: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.xs,
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
+    textTransform: 'uppercase',
   },
 });

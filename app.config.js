@@ -41,7 +41,7 @@ export default () => ({
       [
         'expo-splash-screen',
         {
-          image: './assets/splash-icon.png',
+          image: './assets/bee-logo.png',
           imageWidth: 200,
           resizeMode: 'contain',
           backgroundColor: '#002D72',

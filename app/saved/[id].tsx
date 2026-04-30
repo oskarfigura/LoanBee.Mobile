@@ -65,6 +65,7 @@ export default function LoanDetailScreen() {
           totalAmountPaid={result.totalAmountPaid}
           termInYears={result.termInYears}
           termInMonths={result.termInMonths}
+          startDate={loan.formSnapshot.startDate}
           currency={loan.currency}
         />
 

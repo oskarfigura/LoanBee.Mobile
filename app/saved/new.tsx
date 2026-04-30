@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { v4 as uuidv4 } from 'uuid';
 import { useSavedLoans } from '@/hooks/useSavedLoans';
 import { SavedLoan } from '@/types/SavedLoan';
 import { getLoanCalculations } from '@/core/amortisation';
@@ -12,6 +11,7 @@ import { CurrencyCode } from '@/currency/currencies';
 import { CurrencyPicker } from '@/components/calculator/CurrencyPicker';
 import { LenderPicker } from '@/components/loans/LenderPicker';
 import { Button } from '@/components/ui/Button';
+import { createLocalId } from '@/utils/id';
 import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -48,7 +48,7 @@ export default function SaveNewLoanScreen() {
 
     const now = new Date().toISOString();
     const loan: SavedLoan = {
-      id: uuidv4(),
+      id: createLocalId(),
       createdAt: now,
       updatedAt: now,
       nickname: nickname.trim(),

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
-import { colours, fonts, fontSizes } from '@/theme';
+import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { formatCurrencyCompact } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 
@@ -27,8 +27,18 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, labelArray, cur
     const year = Math.ceil(i / SAMPLE_STEP);
     yearlyData.push({
       stacks: [
-        { value: principalPaid, color: colours.primary },
-        { value: interestPaid, color: colours.accent },
+        {
+          value: principalPaid,
+          color: colours.primary,
+          borderBottomLeftRadius: 5,
+          borderBottomRightRadius: 5,
+        },
+        {
+          value: interestPaid,
+          color: colours.accent,
+          borderTopLeftRadius: 5,
+          borderTopRightRadius: 5,
+        },
       ],
       label: `Y${year}`,
     });
@@ -39,18 +49,29 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, labelArray, cur
   return (
     <View style={styles.container}>
       <BarChart
-        data={yearlyData}
         stackData={yearlyData}
         width={width}
-        height={180}
+        height={196}
         barWidth={Math.max(8, Math.min(24, width / yearlyData.length - 4))}
+        spacing={Math.max(8, Math.min(18, width / yearlyData.length / 2))}
+        initialSpacing={8}
+        endSpacing={16}
         noOfSections={4}
         yAxisTextStyle={styles.axisText}
         xAxisLabelTextStyle={styles.axisText}
-        yAxisLabelTexts={[]}
-        hideRules
+        yAxisLabelWidth={42}
+        xAxisLabelsHeight={24}
+        rulesColor={colours.border}
+        rulesThickness={1}
+        xAxisColor={colours.border}
+        yAxisColor={colours.border}
+        yAxisThickness={1}
+        xAxisThickness={1}
         showYAxisIndices={false}
+        showXAxisIndices={false}
         formatYLabel={v => formatCurrencyCompact(+v, currency)}
+        disableScroll
+        adjustToWidth
         isAnimated
       />
       <View style={styles.legend}>
@@ -68,7 +89,7 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, labelArray, cur
 };
 
 const styles = StyleSheet.create({
-  container: { paddingVertical: 8 },
+  container: { paddingTop: 4, paddingBottom: 2 },
   axisText: {
     fontFamily: fonts.body,
     fontSize: fontSizes.tiny,
@@ -78,13 +99,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
-    marginTop: 8,
+    marginTop: 12,
+    flexWrap: 'wrap',
   },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
   legendText: {
-    fontFamily: fonts.body,
+    fontFamily: fonts.heading,
     fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
   },
 });

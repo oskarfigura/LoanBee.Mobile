@@ -109,11 +109,11 @@ export const getDefaultCurrency = (): CurrencyCode => {
 };
 
 const defaultValues: LoanCalculatorFormValues = {
-  loanAmount: 0,
-  interest: 0,
-  termInYears: 0,
+  loanAmount: 300000,
+  interest: 3,
+  termInYears: 10,
   termInMonths: 0,
-  downPayment: 0,
+  downPayment: 10,
   downPaymentType: DownPaymentType.PERCENT,
   desiredMonthlyPayment: 0,
   additionalMonthlyPayment: 0,

@@ -72,14 +72,17 @@ Google test IDs are used automatically when env vars are unset or `__DEV__` is t
 
 ## Local Development
 
-The project always runs via local builds — Expo Go is not supported due to native modules (`react-native-mmkv`, `react-native-google-mobile-ads`).
+The project always runs via local builds — Expo Go is not supported due to native modules (`react-native-mmkv`, `react-native-google-mobile-ads`). Local builds do not require a paid Expo plan or EAS; use the committed `android/` and `ios/` projects with Gradle/Xcode.
 
 ```bash
+npm install
 npm run android   # expo run:android — builds with Gradle and installs on connected device/emulator
 npm run ios       # expo run:ios — builds with Xcode and installs on connected device/simulator
 ```
 
-After native dependency changes, re-run the full build command. For JS-only changes Metro hot-reloads automatically.
+For Android artifacts without EAS, run `cd android && ./gradlew assembleRelease` for an APK or `./gradlew bundleRelease` for an AAB. For iOS archives without EAS, open `ios/LoanBee.xcworkspace` and use Xcode Product → Archive. Store/device distribution still needs the normal Apple/Google signing/accounts.
+
+After native dependency changes, run `cd ios && pod install && cd ..` for iOS and re-run the full platform build. For JS-only changes Metro hot-reloads automatically. If stale state appears, try `npx expo start -c`; for Android use `cd android && ./gradlew clean`; for iOS use Xcode Clean Build Folder / DerivedData cleanup.
 
 ## EAS Build Profiles
 

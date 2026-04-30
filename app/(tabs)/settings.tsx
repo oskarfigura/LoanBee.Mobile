@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import { useLocale } from '@/hooks/useLocale';
 import { CurrencyPicker } from '@/components/calculator/CurrencyPicker';
 import { Card } from '@/components/ui/Card';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,9 +22,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
-      </View>
+      <ScreenHeader title={t('settings.title')} />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={styles.section}>
           <Text style={styles.sectionLabel}>{t('settings.language')}</Text>
@@ -73,18 +72,6 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
-  header: {
-    backgroundColor: colours.primary,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.extrabold,
-    color: colours.white,
-  },
   container: { padding: 16, paddingBottom: 40 },
   section: { marginBottom: 16 },
   sectionLabel: {

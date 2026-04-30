@@ -1,23 +1,25 @@
 {
   "calculator": {
-    "title": "LoanBee",
-    "subtitle": "Kalkulator Kredytu",
+    "title": "Parametry Kredytu",
+    "subtitle": "Wprowadź szczegóły kredytu i wybierz sposób obliczenia spłaty",
     "loanAmount": "Kwota Kredytu",
     "loanAmountPlaceholder": "np. 300000",
-    "interestRate": "Oprocentowanie (%)",
+    "interestRate": "Oprocentowanie",
     "interestPlaceholder": "np. 3.5",
     "downPayment": "Wkład Własny",
     "downPaymentPlaceholder": "0",
     "startDate": "Data Rozpoczęcia",
-    "termYears": "Okres (Lata)",
+    "termYears": "Lata",
     "termMonths": "Miesiące",
     "additionalPayment": "Dodatkowa Płatność Miesięczna",
     "additionalPaymentPlaceholder": "0",
     "desiredPayment": "Żądana Płatność Miesięczna",
     "desiredPaymentPlaceholder": "np. 2000",
-    "byTerm": "Wg Okresu",
-    "byPayment": "Wg Płatności",
-    "generate": "Generuj Harmonogram",
+    "byTerm": "Według okresu",
+    "byPayment": "Według płatności",
+    "modeTermHelp": "Wprowadź okres kredytu, aby obliczyć miesięczną ratę",
+    "modePaymentHelp": "Wprowadź żądaną miesięczną ratę, aby obliczyć czas spłaty",
+    "generate": "Oblicz",
     "currency": "Waluta",
     "cash": "Gotówka",
     "percent": "Procent"
@@ -29,25 +31,30 @@
     "totalInterest": "Łączne Odsetki",
     "totalCost": "Łączny Koszt",
     "loanTerm": "Okres Kredytu",
+    "payoffDate": "Data Spłaty",
     "years": "lat",
     "months": "mies.",
     "and": "i",
     "saveThisLoan": "Zapisz Ten Kredyt",
+    "amortisation": "Amortyzacja",
     "amortisationTable": "Harmonogram Spłat",
-    "month": "Miesiąc",
+    "period": "Okres",
+    "openingBalance": "Saldo Początkowe",
     "payment": "Płatność",
     "principal": "Kapitał",
     "interest": "Odsetki",
-    "balance": "Saldo",
+    "closingBalance": "Saldo Końcowe",
     "totalPaid": "Łącznie Zapłacono",
-    "remaining": "Pozostało",
+    "remaining": "Do Spłaty",
+    "interestPaid": "Zapłacone Odsetki",
     "page": "Strona",
     "of": "z",
     "previous": "Poprzednia",
     "next": "Następna",
     "charts": "Wykresy",
-    "repaymentBreakdown": "Podział Spłat",
-    "loanBreakdown": "Podział Kredytu",
+    "schedule": "Harmonogram",
+    "repaymentBreakdown": "Prognoza Spłat",
+    "loanBreakdown": "Podział Kredytu (%)",
     "cumulativePayments": "Łączne Płatności"
   },
   "saved": {
@@ -96,13 +103,28 @@
     "title": "O Aplikacji",
     "formula": "Jak To Działa",
     "formulaDesc": "LoanBee używa standardowego wzoru rentowego do obliczania rat miesięcznych:",
-    "formulaEquation": "M = P × [r(1+r)ⁿ] / [(1+r)ⁿ−1]",
+    "formulaEquation": "A = P × [r(1+r)ⁿ] / [(1+r)ⁿ−1]",
     "variables": "Gdzie:",
-    "varM": "M = Rata miesięczna",
+    "varA": "A = Rata miesięczna",
     "varP": "P = Kapitał (kwota kredytu po wkładzie własnym)",
     "varR": "r = Miesięczna stopa procentowa (roczna ÷ 12)",
     "varN": "n = Łączna liczba płatności (okres w miesiącach)",
-    "disclaimer": "Ten kalkulator służy wyłącznie celom informacyjnym. Zawsze skonsultuj się z wykwalifikowanym doradcą finansowym przed podjęciem decyzji o pożyczce."
+    "disclaimer": "Ten kalkulator służy wyłącznie celom informacyjnym. Zawsze skonsultuj się z wykwalifikowanym doradcą finansowym przed podjęciem decyzji o pożyczce.",
+    "faqTitle": "Najczęściej Zadawane Pytania",
+    "faqItems": [
+      {
+        "q": "Czym jest amortyzacja kredytu?",
+        "a": "Amortyzacja kredytu to spłata zobowiązania w regularnych ratach, które stopniowo zmniejszają saldo. Każda rata zwykle obejmuje kapitał i odsetki."
+      },
+      {
+        "q": "Czy mogę uwzględnić nadpłaty?",
+        "a": "Tak. Możesz dodać dodatkową miesięczną spłatę, aby zobaczyć, jak może skrócić okres kredytu i obniżyć łączny koszt odsetek."
+      },
+      {
+        "q": "Jakie są dwa tryby kalkulatora?",
+        "a": "Tryb według okresu oblicza ratę z długości kredytu. Tryb według raty oblicza przewidywany czas spłaty z docelowej miesięcznej płatności."
+      }
+    ]
   },
   "settings": {
     "title": "Ustawienia",
@@ -113,6 +135,11 @@
     "privacyPolicy": "Polityka Prywatności"
   },
   "disclaimer": {
+    "label": "Zastrzeżenie:",
+    "shortText": "Wyniki są szacunkowe i nie stanowią porady finansowej.",
+    "fullText": "Ta aplikacja udostępnia ogólne informacje i narzędzia obliczeniowe wyłącznie w celach edukacyjnych. Nic w aplikacji nie stanowi porady finansowej, prawnej, podatkowej ani inwestycyjnej. Wszystkie obliczenia i przykłady są orientacyjne i mogą nie odzwierciedlać Twojej sytuacji. Przed podjęciem decyzji finansowych skonsultuj się z wykwalifikowanym doradcą finansowym. The Tech Narrative Ltd. nie ponosi odpowiedzialności za decyzje podjęte na podstawie informacji lub narzędzi udostępnionych w aplikacji.",
+    "more": "[Więcej]",
+    "less": "[Mniej]",
     "text": "Wyłącznie do celów informacyjnych. Nie jest poradą finansową."
   },
   "errors": {

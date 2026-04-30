@@ -15,11 +15,16 @@ interface Props {
 export const LoanBreakdownDonut = ({ principal, totalInterest, currency }: Props) => {
   const { t } = useTranslation();
   const total = principal + totalInterest;
-  const interestPct = total > 0 ? ((totalInterest / total) * 100).toFixed(1) : '0';
+  const formatPct = (value: number) => {
+    const rounded = Number(value.toFixed(1));
+    return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  };
+  const principalPct = total > 0 ? formatPct((principal / total) * 100) : '0';
+  const interestPct = total > 0 ? formatPct((totalInterest / total) * 100) : '0';
 
   const data = [
-    { value: principal, color: colours.primary },
-    { value: totalInterest, color: colours.accent },
+    { value: principal, color: colours.primary, gradientCenterColor: colours.primaryDark },
+    { value: totalInterest, color: colours.accent, gradientCenterColor: colours.teal },
   ];
 
   return (
@@ -27,31 +32,40 @@ export const LoanBreakdownDonut = ({ principal, totalInterest, currency }: Props
       <PieChart
         data={data}
         donut
-        radius={80}
-        innerRadius={52}
+        radius={88}
+        innerRadius={58}
+        innerCircleColor={colours.white}
+        innerCircleBorderWidth={1}
+        innerCircleBorderColor={colours.border}
+        showGradient
+        curvedStartEdges
+        curvedEndEdges
+        edgesRadius={8}
         centerLabelComponent={() => (
           <View style={styles.center}>
-            <Text style={styles.centerPct}>{interestPct}%</Text>
-            <Text style={styles.centerLabel}>{t('results.interest')}</Text>
+            <Text style={styles.centerPct}>{principalPct}/{interestPct}</Text>
+            <Text style={styles.centerLabel}>{t('results.principal')}/{t('results.interest')}</Text>
           </View>
         )}
-        strokeColor={colours.background}
-        strokeWidth={2}
+        strokeColor={colours.white}
+        strokeWidth={4}
         isAnimated
       />
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.dot, { backgroundColor: colours.primary }]} />
-          <View>
+          <View style={styles.legendCopy}>
             <Text style={styles.legendLabel}>{t('results.principal')}</Text>
             <Text style={styles.legendValue}>{formatCurrency(principal, currency)}</Text>
+            <Text style={styles.legendMeta}>{principalPct}%</Text>
           </View>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.dot, { backgroundColor: colours.accent }]} />
-          <View>
+          <View style={styles.legendCopy}>
             <Text style={styles.legendLabel}>{t('results.interest')}</Text>
             <Text style={styles.legendValue}>{formatCurrency(totalInterest, currency)}</Text>
+            <Text style={styles.legendMeta}>{interestPct}%</Text>
           </View>
         </View>
       </View>
@@ -60,36 +74,57 @@ export const LoanBreakdownDonut = ({ principal, totalInterest, currency }: Props
 };
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', paddingVertical: 8 },
+  container: { alignItems: 'center', paddingTop: 6, paddingBottom: 2 },
   center: { alignItems: 'center' },
   centerPct: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colours.textPrimary,
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.extrabold,
+    color: colours.primary,
   },
   centerLabel: {
     fontFamily: fonts.body,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.tiny,
     color: colours.textSecondary,
+    marginTop: 2,
   },
   legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 24,
-    marginTop: 12,
+    alignSelf: 'stretch',
+    marginTop: 16,
+    gap: 10,
   },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: 12,
+    padding: 12,
+  },
   dot: { width: 12, height: 12, borderRadius: 6 },
+  legendCopy: {
+    flex: 1,
+  },
   legendLabel: {
-    fontFamily: fonts.body,
+    fontFamily: fonts.heading,
     fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
+    textTransform: 'uppercase',
   },
   legendValue: {
     fontFamily: fonts.heading,
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
+    marginTop: 2,
+  },
+  legendMeta: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colours.primary,
+    marginTop: 2,
   },
 });

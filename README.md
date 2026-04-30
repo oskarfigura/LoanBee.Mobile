@@ -65,6 +65,9 @@ __tests__/
 
 ## Getting Started
 
+This app cannot run in Expo Go because it uses native modules (`react-native-mmkv` and
+`react-native-google-mobile-ads`). Use local native builds from this machine.
+
 ```bash
 npm install
 npm test          # run all 63 tests
@@ -72,13 +75,142 @@ npm run android   # build & run on connected Android device or emulator (expo ru
 npm run ios       # build & run on connected iOS device or simulator (expo run:ios)
 ```
 
-Requires Android Studio + SDK (for Android) or Xcode (for iOS). The app uses native modules
-(`react-native-mmkv`, `react-native-google-mobile-ads`) that are incompatible with Expo Go —
-always use a local build or an EAS development build.
+## Local Development Prerequisites
+
+You do not need a paid Expo plan or EAS cloud build to develop, run, or create native builds locally.
+You do need the normal platform toolchains:
+
+| Platform | Required locally |
+|---|---|
+| Both | Node.js, npm, Git |
+| Android | Android Studio, Android SDK, Android emulator or USB debugging device, JDK compatible with Android Gradle |
+| iOS | macOS, Xcode, Xcode Command Line Tools, CocoaPods, iOS simulator or signed physical device |
+
+Recommended first-time setup:
+
+```bash
+npm install
+cd ios && pod install && cd ..   # iOS only, also re-run after native dependency changes
+npm run typecheck
+npm test
+```
+
+## Running Locally
+
+Start from local native builds, not Expo Go:
+
+```bash
+npm run android   # Gradle build, install, and start on Android emulator/device
+npm run ios       # Xcode build, install, and start on iOS simulator/device
+```
+
+Metro will hot-reload most JavaScript-only changes after the app is installed. Re-run the full
+platform command after native changes, app config changes, dependency changes, icon/splash updates,
+or anything inside `ios/` or `android/`.
+
+If Metro is already running and the app is installed, you can also run:
+
+```bash
+npm start
+```
+
+Use `npm start -- --clear` or `npx expo start -c` when Metro appears stale.
+
+## Building Android Locally Without EAS
+
+For a debug install:
+
+```bash
+npm run android
+```
+
+For local Android build artifacts:
+
+```bash
+cd android
+./gradlew assembleRelease   # APK: android/app/build/outputs/apk/release/
+./gradlew bundleRelease     # AAB: android/app/build/outputs/bundle/release/
+```
+
+Important Android notes:
+
+- `app.config.js` and `android/app/build.gradle` both currently use package/application ID
+  `com.cactus.loancalculator.free`; do not change it for Play Store updates.
+- `versionCode` is currently `24`; increment it before a production Play Store upload.
+- The checked-in Gradle release config currently signs `release` with the debug keystore. That is
+  fine for local smoke testing, but Play Store production builds need a real release keystore/signing
+  configuration before upload.
+- Production AdMob IDs come from environment variables. If unset, Google test IDs are used.
+
+## Building iOS Locally Without EAS
+
+For a simulator run:
+
+```bash
+npm run ios
+```
+
+For a local archive/IPA workflow:
+
+1. Install pods:
+   ```bash
+   cd ios && pod install && cd ..
+   ```
+2. Open `ios/LoanBee.xcworkspace` in Xcode.
+3. Select the `LoanBee` scheme.
+4. Choose a simulator for local testing, or a real device/team for signed device builds.
+5. Use **Product > Archive** for a distributable archive.
+
+Important iOS notes:
+
+- Local simulator builds do not require paying Expo.
+- Device, TestFlight, and App Store distribution require Apple signing and the usual Apple Developer
+  Program access; that cost is Apple’s, not Expo’s.
+- The bundle ID is `com.thetechnarrative.loanbee`.
+- Re-run `pod install` after native dependency changes or after regenerating native project files.
+
+## Native Build Quirks and Cache Reset
+
+When local builds behave strangely, clear the narrowest stale layer first:
+
+```bash
+npx expo start -c
+```
+
+If Android is stale:
+
+```bash
+cd android
+./gradlew clean
+cd ..
+npm run android
+```
+
+If iOS is stale:
+
+```bash
+cd ios
+pod install
+cd ..
+npm run ios
+```
+
+If Xcode still seems stuck, use **Product > Clean Build Folder** in Xcode and delete this app’s
+DerivedData folder from Xcode settings or Finder. Avoid deleting tracked files unless you intend to
+regenerate them.
+
+Common situations that require a full native rebuild:
+
+- Adding/removing native dependencies
+- Changing `app.config.js`, bundle IDs, package IDs, permissions, icons, or splash assets
+- Updating pods or Gradle files
+- Changing AdMob native app IDs
+- Pulling changes that modify `ios/`, `android/`, `package-lock.json`, or native assets
 
 ## Environment Variables
 
-Set these before an EAS production build — test IDs are used automatically when unset or in dev mode.
+Set these before any production-style build, whether local or EAS. Test IDs are used automatically
+when unset or in dev mode.
 
 | Variable | Purpose |
 |---|---|
@@ -89,7 +221,8 @@ Set these before an EAS production build — test IDs are used automatically whe
 
 ## EAS Builds
 
-Used for preview and production releases only. Local development runs via `npm run android` / `npm run ios`.
+EAS is optional and used here for preview/production cloud builds only. Local development and local
+native artifacts do not require EAS or a paid Expo plan.
 
 ```bash
 # Install EAS CLI once
@@ -101,6 +234,9 @@ eas build --profile preview --platform android
 # Production AAB (Play Store / App Store)
 eas build --profile production
 ```
+
+Before production, verify Android `versionCode` is higher than the Play Store production release.
+For local production-style builds, use the Gradle/Xcode workflows above instead of EAS.
 
 ## Store Configuration
 

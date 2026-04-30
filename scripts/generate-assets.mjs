@@ -52,6 +52,16 @@ function makeSvg(size, padding, bgColor, fgColor) {
 </svg>`);
 }
 
+function makeLogoSvg(size, padding, fgColor) {
+  const padRatio = padding / size;
+  const inner = size * (1 - 2 * padRatio);
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  <g transform="translate(${padding},${padding}) scale(${inner / 512})">
+    <g fill="${fgColor}">${beePaths}</g>
+  </g>
+</svg>`);
+}
+
 async function generate() {
   mkdirSync(join(root, 'assets'), { recursive: true });
 
@@ -68,8 +78,14 @@ async function generate() {
     .toFile(join(root, 'assets', 'adaptive-icon.png'));
   console.log('adaptive-icon.png done');
 
-  // splash-icon.png — 200×200 (Expo splash resizeMode: contain, so any size works)
-  await sharp(makeSvg(200, 30, NAVY, WHITE))
+  // bee-logo.png — transparent white bee used by both the in-app header and splash screen
+  await sharp(makeLogoSvg(200, 24, WHITE))
+    .png()
+    .toFile(join(root, 'assets', 'bee-logo.png'));
+  console.log('bee-logo.png done');
+
+  // splash-icon.png — kept as a compatibility alias for older references
+  await sharp(makeLogoSvg(200, 24, WHITE))
     .png()
     .toFile(join(root, 'assets', 'splash-icon.png'));
   console.log('splash-icon.png done');
@@ -79,6 +95,53 @@ async function generate() {
     .png()
     .toFile(join(root, 'assets', 'favicon.png'));
   console.log('favicon.png done');
+
+  await sharp(makeSvg(1024, 185, NAVY, WHITE))
+    .png()
+    .toFile(join(root, 'ios/LoanBee/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png'));
+  console.log('iOS app icon done');
+
+  for (const scale of [1, 2, 3]) {
+    const filename = scale === 1 ? 'image.png' : `image@${scale}x.png`;
+    await sharp(makeLogoSvg(200 * scale, 24 * scale, WHITE))
+      .png()
+      .toFile(join(root, 'ios/LoanBee/Images.xcassets/SplashScreenLogo.imageset', filename));
+  }
+  console.log('iOS splash images done');
+
+  const splashSizes = [
+    ['drawable-mdpi', 288],
+    ['drawable-hdpi', 432],
+    ['drawable-xhdpi', 576],
+    ['drawable-xxhdpi', 864],
+    ['drawable-xxxhdpi', 1152],
+  ];
+  for (const [dir, size] of splashSizes) {
+    await sharp(makeLogoSvg(size, Math.round(size * 0.12), WHITE))
+      .png()
+      .toFile(join(root, `android/app/src/main/res/${dir}/splashscreen_logo.png`));
+  }
+  console.log('Android splash images done');
+
+  const launcherSizes = [
+    ['mipmap-mdpi', 48, 108],
+    ['mipmap-hdpi', 72, 162],
+    ['mipmap-xhdpi', 96, 216],
+    ['mipmap-xxhdpi', 144, 324],
+    ['mipmap-xxxhdpi', 192, 432],
+  ];
+  for (const [dir, iconSize, foregroundSize] of launcherSizes) {
+    await sharp(makeSvg(iconSize, Math.round(iconSize * 0.18), NAVY, WHITE))
+      .webp({ lossless: true })
+      .toFile(join(root, `android/app/src/main/res/${dir}/ic_launcher.webp`));
+    await sharp(makeSvg(iconSize, Math.round(iconSize * 0.18), NAVY, WHITE))
+      .webp({ lossless: true })
+      .toFile(join(root, `android/app/src/main/res/${dir}/ic_launcher_round.webp`));
+    await sharp(makeSvg(foregroundSize, Math.round(foregroundSize * 0.22), NAVY, WHITE))
+      .webp({ lossless: true })
+      .toFile(join(root, `android/app/src/main/res/${dir}/ic_launcher_foreground.webp`));
+  }
+  console.log('Android launcher icons done');
 }
 
 generate().catch(err => { console.error(err); process.exit(1); });

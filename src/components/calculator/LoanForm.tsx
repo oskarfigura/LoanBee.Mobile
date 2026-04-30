@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useLoanCalculatorForm';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { DownPaymentType } from '@/core/DownPaymentType';
+import { CURRENCIES } from '@/currency/currencies';
 import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { Button } from '@/components/ui/Button';
 import { DownPaymentToggle } from './DownPaymentToggle';
@@ -28,19 +29,33 @@ const Label = ({ children }: { children: string }) => (
   <Text style={styles.label}>{children}</Text>
 );
 
+const fieldValue = (value: unknown) => (
+  value === undefined || value === null ? '' : String(value)
+);
+
 export const LoanForm = ({ form, onSubmit }: Props) => {
   const { t } = useTranslation();
   const { control, handleSubmit, watch, setValue, formState: { errors } } = form;
   const calculationType = watch('calculationType');
   const downPaymentType = watch('downPaymentType') as DownPaymentType;
+  const currency = watch('currency');
+  const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const startDateStr = watch('startDate');
   const startDate = startDateStr ? new Date(startDateStr) : new Date();
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.keyboardView}
+    >
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.container}
+      >
         {/* Loan Amount */}
         <Label>{t('calculator.loanAmount')}</Label>
         <Controller
@@ -52,7 +67,7 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
               keyboardType="decimal-pad"
               placeholder={t('calculator.loanAmountPlaceholder')}
               placeholderTextColor={colours.textSecondary}
-              value={field.value ? String(field.value) : ''}
+              value={fieldValue(field.value)}
               onChangeText={field.onChange}
               onBlur={field.onBlur}
             />
@@ -71,7 +86,7 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
               keyboardType="decimal-pad"
               placeholder={t('calculator.interestPlaceholder')}
               placeholderTextColor={colours.textSecondary}
-              value={field.value ? String(field.value) : ''}
+              value={fieldValue(field.value)}
               onChangeText={field.onChange}
               onBlur={field.onBlur}
             />
@@ -80,30 +95,35 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
         <FieldError message={errors.interest?.message} />
 
         {/* Down Payment */}
-        <View style={styles.row}>
-          <View style={styles.flex}>
-            <Label>{t('calculator.downPayment')}</Label>
+        <Label>{t('calculator.downPayment')}</Label>
+        <View style={styles.downPaymentRow}>
+          <View style={styles.downPaymentInput}>
+            <Controller
+              control={control}
+              name="downPayment"
+              render={({ field }) => (
+                <TextInput
+                  style={[styles.input, errors.downPayment && styles.inputError]}
+                  keyboardType="decimal-pad"
+                  placeholder={t('calculator.downPaymentPlaceholder')}
+                  placeholderTextColor={colours.textSecondary}
+                  value={fieldValue(field.value)}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
           </View>
           <DownPaymentToggle
             value={downPaymentType}
-            onChange={v => setValue('downPaymentType', v)}
+            currencySymbol={currencySymbol}
+            onChange={v => setValue('downPaymentType', v, {
+              shouldDirty: true,
+              shouldTouch: true,
+              shouldValidate: true,
+            })}
           />
         </View>
-        <Controller
-          control={control}
-          name="downPayment"
-          render={({ field }) => (
-            <TextInput
-              style={[styles.input, errors.downPayment && styles.inputError]}
-              keyboardType="decimal-pad"
-              placeholder={t('calculator.downPaymentPlaceholder')}
-              placeholderTextColor={colours.textSecondary}
-              value={field.value ? String(field.value) : ''}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
-            />
-          )}
-        />
         <FieldError message={errors.downPayment?.message} />
 
         {/* Start Date */}
@@ -142,6 +162,11 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
             </TouchableOpacity>
           ))}
         </View>
+        <Text style={styles.modeHelp}>
+          {calculationType === LoanCalculationType.TERM
+            ? t('calculator.modeTermHelp')
+            : t('calculator.modePaymentHelp')}
+        </Text>
 
         {/* Term fields */}
         {calculationType === LoanCalculationType.TERM && (
@@ -158,7 +183,7 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
                       keyboardType="number-pad"
                       placeholder="0"
                       placeholderTextColor={colours.textSecondary}
-                      value={field.value ? String(field.value) : ''}
+                      value={fieldValue(field.value)}
                       onChangeText={field.onChange}
                       onBlur={field.onBlur}
                     />
@@ -176,7 +201,7 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
                       keyboardType="number-pad"
                       placeholder="0"
                       placeholderTextColor={colours.textSecondary}
-                      value={field.value ? String(field.value) : ''}
+                      value={fieldValue(field.value)}
                       onChangeText={field.onChange}
                       onBlur={field.onBlur}
                     />
@@ -196,7 +221,7 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
                   keyboardType="decimal-pad"
                   placeholder={t('calculator.additionalPaymentPlaceholder')}
                   placeholderTextColor={colours.textSecondary}
-                  value={field.value ? String(field.value) : ''}
+                  value={fieldValue(field.value)}
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                 />
@@ -219,7 +244,7 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
                   keyboardType="decimal-pad"
                   placeholder={t('calculator.desiredPaymentPlaceholder')}
                   placeholderTextColor={colours.textSecondary}
-                  value={field.value ? String(field.value) : ''}
+                  value={fieldValue(field.value)}
                   onChangeText={field.onChange}
                   onBlur={field.onBlur}
                 />
@@ -240,9 +265,15 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
 };
 
 const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
   container: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 32,
   },
   label: {
     fontFamily: fonts.heading,
@@ -278,12 +309,12 @@ const styles = StyleSheet.create({
     color: colours.error,
     marginTop: 4,
   },
-  row: {
+  downPaymentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    gap: 12,
   },
-  flex: { flex: 1 },
+  downPaymentInput: { flex: 1 },
   modeRow: {
     flexDirection: 'row',
     backgroundColor: colours.surface,
@@ -293,6 +324,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 16,
     height: 44,
+  },
+  modeHelp: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colours.textSecondary,
+    lineHeight: 20,
+    marginTop: 10,
   },
   modeBtn: {
     flex: 1,
