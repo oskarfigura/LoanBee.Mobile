@@ -9,7 +9,7 @@ export const BannerAd = () => (
     <Text style={styles.label}>Advertisement</Text>
     <GoogleBannerAd
       unitId={AD_UNITS.banner}
-      size={BannerAdSize.ADAPTIVE_BANNER}
+      size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
       requestOptions={{ requestNonPersonalizedAdsOnly: true }}
     />
   </View>

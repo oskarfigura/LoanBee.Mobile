@@ -13,6 +13,10 @@ class MockMMKV {
     this.store.delete(key);
   }
 
+  remove(key: string): boolean {
+    return this.store.delete(key);
+  }
+
   contains(key: string): boolean {
     return this.store.has(key);
   }

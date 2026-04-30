@@ -45,6 +45,6 @@ export const savedLoansStorage = {
   },
 
   clear(): void {
-    storage.delete(STORAGE_KEYS.SAVED_LOANS);
+    storage.remove(STORAGE_KEYS.SAVED_LOANS);
   },
 };

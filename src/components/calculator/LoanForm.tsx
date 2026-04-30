@@ -6,7 +6,10 @@ import {
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
+import {
+  LoanCalculatorFormInputValues,
+  LoanCalculatorFormValues,
+} from '@/hooks/useLoanCalculatorForm';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { DownPaymentType } from '@/core/DownPaymentType';
 import { CurrencyCode } from '@/currency/currencies';
@@ -16,7 +19,7 @@ import { CurrencyPicker } from './CurrencyPicker';
 import { DownPaymentToggle } from './DownPaymentToggle';
 
 interface Props {
-  form: UseFormReturn<LoanCalculatorFormValues>;
+  form: UseFormReturn<LoanCalculatorFormInputValues, undefined, LoanCalculatorFormValues>;
   onSubmit: (values: LoanCalculatorFormValues) => void;
 }
 

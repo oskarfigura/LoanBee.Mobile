@@ -98,7 +98,8 @@ const schema = z.object({
   }
 });
 
-export type LoanCalculatorFormValues = z.infer<typeof schema>;
+export type LoanCalculatorFormInputValues = z.input<typeof schema>;
+export type LoanCalculatorFormValues = z.output<typeof schema>;
 
 const getDefaultCurrency = (): CurrencyCode => {
   const saved = storage.getString(STORAGE_KEYS.USER_CURRENCY) as CurrencyCode | undefined;
@@ -126,7 +127,7 @@ interface Props {
 }
 
 export const useLoanCalculatorForm = ({ initialValues }: Props = {}) => {
-  const form = useForm<LoanCalculatorFormValues>({
+  const form = useForm<LoanCalculatorFormInputValues, undefined, LoanCalculatorFormValues>({
     defaultValues: { ...defaultValues, ...initialValues },
     resolver: zodResolver(schema),
     reValidateMode: 'onChange',
@@ -137,8 +138,8 @@ export const useLoanCalculatorForm = ({ initialValues }: Props = {}) => {
 
   useEffect(() => {
     if (calculationType === LoanCalculationType.TERM) {
-      const years = form.getValues('termInYears');
-      const months = form.getValues('termInMonths');
+      const years = Number(form.getValues('termInYears'));
+      const months = Number(form.getValues('termInMonths'));
       if (years === 0 && months === 0) {
         form.trigger(['termInYears', 'termInMonths']);
       }
