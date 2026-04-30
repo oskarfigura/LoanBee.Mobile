@@ -101,7 +101,7 @@ const schema = z.object({
 export type LoanCalculatorFormInputValues = z.input<typeof schema>;
 export type LoanCalculatorFormValues = z.output<typeof schema>;
 
-const getDefaultCurrency = (): CurrencyCode => {
+export const getDefaultCurrency = (): CurrencyCode => {
   const saved = storage.getString(STORAGE_KEYS.USER_CURRENCY) as CurrencyCode | undefined;
   if (saved) return saved;
   const locale = getLocales()[0]?.languageCode ?? 'en';

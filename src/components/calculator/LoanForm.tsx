@@ -12,10 +12,8 @@ import {
 } from '@/hooks/useLoanCalculatorForm';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { DownPaymentType } from '@/core/DownPaymentType';
-import { CurrencyCode } from '@/currency/currencies';
 import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { Button } from '@/components/ui/Button';
-import { CurrencyPicker } from './CurrencyPicker';
 import { DownPaymentToggle } from './DownPaymentToggle';
 
 interface Props {
@@ -35,7 +33,6 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
   const { control, handleSubmit, watch, setValue, formState: { errors } } = form;
   const calculationType = watch('calculationType');
   const downPaymentType = watch('downPaymentType') as DownPaymentType;
-  const currency = watch('currency') as CurrencyCode;
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const startDateStr = watch('startDate');
@@ -44,14 +41,6 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
-
-        {/* Currency Picker */}
-        <Label>{t('calculator.currency')}</Label>
-        <CurrencyPicker
-          value={currency}
-          onChange={v => setValue('currency', v)}
-        />
-
         {/* Loan Amount */}
         <Label>{t('calculator.loanAmount')}</Label>
         <Controller

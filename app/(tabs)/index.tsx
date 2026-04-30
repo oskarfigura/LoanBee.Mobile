@@ -1,8 +1,12 @@
-import React from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useLoanCalculatorForm, LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
+import {
+  getDefaultCurrency,
+  useLoanCalculatorForm,
+  LoanCalculatorFormValues,
+} from '@/hooks/useLoanCalculatorForm';
 import { getLoanCalculations } from '@/core/amortisation';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { DownPaymentType } from '@/core/DownPaymentType';
@@ -16,6 +20,16 @@ export default function CalculatorScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const form = useLoanCalculatorForm();
+
+  useFocusEffect(
+    useCallback(() => {
+      form.setValue('currency', getDefaultCurrency(), {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+    }, [form])
+  );
 
   const handleSubmit = (values: LoanCalculatorFormValues) => {
     const result = getLoanCalculations(

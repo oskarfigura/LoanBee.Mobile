@@ -57,16 +57,7 @@ export default function RootLayout() {
           <AdProvider>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="calculator/result"
-                options={{
-                  headerShown: true,
-                  title: i18n.t('results.title'),
-                  headerStyle,
-                  headerTintColor: colours.white,
-                  presentation: 'modal',
-                }}
-              />
+              <Stack.Screen name="calculator" />
               <Stack.Screen
                 name="saved/new"
                 options={{
