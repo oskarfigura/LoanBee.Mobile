@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +16,7 @@ import { monthsBetween } from '@/utils/date';
 import { buildSavedLoanResultParams } from '@/results/loanResultRoute';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MortgageGroupDetail } from '@/components/loans/MortgageGroupDetail';
-import { PinIcon } from '@/components/loans/LoanIcons';
+import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
 
 export default function LoanDetailScreen() {
   const { t } = useTranslation();
@@ -128,18 +128,14 @@ export default function LoanDetailScreen() {
             <Text style={styles.nickname}>{loan.nickname}</Text>
             {loan.lender && <Text style={styles.lender}>{loan.lender}</Text>}
           </View>
-          <TouchableOpacity
-            style={styles.pinPill}
+          <DashboardPinButton
+            pinned={loan.pinnedToDashboard}
             onPress={() => {
               savedLoansStorage.togglePinned(loan.id);
               refresh();
             }}
-          >
-            <PinIcon color={colours.primary} size={14} />
-            <Text style={styles.pinText}>
-              {loan.pinnedToDashboard ? t('mortgage.pinned') : t('mortgage.pinToDashboard')}
-            </Text>
-          </TouchableOpacity>
+            style={styles.pinButton}
+          />
         </View>
 
         <ResultsSummary
@@ -204,6 +200,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   titleCopy: { flex: 1 },
+  pinButton: {
+    marginBottom: 0,
+    marginTop: 4,
+  },
   nickname: {
     fontFamily: fonts.heading,
     fontSize: fontSizes['2xl'],
@@ -215,24 +215,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.base,
     color: colours.textSecondary,
     marginTop: 2,
-  },
-  pinPill: {
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colours.border,
-    paddingHorizontal: 12,
-    backgroundColor: colours.surface,
-  },
-  pinText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colours.primary,
   },
   progressCard: { marginBottom: 12 },
   sectionTitle: {

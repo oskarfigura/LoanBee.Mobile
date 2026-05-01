@@ -12,8 +12,11 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useTranslation } from 'react-i18next';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { ResultsSummary } from '@/components/calculator/ResultsSummary';
 import { AmortisationTable } from '@/components/calculator/AmortisationTable';
+import { buildAmortisationCsv } from '@/components/calculator/amortisationTableUtils';
 import { RepaymentBarChart } from '@/components/charts/RepaymentBarChart';
 import { LoanBreakdownDonut } from '@/components/charts/LoanBreakdownDonut';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
@@ -74,7 +77,7 @@ const ShareIcon = ({ color }: { color: string }) => (
 );
 
 export default function ResultScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const navigation = useNavigation();
   const params = useLocalSearchParams<ResultParams>();
@@ -100,6 +103,7 @@ export default function ResultScreen() {
   const currency = ((savedLoan?.currency ?? params.currency) as CurrencyCode | undefined) ?? 'GBP';
   const [activeTab, setActiveTab] = useState<ResultTab>('summary');
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
 
   useEffect(() => {
     if (isSavedMode || !result || recordedReviewActionRef.current) return;
@@ -168,6 +172,53 @@ export default function ResultScreen() {
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
+
+  const handleExportCsv = useCallback(async () => {
+    if (!result || !formValues || isExportingCsv) return;
+
+    setIsExportingCsv(true);
+
+    try {
+      const csvContent = buildAmortisationCsv({
+        items: result.tableItems,
+        startDate: String(formValues.startDate),
+        language: i18n.language,
+        headers: {
+          period: t('results.period'),
+          openingBalance: t('results.openingBalance'),
+          principal: t('results.principal'),
+          interest: t('results.interest'),
+          closingBalance: t('results.closingBalance'),
+        },
+      });
+
+      const sharingAvailable = await Sharing.isAvailableAsync();
+      if (!sharingAvailable) {
+        await Share.share({
+          title: t('results.exportCsv'),
+          message: csvContent,
+        });
+        return;
+      }
+
+      const exportsDirectory = Paths.cache;
+      const fileName = `loanbee-amortisation-${new Date().toISOString().slice(0, 10)}.csv`;
+      const file = new File(exportsDirectory, fileName);
+
+      file.create({ intermediates: true, overwrite: true });
+      file.write(csvContent);
+
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'text/csv',
+        UTI: 'public.comma-separated-values-text',
+        dialogTitle: t('results.exportCsv'),
+      });
+    } catch {
+      Alert.alert(t('results.exportErrorTitle'), t('results.exportErrorMessage'));
+    } finally {
+      setIsExportingCsv(false);
+    }
+  }, [formValues, i18n.language, isExportingCsv, result, t]);
 
   const confirmLeave = useCallback((continueNavigation: () => void) => {
     pendingLeaveRef.current = continueNavigation;
@@ -343,8 +394,19 @@ export default function ResultScreen() {
 
         {activeTab === 'schedule' && (
           <Card style={[styles.chartCard, styles.scheduleCard]}>
-            <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>{t('results.amortisationTable')}</Text>
+            <View style={[styles.chartHeader, styles.scheduleHeader]}>
+              <Text style={[styles.chartTitle, styles.scheduleTitle]}>{t('results.amortisationTable')}</Text>
+              <TouchableOpacity
+                style={[styles.exportButton, isExportingCsv && styles.exportButtonDisabled]}
+                onPress={handleExportCsv}
+                disabled={isExportingCsv}
+                accessibilityRole="button"
+                activeOpacity={0.8}
+              >
+                <Text style={styles.exportButtonText}>
+                  {isExportingCsv ? t('results.exportingCsv') : t('results.exportCsv')}
+                </Text>
+              </TouchableOpacity>
             </View>
             <AmortisationTable
               items={result.tableItems}
@@ -450,6 +512,12 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     marginBottom: 12,
   },
+  scheduleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
   chartTitle: {
     fontFamily: fonts.heading,
     fontSize: fontSizes.md,
@@ -457,6 +525,30 @@ const styles = StyleSheet.create({
     color: colours.textSecondary,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
+  },
+  scheduleTitle: {
+    flex: 1,
+  },
+  exportButton: {
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  exportButtonDisabled: {
+    opacity: 0.6,
+  },
+  exportButtonText: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
+    color: colours.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   scheduleCard: {
     paddingBottom: 8,

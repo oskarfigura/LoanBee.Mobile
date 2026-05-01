@@ -70,7 +70,11 @@
     "save": "Zapisz",
     "saved": "Zapisano",
     "newCalculation": "Nowe obliczenie",
-    "notFound": "Nie znaleziono wyniku"
+    "notFound": "Nie znaleziono wyniku",
+    "exportCsv": "Eksport CSV",
+    "exportingCsv": "Eksportowanie...",
+    "exportErrorTitle": "Nie udało się wyeksportować CSV",
+    "exportErrorMessage": "Spróbuj ponownie wyeksportować harmonogram spłat."
   },
   "saved": {
     "title": "Zapisane Kredyty",
@@ -191,6 +195,8 @@
     "backToDashboard": "Wróć do panelu",
     "pinToDashboard": "Przypnij do panelu",
     "pinned": "Przypięte",
+    "pinnedToDashboard": "Przypięte do panelu",
+    "unpinHint": "Widoczne na ekranie Start. Dotknij, aby odpiąć.",
     "currentBalance": "Aktualne Saldo",
     "balancePaid": "{{percent}}% salda spłacone",
     "balancePaidShort": "Spłacone saldo",

@@ -70,7 +70,11 @@
     "save": "Save",
     "saved": "Saved",
     "newCalculation": "New calculation",
-    "notFound": "Result not found"
+    "notFound": "Result not found",
+    "exportCsv": "Export CSV",
+    "exportingCsv": "Exporting...",
+    "exportErrorTitle": "Could not export CSV",
+    "exportErrorMessage": "Please try exporting the amortisation schedule again."
   },
   "saved": {
     "title": "Saved Loans",
@@ -203,6 +207,8 @@
     "backToDashboard": "Back to dashboard",
     "pinToDashboard": "Pin to dashboard",
     "pinned": "Pinned",
+    "pinnedToDashboard": "Pinned to dashboard",
+    "unpinHint": "Visible on your Home dashboard. Tap to unpin.",
     "currentBalance": "Current Balance",
     "balancePaid": "{{percent}}% balance paid",
     "balancePaidShort": "Balance paid",

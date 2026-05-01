@@ -5,55 +5,58 @@ import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { formatCurrency } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 import { clampPage, getPaginationWindow } from './pagination';
-
-interface TableItem {
-  itemNo: number;
-  remaining: string;
-  principal: string;
-  interest: string;
-  ending: string;
-}
+import {
+  AmortisationTableItem,
+  formatAmortisationPeriodLabel,
+} from './amortisationTableUtils';
 
 interface Props {
-  items: TableItem[];
+  items: AmortisationTableItem[];
   startDate: string;
   currency: CurrencyCode;
   pageSize?: number;
 }
 
-const formatPeriodLabel = (startDate: string, periodNumber: number, language: string) => {
-  const date = new Date(startDate);
-  if (Number.isNaN(date.getTime())) return String(periodNumber);
-
-  date.setMonth(date.getMonth() + periodNumber - 1);
-
-  return date.toLocaleDateString(language === 'pl' ? 'pl-PL' : 'en-GB', {
-    month: 'short',
-    year: 'numeric',
-  });
-};
-
 export const AmortisationTable = ({ items, startDate, currency, pageSize = 12 }: Props) => {
   const { t, i18n } = useTranslation();
   const [page, setPage] = useState(0);
+  const [isPagePickerOpen, setIsPagePickerOpen] = useState(false);
   const totalPages = Math.ceil(items.length / pageSize);
   const safePage = clampPage(page, totalPages);
   const pageItems = items.slice(safePage * pageSize, (safePage + 1) * pageSize);
-  const pages = getPaginationWindow(safePage, totalPages, 5);
-  const goToPage = (nextPage: number) => setPage(clampPage(nextPage, totalPages));
+  const visiblePages = getPaginationWindow(safePage, totalPages, 5);
+  const goToPage = (nextPage: number) => {
+    setPage(clampPage(nextPage, totalPages));
+    setIsPagePickerOpen(false);
+  };
+  const pageLabel = `${safePage + 1} / ${totalPages}`;
 
   return (
     <View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tableScrollContent}
+      >
+        <View style={styles.table}>
           <View style={styles.headerRow}>
             {[t('results.period'), t('results.openingBalance'), t('results.principal'), t('results.interest'), t('results.closingBalance')].map((h, i) => (
-              <Text key={i} style={[styles.headerCell, i === 0 && styles.indexCell]}>{h}</Text>
+              <Text
+                key={i}
+                style={[
+                  styles.headerCell,
+                  i === 0 ? styles.indexCell : styles.headerNumericCell,
+                ]}
+              >
+                {h}
+              </Text>
             ))}
           </View>
           {pageItems.map((item, i) => (
             <View key={item.itemNo} style={[styles.dataRow, i % 2 === 0 && styles.evenRow]}>
-              <Text style={[styles.cell, styles.indexCell]}>{formatPeriodLabel(startDate, item.itemNo, i18n.language)}</Text>
+              <Text style={[styles.cell, styles.indexCell]}>
+                {formatAmortisationPeriodLabel(startDate, item.itemNo, i18n.language)}
+              </Text>
               <Text style={styles.cell}>{formatCurrency(+item.remaining, currency)}</Text>
               <Text style={styles.cell}>{formatCurrency(+item.principal, currency)}</Text>
               <Text style={styles.cell}>{formatCurrency(+item.interest, currency)}</Text>
@@ -64,57 +67,75 @@ export const AmortisationTable = ({ items, startDate, currency, pageSize = 12 }:
       </ScrollView>
 
       {totalPages > 1 && (
-        <View style={styles.pagination}>
-          <View style={styles.pageJumpRow}>
-            <TouchableOpacity
-              style={[styles.pageBtn, safePage === 0 && styles.pageBtnDisabled]}
-              onPress={() => goToPage(0)}
-              disabled={safePage === 0}
-            >
-              <Text style={styles.pageBtnText}>{t('results.first')}</Text>
-            </TouchableOpacity>
+        <View style={styles.paginationWrap}>
+          <View style={styles.pagination}>
             <TouchableOpacity
               style={[styles.pageBtn, safePage === 0 && styles.pageBtnDisabled]}
               onPress={() => goToPage(safePage - 1)}
               disabled={safePage === 0}
             >
-              <Text style={styles.pageBtnText}>{t('results.previous')}</Text>
+              <Text style={[styles.pageBtnText, safePage === 0 && styles.pageBtnTextDisabled]}>
+                {t('results.previous')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.pageIndicator, isPagePickerOpen && styles.pageIndicatorActive]}
+              onPress={() => setIsPagePickerOpen(current => !current)}
+              accessibilityRole="button"
+              activeOpacity={0.8}
+            >
+              <Text style={styles.pageIndicatorText}>{pageLabel}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.pageBtn, safePage === totalPages - 1 && styles.pageBtnDisabled]}
               onPress={() => goToPage(safePage + 1)}
               disabled={safePage === totalPages - 1}
             >
-              <Text style={styles.pageBtnText}>{t('results.next')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.pageBtn, safePage === totalPages - 1 && styles.pageBtnDisabled]}
-              onPress={() => goToPage(totalPages - 1)}
-              disabled={safePage === totalPages - 1}
-            >
-              <Text style={styles.pageBtnText}>{t('results.last')}</Text>
+              <Text style={[styles.pageBtnText, safePage === totalPages - 1 && styles.pageBtnTextDisabled]}>
+                {t('results.next')}
+              </Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.pageChipRow}>
-            {pages[0] > 0 && <Text style={styles.ellipsis}>...</Text>}
-            {pages.map(pageNumber => (
-              <TouchableOpacity
-                key={pageNumber}
-                style={[styles.pageChip, pageNumber === safePage && styles.pageChipActive]}
-                onPress={() => goToPage(pageNumber)}
-              >
-                <Text style={[styles.pageChipText, pageNumber === safePage && styles.pageChipTextActive]}>
-                  {pageNumber + 1}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            {pages[pages.length - 1] < totalPages - 1 && <Text style={styles.ellipsis}>...</Text>}
-          </View>
-
-          <Text style={styles.pageInfo}>
-            {t('results.page')} {safePage + 1} {t('results.of')} {totalPages}
-          </Text>
+          {isPagePickerOpen && (
+            <View style={styles.pagePicker}>
+              {visiblePages[0] > 0 ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.pageChip}
+                    onPress={() => goToPage(0)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.pageChipText}>1</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pageEllipsis}>...</Text>
+                </>
+              ) : null}
+              {visiblePages.map(pageNumber => (
+                <TouchableOpacity
+                  key={pageNumber}
+                  style={[styles.pageChip, pageNumber === safePage && styles.pageChipActive]}
+                  onPress={() => goToPage(pageNumber)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.pageChipText, pageNumber === safePage && styles.pageChipTextActive]}>
+                    {pageNumber + 1}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              {visiblePages[visiblePages.length - 1] < totalPages - 1 ? (
+                <>
+                  <Text style={styles.pageEllipsis}>...</Text>
+                  <TouchableOpacity
+                    style={styles.pageChip}
+                    onPress={() => goToPage(totalPages - 1)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.pageChipText}>{totalPages}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : null}
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -122,88 +143,130 @@ export const AmortisationTable = ({ items, startDate, currency, pageSize = 12 }:
 };
 
 const styles = StyleSheet.create({
+  tableScrollContent: {
+    paddingBottom: 4,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
   headerRow: {
     flexDirection: 'row',
     backgroundColor: colours.primary,
-    borderRadius: 8,
-    marginBottom: 2,
   },
   headerCell: {
-    width: 100,
-    padding: 8,
+    width: 116,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.sm,
     fontWeight: fontWeights.bold,
     color: colours.white,
-    textAlign: 'right',
+    textAlignVertical: 'center',
+  },
+  headerNumericCell: {
+    textAlign: 'center',
   },
   dataRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: colours.border,
+    backgroundColor: colours.white,
   },
   evenRow: {
     backgroundColor: colours.surface,
   },
   cell: {
-    width: 100,
-    padding: 8,
+    width: 116,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     fontFamily: fonts.body,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.sm,
     color: colours.textPrimary,
-    textAlign: 'right',
+    textAlign: 'center',
   },
   indexCell: {
-    width: 96,
+    width: 108,
     textAlign: 'left',
   },
   closingCell: {
     color: colours.primary,
     fontWeight: fontWeights.bold,
   },
-  pagination: {
-    alignItems: 'center',
+  paginationWrap: {
     marginTop: 14,
-    paddingHorizontal: 4,
-    rowGap: 10,
+    gap: 10,
   },
-  pageJumpRow: {
+  pagination: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
+    alignItems: 'center',
+    gap: 10,
   },
   pageBtn: {
-    minWidth: 66,
+    minWidth: 92,
+    minHeight: 42,
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colours.primary,
-    borderRadius: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    backgroundColor: colours.white,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
   pageBtnDisabled: {
-    backgroundColor: colours.border,
+    backgroundColor: colours.surface,
   },
   pageBtnText: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
-    color: colours.white,
+    color: colours.primary,
   },
-  pageChipRow: {
-    flexDirection: 'row',
+  pageBtnTextDisabled: {
+    color: colours.textSecondary,
+  },
+  pageIndicator: {
+    flex: 1,
+    minHeight: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-  },
-  pageChip: {
-    minWidth: 34,
-    height: 34,
-    borderRadius: 17,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: colours.border,
+    borderRadius: 21,
+    backgroundColor: colours.surface,
+  },
+  pageIndicatorActive: {
+    borderColor: colours.primary,
+    backgroundColor: colours.white,
+  },
+  pageIndicatorText: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colours.textPrimary,
+    textAlign: 'center',
+  },
+  pagePicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 8,
+  },
+  pageChip: {
+    minWidth: 38,
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: colours.border,
     backgroundColor: colours.white,
   },
   pageChipActive: {
@@ -212,20 +275,14 @@ const styles = StyleSheet.create({
   },
   pageChipText: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
+    fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
-    color: colours.textSecondary,
+    color: colours.textPrimary,
   },
   pageChipTextActive: {
     color: colours.white,
   },
-  ellipsis: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    paddingHorizontal: 2,
-  },
-  pageInfo: {
+  pageEllipsis: {
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,

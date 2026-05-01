@@ -8,7 +8,7 @@ import { formatCurrency } from '@/currency/format';
 import { getMortgageTrackerSummary, getTimelineWarnings } from '@/mortgage/tracker';
 import { MortgageEvent, SavedLoan } from '@/types/SavedLoan';
 import { colours, fonts, fontSizes, fontWeights } from '@/theme';
-import { PinIcon } from '@/components/loans/LoanIcons';
+import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
 
 interface Props {
   loan: SavedLoan;
@@ -38,12 +38,11 @@ export const MortgageGroupDetail = ({ loan, onTogglePinned, onViewCalculation }:
           <Text style={styles.lender}>{loan.lender || currentDeal?.lender || t('saved.category.mortgage')}</Text>
           <Text style={styles.title}>{loan.nickname}</Text>
         </View>
-        <TouchableOpacity style={styles.pinPill} onPress={onTogglePinned}>
-          <PinIcon color={colours.primary} size={14} />
-          <Text style={styles.pinText}>
-            {loan.pinnedToDashboard ? t('mortgage.pinned') : t('mortgage.pinToDashboard')}
-          </Text>
-        </TouchableOpacity>
+        <DashboardPinButton
+          pinned={loan.pinnedToDashboard}
+          onPress={onTogglePinned}
+          style={styles.pinButton}
+        />
       </View>
 
       <Card style={styles.balanceCard}>
@@ -169,6 +168,10 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   heroCopy: { flex: 1, paddingRight: 12 },
+  pinButton: {
+    marginBottom: 0,
+    marginTop: 4,
+  },
   lender: {
     fontFamily: fonts.body,
     fontSize: fontSizes.base,
@@ -179,24 +182,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: fontSizes['3xl'],
     fontWeight: fontWeights.extrabold,
-    color: colours.primary,
-  },
-  pinPill: {
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    justifyContent: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colours.border,
-    paddingHorizontal: 12,
-    backgroundColor: colours.surface,
-  },
-  pinText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
   },
   balanceCard: { marginBottom: 14 },
