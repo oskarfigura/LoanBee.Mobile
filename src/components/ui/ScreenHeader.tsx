@@ -8,20 +8,27 @@ const logo = require('../../../assets/bee-logo.png');
 interface Props {
   title: string;
   subtitle?: string;
+  leftAction?: React.ReactNode;
+  rightAction?: React.ReactNode;
 }
 
-export const ScreenHeader = ({ title, subtitle }: Props) => {
+export const ScreenHeader = ({ title, subtitle, leftAction, rightAction }: Props) => {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-      <View style={styles.logoWrap}>
-        <Image source={logo} style={styles.logo} resizeMode="contain" />
-      </View>
+      {leftAction ? (
+        <View style={styles.actionWrap}>{leftAction}</View>
+      ) : (
+        <View style={styles.logoWrap}>
+          <Image source={logo} style={styles.logo} resizeMode="contain" />
+        </View>
+      )}
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
+      {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
     </View>
   );
 };
@@ -52,8 +59,18 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
   },
+  actionWrap: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   copy: {
     flex: 1,
+  },
+  rightAction: {
+    marginLeft: 12,
   },
   title: {
     fontFamily: fonts.heading,

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { HeaderBackButton } from '@react-navigation/elements';
 import { useTranslation } from 'react-i18next';
 import { ResultsSummary } from '@/components/calculator/ResultsSummary';
 import { AmortisationTable } from '@/components/calculator/AmortisationTable';
@@ -109,6 +110,10 @@ export default function ResultScreen() {
     });
   }, [currency, formValues, params.formValues, params.result, result, router]);
 
+  const handleBack = useCallback(() => {
+    router.back();
+  }, [router]);
+
   const confirmLeave = useCallback((continueNavigation: () => void) => {
     Alert.alert(
       t('results.unsavedTitle'),
@@ -146,16 +151,6 @@ export default function ResultScreen() {
     return unsubscribe;
   }, [confirmLeave, continueWithoutGuard, isSavedMode, navigation]);
 
-  const handleNewCalculation = () => {
-    const navigateHome = () => router.replace('/');
-    if (isSavedMode) {
-      navigateHome();
-      return;
-    }
-
-    confirmLeave(() => continueWithoutGuard(navigateHome));
-  };
-
   if (!result || !formValues) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -179,8 +174,27 @@ export default function ResultScreen() {
       <ScreenHeader
         title={t('results.title')}
         subtitle={savedLoan ? savedLoan.nickname : t('results.unsavedSubtitle')}
+        leftAction={(
+          <HeaderBackButton
+            onPress={handleBack}
+            tintColor={colours.white}
+            displayMode="minimal"
+          />
+        )}
+        rightAction={!isSavedMode ? (
+          <TouchableOpacity
+            style={styles.headerSaveButton}
+            onPress={openSave}
+            accessibilityRole="button"
+            activeOpacity={0.8}
+          >
+            <Text style={styles.headerSaveText}>{t('results.save')}</Text>
+          </TouchableOpacity>
+        ) : undefined}
       />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <FinancialDisclaimer />
+
         <View style={styles.tabBar}>
           {tabs.map(tab => (
             <TouchableOpacity
@@ -262,25 +276,8 @@ export default function ResultScreen() {
             />
           </Card>
         )}
-
-        <FinancialDisclaimer />
       </ScrollView>
 
-      <View style={styles.actionFooter}>
-        <Button
-          label={t('results.newCalculation')}
-          onPress={handleNewCalculation}
-          variant="secondary"
-          style={isSavedMode ? styles.fullFooterButton : styles.footerButton}
-        />
-        {!isSavedMode && (
-          <Button
-            label={t('results.saveThisLoan')}
-            onPress={openSave}
-            style={styles.footerButton}
-          />
-        )}
-      </View>
       <View style={styles.adFooter}>
         <BannerAd />
       </View>
@@ -294,28 +291,26 @@ const styles = StyleSheet.create({
   container: { padding: 16, paddingBottom: 24 },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
+  headerSaveButton: {
+    minHeight: 38,
+    minWidth: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 19,
+    backgroundColor: colours.secondary,
+    paddingHorizontal: 16,
+  },
+  headerSaveText: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colours.white,
+  },
   adFooter: {
     backgroundColor: colours.white,
     borderTopWidth: 1,
     borderTopColor: colours.border,
     paddingHorizontal: 16,
-  },
-  actionFooter: {
-    flexDirection: 'row',
-    gap: 10,
-    backgroundColor: colours.white,
-    borderTopWidth: 1,
-    borderTopColor: colours.border,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
-  footerButton: {
-    flex: 1,
-    paddingHorizontal: 12,
-  },
-  fullFooterButton: {
-    flex: 1,
   },
   tabBar: {
     flexDirection: 'row',
