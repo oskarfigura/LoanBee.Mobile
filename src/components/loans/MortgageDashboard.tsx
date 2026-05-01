@@ -1,5 +1,13 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
@@ -104,9 +112,6 @@ const LoanDashboardCard = ({ loan, width }: { loan: SavedLoan; width: number }) 
       <Card style={styles.timelineCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('mortgage.dealTimeline')}</Text>
-          <TouchableOpacity onPress={() => router.push(`/saved/${loan.id}/timeline`)}>
-            <Text style={styles.sectionLink}>{t('mortgage.viewFullTimeline')}</Text>
-          </TouchableOpacity>
         </View>
         <View style={styles.timelinePreview}>
           <View style={styles.timelineDotActive} />
@@ -137,12 +142,12 @@ const LoanDashboardCard = ({ loan, width }: { loan: SavedLoan; width: number }) 
         )}
       </Card>
 
-      <View style={styles.actionGrid}>
-        <Button label={t('mortgage.recordBalance')} onPress={() => router.push(`/saved/${loan.id}/events/new?type=balanceCheckpoint`)} variant="secondary" style={styles.actionButton} />
-        <Button label={t('mortgage.addOverpayment')} onPress={() => router.push(`/saved/${loan.id}/events/new?type=lumpOverpayment`)} variant="secondary" style={styles.actionButton} />
-        <Button label={t('mortgage.switchDeal')} onPress={() => router.push(`/saved/${loan.id}/deals/new`)} variant="secondary" style={styles.actionButton} />
-        <Button label={t('mortgage.viewTimeline')} onPress={() => router.push(`/saved/${loan.id}/timeline`)} variant="secondary" style={styles.actionButton} />
-      </View>
+      <Button
+        label={t('mortgage.viewDetails')}
+        onPress={() => router.push(`/saved/${loan.id}`)}
+        variant="secondary"
+        style={styles.detailsButton}
+      />
     </ScrollView>
   );
 };
@@ -150,7 +155,13 @@ const LoanDashboardCard = ({ loan, width }: { loan: SavedLoan; width: number }) 
 export const MortgageDashboard = ({ loans, onNewCalculation }: Props) => {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
-  const slideWidth = Math.min(width, 480);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const slideWidth = width;
+
+  const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / slideWidth);
+    setActiveIndex(Math.min(Math.max(nextIndex, 0), loans.length - 1));
+  };
 
   return (
     <View style={styles.root}>
@@ -165,11 +176,28 @@ export const MortgageDashboard = ({ loans, onNewCalculation }: Props) => {
         showsHorizontalScrollIndicator={false}
         snapToInterval={slideWidth}
         decelerationRate="fast"
+        onMomentumScrollEnd={handleScrollEnd}
       >
         {loans.map(loan => (
           <LoanDashboardCard key={loan.id} loan={loan} width={slideWidth} />
         ))}
       </ScrollView>
+      {loans.length > 1 && (
+        <View style={styles.carouselHint}>
+          <Text style={styles.carouselHintText}>
+            {t('mortgage.dashboardPosition', { current: activeIndex + 1, total: loans.length })}
+          </Text>
+          <View style={styles.dots}>
+            {loans.map((loan, index) => (
+              <View
+                key={loan.id}
+                style={[styles.dot, index === activeIndex && styles.dotActive]}
+              />
+            ))}
+          </View>
+          <Text style={styles.carouselHintText}>{t('mortgage.dashboardSwipeHint')}</Text>
+        </View>
+      )}
       <View style={styles.newCalculation}>
         <Button label={t('results.newCalculation')} onPress={onNewCalculation} variant="ghost" />
       </View>
@@ -296,7 +324,6 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     borderBottomWidth: 1,
     borderBottomColor: colours.border,
     paddingBottom: 12,
@@ -306,12 +333,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
-    color: colours.primary,
-  },
-  sectionLink: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
   },
   timelinePreview: {
@@ -406,12 +427,32 @@ const styles = StyleSheet.create({
     color: colours.textSecondary,
     marginTop: 12,
   },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  detailsButton: { marginTop: 2 },
+  carouselHint: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
   },
-  actionButton: { flexBasis: '48%', flexGrow: 1 },
+  carouselHintText: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+  },
+  dots: {
+    flexDirection: 'row',
+    gap: 7,
+    marginVertical: 8,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colours.border,
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: colours.primary,
+  },
   newCalculation: {
     paddingHorizontal: 20,
     paddingBottom: 10,

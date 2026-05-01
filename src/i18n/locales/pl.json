@@ -186,6 +186,8 @@
   "mortgage": {
     "dashboard": "Panel",
     "dashboardHint": "Zapisz obliczenie, a potem przypnij je do panelu, aby śledzić postęp.",
+    "dashboardPosition": "{{current}} z {{total}}",
+    "dashboardSwipeHint": "Przesuń w bok, aby zobaczyć przypięte pozycje",
     "backToDashboard": "Wróć do panelu",
     "pinToDashboard": "Przypnij do panelu",
     "pinned": "Przypięte",
@@ -199,6 +201,7 @@
     "dealTimeline": "Oś Umów",
     "viewFullTimeline": "Zobacz pełną oś",
     "viewTimeline": "Zobacz oś",
+    "viewDetails": "Zobacz pełne szczegóły",
     "currentDealEnds": "Aktualna umowa kończy się",
     "nextDealDraft": "Szkic następnej umowy",
     "recentEvents": "Ostatnie Zdarzenia",

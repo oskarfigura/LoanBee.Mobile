@@ -198,6 +198,8 @@
   "mortgage": {
     "dashboard": "Dashboard",
     "dashboardHint": "Save a calculation, then pin it to your dashboard to track progress.",
+    "dashboardPosition": "{{current}} of {{total}}",
+    "dashboardSwipeHint": "Swipe sideways to view pinned items",
     "backToDashboard": "Back to dashboard",
     "pinToDashboard": "Pin to dashboard",
     "pinned": "Pinned",
@@ -211,6 +213,7 @@
     "dealTimeline": "Deal Timeline",
     "viewFullTimeline": "View full timeline",
     "viewTimeline": "View timeline",
+    "viewDetails": "View full details",
     "currentDealEnds": "Current deal ends",
     "nextDealDraft": "Next deal draft",
     "recentEvents": "Recent Events",
