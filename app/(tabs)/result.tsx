@@ -129,9 +129,13 @@ export default function ResultScreen() {
       await Share.share({
         title: t('share.title'),
         message: [
+          t('share.intro'),
+          '',
           t('share.monthlyPayment', { amount: monthlyPayment }),
           t('share.totalInterest', { amount: totalInterest }),
           t('share.totalCost', { amount: totalCost }),
+          '',
+          t('share.viewCalculation'),
           shareUrl,
         ].join('\n'),
         url: shareUrl,

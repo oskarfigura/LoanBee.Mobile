@@ -184,10 +184,12 @@
   "share": {
     "button": "Share calculation",
     "title": "LoanBee calculation",
+    "intro": "I ran a loan estimate in LoanBee:",
     "opening": "Opening shared calculation...",
-    "monthlyPayment": "Monthly payment: {{amount}}",
-    "totalInterest": "Total interest: {{amount}}",
-    "totalCost": "Total cost: {{amount}}",
+    "monthlyPayment": "Monthly payment {{amount}}",
+    "totalInterest": "Total interest {{amount}}",
+    "totalCost": "Total cost {{amount}}",
+    "viewCalculation": "View the calculation:",
     "errorTitle": "Could not share",
     "errorMessage": "Please try sharing this calculation again."
   },

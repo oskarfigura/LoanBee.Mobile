@@ -274,7 +274,7 @@ xcrun simctl openurl booted "loanbee://calculator/share?amount=180000&interest=6
 ```
 
 ```bash
-adb shell am start -a android.intent.action.VIEW -d "loanbee://calculator/share?amount=180000&interest=6.1&years=0&months=0&downPayment=25000&downPaymentType=cash&startDate=2027-11-09&mode=payment&payment=1750&currency=GBP&source=mobile&share=1" com.cactus.loancalculator.free
+adb shell 'am start -W -a android.intent.action.VIEW -d "loanbee://calculator/share?amount=180000&interest=6.1&years=0&months=0&downPayment=25000&downPaymentType=cash&startDate=2027-11-09&mode=payment&payment=1750&currency=GBP&source=mobile&share=1" -p com.cactus.loancalculator.free'
 ```
 
 Expected behaviour: the app opens the shared calculation, recomputes the result locally, and lands on the Results tab where the loan can be saved or reshared.

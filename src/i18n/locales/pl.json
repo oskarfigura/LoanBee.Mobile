@@ -172,10 +172,12 @@
   "share": {
     "button": "Udostępnij obliczenie",
     "title": "Obliczenie LoanBee",
+    "intro": "Przygotowałem/am obliczenie w LoanBee:",
     "opening": "Otwieranie udostępnionego obliczenia...",
-    "monthlyPayment": "Rata miesięczna: {{amount}}",
-    "totalInterest": "Łączne odsetki: {{amount}}",
-    "totalCost": "Łączny koszt: {{amount}}",
+    "monthlyPayment": "Rata miesięczna {{amount}}",
+    "totalInterest": "Łączne odsetki {{amount}}",
+    "totalCost": "Łączny koszt {{amount}}",
+    "viewCalculation": "Zobacz obliczenie:",
     "errorTitle": "Nie udało się udostępnić",
     "errorMessage": "Spróbuj ponownie udostępnić to obliczenie."
   },

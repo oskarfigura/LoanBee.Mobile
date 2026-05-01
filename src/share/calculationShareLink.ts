@@ -152,26 +152,38 @@ export const normalizeShareableCalculationValues = (
   };
 };
 
-export const getCalculationShareSearchParams = (values: ShareableCalculationValues) => {
+interface ShareSearchParamOptions {
+  includeMobileMetadata?: boolean;
+}
+
+export const getCalculationShareSearchParams = (
+  values: ShareableCalculationValues,
+  { includeMobileMetadata = false }: ShareSearchParamOptions = {},
+) => {
   const normalized = normalizeShareableCalculationValues(values);
   const params = new URLSearchParams();
 
   params.set('amount', String(normalized.loanAmount));
   params.set('interest', String(normalized.interest));
-  params.set('years', String(normalized.termInYears));
-  params.set('months', String(normalized.termInMonths));
   params.set('downPayment', String(normalized.downPayment));
   params.set('downPaymentType', String(normalized.downPaymentType));
   params.set('startDate', normalized.startDate);
   params.set('mode', String(normalized.calculationType));
   params.set('currency', String(normalized.currency));
-  params.set('source', 'mobile');
-  params.set('share', '1');
+
+  if (includeMobileMetadata) {
+    params.set('source', 'mobile');
+    params.set('share', '1');
+  }
 
   if (normalized.calculationType === LoanCalculationType.PAYMENT) {
     params.set('payment', String(normalized.desiredMonthlyPayment ?? 0));
-  } else if ((normalized.additionalMonthlyPayment ?? 0) > 0) {
-    params.set('extra', String(normalized.additionalMonthlyPayment));
+  } else {
+    params.set('years', String(normalized.termInYears));
+    params.set('months', String(normalized.termInMonths));
+    if ((normalized.additionalMonthlyPayment ?? 0) > 0) {
+      params.set('extra', String(normalized.additionalMonthlyPayment));
+    }
   }
 
   return params;
@@ -182,7 +194,7 @@ export const getCalculationWebShareUrl = (values: ShareableCalculationValues) =>
 );
 
 export const getCalculationAppShareUrl = (values: ShareableCalculationValues) => (
-  `loanbee://calculator/share?${getCalculationShareSearchParams(values).toString()}`
+  `loanbee://calculator/share?${getCalculationShareSearchParams(values, { includeMobileMetadata: true }).toString()}`
 );
 
 export const getShareableCalculationValuesFromParams = (

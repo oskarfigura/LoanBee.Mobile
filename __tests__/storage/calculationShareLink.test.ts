@@ -24,7 +24,7 @@ describe('calculationShareLink', () => {
     });
 
     expect(url).toBe(
-      'https://www.loanamortisationcalculator.com/?amount=250000&interest=4.5&years=20&months=3&downPayment=15&downPaymentType=percent&startDate=2026-01-05&mode=term&currency=GBP&source=mobile&share=1&extra=200',
+      'https://www.loanamortisationcalculator.com/?amount=250000&interest=4.5&downPayment=15&downPaymentType=percent&startDate=2026-01-05&mode=term&currency=GBP&years=20&months=3&extra=200',
     );
   });
 
@@ -44,7 +44,7 @@ describe('calculationShareLink', () => {
     });
 
     expect(url).toBe(
-      'loanbee://calculator/share?amount=180000&interest=6.1&years=0&months=0&downPayment=25000&downPaymentType=cash&startDate=2027-11-09&mode=payment&currency=GBP&source=mobile&share=1&payment=1750',
+      'loanbee://calculator/share?amount=180000&interest=6.1&downPayment=25000&downPaymentType=cash&startDate=2027-11-09&mode=payment&currency=GBP&source=mobile&share=1&payment=1750',
     );
   });
 
