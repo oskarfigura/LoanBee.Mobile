@@ -246,14 +246,6 @@ export default function ResultScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <FinancialDisclaimer />
 
-        <Button
-          label={t('share.button')}
-          onPress={handleShare}
-          variant="secondary"
-          leftIcon={<ShareIcon color={colours.primary} />}
-          style={styles.shareButton}
-        />
-
         <View style={styles.tabBar}>
           {tabs.map(tab => (
             <TouchableOpacity
@@ -276,12 +268,16 @@ export default function ResultScreen() {
           <View style={styles.tabPanel}>
             <ResultsSummary
               monthlyPayments={result.monthlyPayments}
+              principalAmount={principalAmount}
               totalInterestPaid={result.totalInterestPaid}
               totalAmountPaid={result.totalAmountPaid}
               termInYears={result.termInYears}
               termInMonths={result.termInMonths}
               startDate={String(formValues.startDate)}
               currency={currency}
+              onShare={handleShare}
+              shareLabel={t('share.short')}
+              shareIcon={<ShareIcon color={colours.white} />}
             />
           </View>
         )}
@@ -347,15 +343,15 @@ export default function ResultScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
   scroll: { flex: 1 },
-  container: { padding: 16, paddingBottom: 24 },
+  container: { padding: 14, paddingBottom: 20 },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
   headerSaveButton: {
-    minHeight: 38,
-    minWidth: 72,
+    minHeight: 34,
+    minWidth: 66,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 19,
+    borderRadius: 17,
     backgroundColor: colours.secondary,
     paddingHorizontal: 16,
   },
@@ -368,30 +364,28 @@ const styles = StyleSheet.create({
   adFooter: {
     backgroundColor: colours.white,
     borderTopWidth: 1,
-    borderTopColor: colours.border,
+    borderTopColor: colours.surface,
     paddingHorizontal: 16,
-  },
-  shareButton: {
-    marginBottom: 12,
+    paddingTop: 2,
   },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: colours.white,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colours.border,
     marginTop: 0,
-    marginBottom: 12,
-    minHeight: 50,
-    padding: 4,
+    marginBottom: 10,
+    minHeight: 44,
+    padding: 3,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
+    borderRadius: 9,
     paddingHorizontal: 8,
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   tabActive: {
     backgroundColor: colours.primary,

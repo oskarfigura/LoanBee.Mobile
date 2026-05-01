@@ -16,7 +16,7 @@ export const ScreenHeader = ({ title, subtitle, leftAction, rightAction }: Props
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
+    <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
       {leftAction ? (
         <View style={styles.actionWrap}>{leftAction}</View>
       ) : (
@@ -37,34 +37,34 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: colours.primary,
     paddingHorizontal: 20,
-    paddingBottom: 22,
+    paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: colours.primaryDark,
   },
   logoWrap: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: colours.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 12,
     borderWidth: 1,
     borderColor: colours.accent,
     overflow: 'hidden',
   },
   logo: {
-    width: 46,
-    height: 46,
+    width: 38,
+    height: 38,
   },
   actionWrap: {
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   copy: {
     flex: 1,
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes['2xl'],
+    fontSize: fontSizes.xl,
     fontWeight: fontWeights.extrabold,
     color: colours.white,
   },
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colours.whiteSubtle,
-    lineHeight: 20,
-    marginTop: 4,
+    lineHeight: 19,
+    marginTop: 2,
   },
 });

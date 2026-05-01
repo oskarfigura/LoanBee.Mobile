@@ -62,6 +62,7 @@ export default function LoanDetailScreen() {
 
         <ResultsSummary
           monthlyPayments={result.monthlyPayments}
+          principalAmount={result.amount - result.downPayment}
           totalInterestPaid={result.totalInterestPaid}
           totalAmountPaid={result.totalAmountPaid}
           termInYears={result.termInYears}

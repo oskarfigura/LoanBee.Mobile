@@ -30,6 +30,7 @@
     "monthlyPayment": "Rata Miesięczna",
     "totalInterest": "Łączne Odsetki",
     "totalCost": "Łączny Koszt",
+    "interestShare": "Udział Odsetek",
     "loanTerm": "Okres Kredytu",
     "payoffDate": "Data Spłaty",
     "years": "lat",
@@ -171,6 +172,7 @@
   },
   "share": {
     "button": "Udostępnij obliczenie",
+    "short": "Udostępnij",
     "title": "🐝 Obliczenie LoanBee",
     "intro": "🐝 Szacunek kredytu z LoanBee",
     "opening": "Otwieranie udostępnionego obliczenia...",

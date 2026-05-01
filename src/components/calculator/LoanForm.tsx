@@ -33,8 +33,34 @@ const fieldValue = (value: unknown) => (
   value === undefined || value === null ? '' : String(value)
 );
 
+const sanitiseNumberText = (value: string) => value.replace(/,/g, '');
+
+const displayNumberValue = (value: unknown, formatted: boolean) => {
+  const raw = fieldValue(value);
+  if (!formatted || raw === '') return raw;
+
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric)) return raw;
+
+  return numeric.toLocaleString('en-GB', {
+    maximumFractionDigits: 2,
+  });
+};
+
+const formatDisplayDate = (value: string | undefined, language: string) => {
+  if (!value) return '';
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString(language === 'pl' ? 'pl-PL' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 export const LoanForm = ({ form, onSubmit }: Props) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { control, handleSubmit, watch, setValue, formState: { errors } } = form;
   const calculationType = watch('calculationType');
   const downPaymentType = watch('downPaymentType') as DownPaymentType;
@@ -42,8 +68,10 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
 
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const startDateStr = watch('startDate');
-  const startDate = startDateStr ? new Date(startDateStr) : new Date();
+  const startDate = startDateStr ? new Date(`${startDateStr}T00:00:00`) : new Date();
+  const downPaymentAffix = downPaymentType === DownPaymentType.CASH ? currencySymbol : '%';
 
   return (
     <KeyboardAvoidingView
@@ -62,15 +90,22 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
           control={control}
           name="loanAmount"
           render={({ field }) => (
-            <TextInput
-              style={[styles.input, errors.loanAmount && styles.inputError]}
-              keyboardType="decimal-pad"
-              placeholder={t('calculator.loanAmountPlaceholder')}
-              placeholderTextColor={colours.textSecondary}
-              value={fieldValue(field.value)}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
-            />
+            <View style={[styles.inputShell, errors.loanAmount && styles.inputError]}>
+              <Text style={styles.affix}>{currencySymbol}</Text>
+              <TextInput
+                style={styles.inputField}
+                keyboardType="decimal-pad"
+                placeholder={t('calculator.loanAmountPlaceholder')}
+                placeholderTextColor={colours.textSecondary}
+                value={displayNumberValue(field.value, focusedField !== 'loanAmount')}
+                onChangeText={value => field.onChange(sanitiseNumberText(value))}
+                onFocus={() => setFocusedField('loanAmount')}
+                onBlur={() => {
+                  setFocusedField(null);
+                  field.onBlur();
+                }}
+              />
+            </View>
           )}
         />
         <FieldError message={errors.loanAmount?.message} />
@@ -81,15 +116,22 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
           control={control}
           name="interest"
           render={({ field }) => (
-            <TextInput
-              style={[styles.input, errors.interest && styles.inputError]}
-              keyboardType="decimal-pad"
-              placeholder={t('calculator.interestPlaceholder')}
-              placeholderTextColor={colours.textSecondary}
-              value={fieldValue(field.value)}
-              onChangeText={field.onChange}
-              onBlur={field.onBlur}
-            />
+            <View style={[styles.inputShell, errors.interest && styles.inputError]}>
+              <TextInput
+                style={styles.inputField}
+                keyboardType="decimal-pad"
+                placeholder={t('calculator.interestPlaceholder')}
+                placeholderTextColor={colours.textSecondary}
+                value={fieldValue(field.value)}
+                onChangeText={field.onChange}
+                onFocus={() => setFocusedField('interest')}
+                onBlur={() => {
+                  setFocusedField(null);
+                  field.onBlur();
+                }}
+              />
+              <Text style={[styles.affix, styles.suffixAffix]}>%</Text>
+            </View>
           )}
         />
         <FieldError message={errors.interest?.message} />
@@ -102,15 +144,28 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
               control={control}
               name="downPayment"
               render={({ field }) => (
-                <TextInput
-                  style={[styles.input, errors.downPayment && styles.inputError]}
-                  keyboardType="decimal-pad"
-                  placeholder={t('calculator.downPaymentPlaceholder')}
-                  placeholderTextColor={colours.textSecondary}
-                  value={fieldValue(field.value)}
-                  onChangeText={field.onChange}
-                  onBlur={field.onBlur}
-                />
+                <View style={[styles.inputShell, errors.downPayment && styles.inputError]}>
+                  {downPaymentType === DownPaymentType.CASH && <Text style={styles.affix}>{downPaymentAffix}</Text>}
+                  <TextInput
+                    style={styles.inputField}
+                    keyboardType="decimal-pad"
+                    placeholder={t('calculator.downPaymentPlaceholder')}
+                    placeholderTextColor={colours.textSecondary}
+                    value={displayNumberValue(
+                      field.value,
+                      downPaymentType === DownPaymentType.CASH && focusedField !== 'downPayment',
+                    )}
+                    onChangeText={value => field.onChange(sanitiseNumberText(value))}
+                    onFocus={() => setFocusedField('downPayment')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      field.onBlur();
+                    }}
+                  />
+                  {downPaymentType === DownPaymentType.PERCENT && (
+                    <Text style={[styles.affix, styles.suffixAffix]}>{downPaymentAffix}</Text>
+                  )}
+                </View>
               )}
             />
           </View>
@@ -133,7 +188,9 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
           onPress={() => setShowDatePicker(true)}
           activeOpacity={0.8}
         >
-          <Text style={styles.dateText}>{startDateStr || t('calculator.startDate')}</Text>
+          <Text style={styles.dateText}>
+            {formatDisplayDate(startDateStr, i18n.language) || t('calculator.startDate')}
+          </Text>
         </TouchableOpacity>
         {showDatePicker && (
           <DateTimePicker
@@ -216,15 +273,22 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
               control={control}
               name="additionalMonthlyPayment"
               render={({ field }) => (
-                <TextInput
-                  style={[styles.input, errors.additionalMonthlyPayment && styles.inputError]}
-                  keyboardType="decimal-pad"
-                  placeholder={t('calculator.additionalPaymentPlaceholder')}
-                  placeholderTextColor={colours.textSecondary}
-                  value={fieldValue(field.value)}
-                  onChangeText={field.onChange}
-                  onBlur={field.onBlur}
-                />
+                <View style={[styles.inputShell, errors.additionalMonthlyPayment && styles.inputError]}>
+                  <Text style={styles.affix}>{currencySymbol}</Text>
+                  <TextInput
+                    style={styles.inputField}
+                    keyboardType="decimal-pad"
+                    placeholder={t('calculator.additionalPaymentPlaceholder')}
+                    placeholderTextColor={colours.textSecondary}
+                    value={displayNumberValue(field.value, focusedField !== 'additionalMonthlyPayment')}
+                    onChangeText={value => field.onChange(sanitiseNumberText(value))}
+                    onFocus={() => setFocusedField('additionalMonthlyPayment')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      field.onBlur();
+                    }}
+                  />
+                </View>
               )}
             />
             <FieldError message={errors.additionalMonthlyPayment?.message} />
@@ -239,15 +303,22 @@ export const LoanForm = ({ form, onSubmit }: Props) => {
               control={control}
               name="desiredMonthlyPayment"
               render={({ field }) => (
-                <TextInput
-                  style={[styles.input, errors.desiredMonthlyPayment && styles.inputError]}
-                  keyboardType="decimal-pad"
-                  placeholder={t('calculator.desiredPaymentPlaceholder')}
-                  placeholderTextColor={colours.textSecondary}
-                  value={fieldValue(field.value)}
-                  onChangeText={field.onChange}
-                  onBlur={field.onBlur}
-                />
+                <View style={[styles.inputShell, errors.desiredMonthlyPayment && styles.inputError]}>
+                  <Text style={styles.affix}>{currencySymbol}</Text>
+                  <TextInput
+                    style={styles.inputField}
+                    keyboardType="decimal-pad"
+                    placeholder={t('calculator.desiredPaymentPlaceholder')}
+                    placeholderTextColor={colours.textSecondary}
+                    value={displayNumberValue(field.value, focusedField !== 'desiredMonthlyPayment')}
+                    onChangeText={value => field.onChange(sanitiseNumberText(value))}
+                    onFocus={() => setFocusedField('desiredMonthlyPayment')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      field.onBlur();
+                    }}
+                  />
+                </View>
               )}
             />
             <FieldError message={errors.desiredMonthlyPayment?.message} />
@@ -274,14 +345,14 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 16,
-    paddingBottom: 112,
+    paddingBottom: 124,
   },
   label: {
     fontFamily: fonts.heading,
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
-    marginTop: 12,
+    marginTop: 10,
     marginBottom: 4,
   },
   input: {
@@ -294,6 +365,35 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: fontSizes.base,
     color: colours.textPrimary,
+  },
+  inputShell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colours.surface,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colours.border,
+    height: 48,
+    paddingHorizontal: 14,
+  },
+  inputField: {
+    flex: 1,
+    height: '100%',
+    padding: 0,
+    fontFamily: fonts.body,
+    fontSize: fontSizes.base,
+    color: colours.textPrimary,
+  },
+  affix: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: colours.textSecondary,
+    marginRight: 8,
+  },
+  suffixAffix: {
+    marginRight: 0,
+    marginLeft: 8,
   },
   inputError: {
     borderColor: colours.error,
@@ -313,7 +413,7 @@ const styles = StyleSheet.create({
   downPaymentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   downPaymentInput: { flex: 1 },
   modeRow: {
@@ -323,15 +423,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colours.border,
     overflow: 'hidden',
-    marginTop: 16,
-    height: 44,
+    marginTop: 14,
+    height: 42,
   },
   modeHelp: {
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     lineHeight: 20,
-    marginTop: 10,
+    marginTop: 8,
   },
   modeBtn: {
     flex: 1,
@@ -360,7 +460,7 @@ const styles = StyleSheet.create({
     borderTopColor: colours.border,
     backgroundColor: colours.white,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 10,
+    paddingBottom: 14,
   },
 });

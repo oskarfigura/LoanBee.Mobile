@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     borderColor: colours.border,
     overflow: 'hidden',
     height: 48,
-    width: 96,
+    width: 88,
   },
   btn: {
     flex: 1,
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.base,
     fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
   },

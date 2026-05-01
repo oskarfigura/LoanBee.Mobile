@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/currency/format';
@@ -8,12 +8,16 @@ import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 
 interface Props {
   monthlyPayments: number;
+  principalAmount: number;
   totalInterestPaid: number;
   totalAmountPaid: number;
   termInYears: number;
   termInMonths: number;
   startDate: string;
   currency: CurrencyCode;
+  onShare?: () => void;
+  shareLabel?: string;
+  shareIcon?: React.ReactNode;
 }
 
 const formatPayoffDate = (startDate: string, termInYears: number, termInMonths: number, language: string) => {
@@ -30,12 +34,16 @@ const formatPayoffDate = (startDate: string, termInYears: number, termInMonths: 
 
 export const ResultsSummary = ({
   monthlyPayments,
+  principalAmount,
   totalInterestPaid,
   totalAmountPaid,
   termInYears,
   termInMonths,
   startDate,
   currency,
+  onShare,
+  shareLabel,
+  shareIcon,
 }: Props) => {
   const { t, i18n } = useTranslation();
 
@@ -44,11 +52,29 @@ export const ResultsSummary = ({
     termInMonths > 0 ? `${termInMonths} ${t('results.months')}` : '',
   ].filter(Boolean).join(` ${t('results.and')} `) || '—';
   const payoffDate = formatPayoffDate(startDate, termInYears, termInMonths, i18n.language);
+  const interestShare = totalAmountPaid > 0
+    ? `${Math.round((totalInterestPaid / totalAmountPaid) * 100)}%`
+    : '—';
 
   return (
     <View style={styles.container}>
       <Card style={styles.heroCard} padding={18}>
-        <Text style={styles.heroLabel}>{t('results.monthlyPayment')}</Text>
+        <View style={styles.heroHeader}>
+          <Text style={styles.heroLabel}>{t('results.monthlyPayment')}</Text>
+          {onShare ? (
+            <TouchableOpacity
+              style={styles.shareAction}
+              onPress={onShare}
+              activeOpacity={0.82}
+              accessibilityRole="button"
+            >
+              {shareIcon ? <View style={styles.shareIcon}>{shareIcon}</View> : null}
+              <Text style={styles.shareText} numberOfLines={1} adjustsFontSizeToFit>
+                {shareLabel ?? t('share.short')}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
         <Text style={styles.heroValue} numberOfLines={1} adjustsFontSizeToFit>
           {formatCurrency(monthlyPayments, currency)}
         </Text>
@@ -83,38 +109,88 @@ export const ResultsSummary = ({
           </Text>
         </View>
       </View>
+      <View style={styles.breakdownPanel}>
+        <View style={styles.breakdownItem}>
+          <Text style={styles.breakdownLabel}>{t('results.principal')}</Text>
+          <Text style={styles.breakdownValue} numberOfLines={1} adjustsFontSizeToFit>
+            {formatCurrency(principalAmount, currency)}
+          </Text>
+        </View>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownItem}>
+          <Text style={styles.breakdownLabel}>{t('results.totalInterest')}</Text>
+          <Text style={styles.breakdownValue} numberOfLines={1} adjustsFontSizeToFit>
+            {formatCurrency(totalInterestPaid, currency)}
+          </Text>
+        </View>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownItem}>
+          <Text style={styles.breakdownLabel}>{t('results.interestShare')}</Text>
+          <Text style={styles.breakdownValue}>{interestShare}</Text>
+        </View>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    gap: 10,
+    gap: 9,
   },
   heroCard: {
     backgroundColor: colours.primary,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   heroLabel: {
+    flex: 1,
     fontFamily: fonts.heading,
     fontSize: fontSizes.xs,
     fontWeight: fontWeights.bold,
     color: colours.whiteSubtle,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
+  },
+  heroHeader: {
+    minHeight: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
     marginBottom: 8,
+  },
+  shareAction: {
+    minHeight: 30,
+    maxWidth: 132,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: colours.whiteSubtle,
+    paddingHorizontal: 10,
+  },
+  shareIcon: {
+    marginRight: 5,
+  },
+  shareText: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: colours.white,
   },
   heroValue: {
     fontFamily: fonts.heading,
     fontSize: fontSizes['3xl'],
     fontWeight: fontWeights.extrabold,
     color: colours.white,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   heroMeta: {
     flexDirection: 'row',
     backgroundColor: colours.primaryDark,
-    borderRadius: 14,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 11,
     paddingHorizontal: 14,
   },
   metaItem: {
@@ -150,7 +226,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colours.border,
     borderRadius: 12,
-    padding: 12,
+    padding: 11,
   },
   statLabel: {
     fontFamily: fonts.heading,
@@ -168,4 +244,38 @@ const styles = StyleSheet.create({
     color: colours.textPrimary,
   },
   spacer: { width: 10 },
+  breakdownPanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colours.white,
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  breakdownItem: {
+    flex: 1,
+  },
+  breakdownDivider: {
+    width: 1,
+    height: 34,
+    backgroundColor: colours.border,
+    marginHorizontal: 10,
+  },
+  breakdownLabel: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.tiny,
+    fontWeight: fontWeights.semibold,
+    color: colours.textSecondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 3,
+  },
+  breakdownValue: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colours.textPrimary,
+  },
 });
