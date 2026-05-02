@@ -13,6 +13,7 @@ interface Props {
   result: LoanResult;
   startDate: string;
   currency: CurrencyCode;
+  mode?: 'calculation' | 'saved';
   title?: string;
   subtitle?: string;
   headerAction?: React.ReactNode;
@@ -27,6 +28,7 @@ export const LoanSummaryOverview = ({
   result,
   startDate,
   currency,
+  mode = 'calculation',
   title,
   subtitle,
   headerAction,
@@ -50,6 +52,24 @@ export const LoanSummaryOverview = ({
   const paidSoFar = Math.max(0, principalAmount - currentBalance);
   const shouldShowSavings = showSavings && savingsAmount !== undefined && savingsAmount > 0;
   const hasHeader = title || subtitle || headerAction;
+  const downPaymentAmount = Math.max(result.downPayment, 0);
+  const breakdownTotal = Math.max(principalAmount + downPaymentAmount + result.totalInterestPaid, 1);
+  const breakdownSegments = [
+    { key: 'principal', label: t('results.principal'), value: principalAmount, color: colours.primary },
+    { key: 'deposit', label: t('calculator.downPayment'), value: downPaymentAmount, color: colours.teal },
+    { key: 'interest', label: t('results.interest'), value: result.totalInterestPaid, color: colours.accent },
+  ].filter(segment => segment.value > 0);
+  const payoffDate = useMemo(() => {
+    const date = new Date(startDate);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    date.setMonth(date.getMonth() + result.termInYears * 12 + result.termInMonths);
+
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      year: 'numeric',
+    });
+  }, [result.termInMonths, result.termInYears, startDate]);
 
   const progressLabel = useMemo(() => (
     remaining > 0
@@ -98,30 +118,68 @@ export const LoanSummaryOverview = ({
             <Text style={styles.statValue}>{formatCurrency(result.totalAmountPaid, currency)}</Text>
           </View>
         </View>
+        {mode === 'calculation' ? (
+          <View style={styles.ratePill}>
+            <Text style={styles.rateLabel}>{t('calculator.interestRate')}</Text>
+            <Text style={styles.rateValue}>{result.interest}%</Text>
+          </View>
+        ) : null}
       </Card>
 
-      <Card style={styles.progressCard}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.kicker}>{t('saved.loanProgress')}</Text>
-          <Text style={styles.progressPercent}>{Math.round(progress * 100)}%</Text>
-        </View>
-        <ProgressBar progress={progress} color={colours.teal} trackStyle={styles.progressTrack} />
-        <View style={styles.progressLabels}>
-          <Text style={styles.progressCaption}>{t('mortgage.paidAmount', { amount: formatCurrency(paidSoFar, currency) })}</Text>
-          <Text style={styles.progressCaption}>{t('mortgage.totalAmount', { amount: formatCurrency(principalAmount, currency) })}</Text>
-        </View>
-        <View style={styles.metricGrid}>
-          <View style={styles.metric}>
-            <Text style={styles.metricLabel}>{t('mortgage.currentBalance')}</Text>
-            <Text style={styles.metricValue}>{formatCurrency(currentBalance, currency)}</Text>
+      {mode === 'saved' ? (
+        <Card style={styles.progressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.kicker}>{t('saved.loanProgress')}</Text>
+            <Text style={styles.progressPercent}>{Math.round(progress * 100)}%</Text>
           </View>
-          <View style={styles.metric}>
-            <Text style={styles.metricLabel}>{t('calculator.interestRate')}</Text>
-            <Text style={styles.metricValue}>{result.interest}%</Text>
+          <ProgressBar progress={progress} color={colours.teal} trackStyle={styles.progressTrack} />
+          <View style={styles.progressLabels}>
+            <Text style={styles.progressCaption}>{t('mortgage.paidAmount', { amount: formatCurrency(paidSoFar, currency) })}</Text>
+            <Text style={styles.progressCaption}>{t('mortgage.totalAmount', { amount: formatCurrency(principalAmount, currency) })}</Text>
           </View>
-        </View>
-        <Text style={styles.progressLabel}>{progressLabel}</Text>
-      </Card>
+          <View style={styles.metricGrid}>
+            <View style={styles.metric}>
+              <Text style={styles.metricLabel}>{t('mortgage.currentBalance')}</Text>
+              <Text style={styles.metricValue}>{formatCurrency(currentBalance, currency)}</Text>
+            </View>
+            <View style={styles.metric}>
+              <Text style={styles.metricLabel}>{t('calculator.interestRate')}</Text>
+              <Text style={styles.metricValue}>{result.interest}%</Text>
+            </View>
+          </View>
+          <Text style={styles.progressLabel}>{progressLabel}</Text>
+        </Card>
+      ) : (
+        <Card style={styles.progressCard}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.kicker}>{t('results.costBreakdown')}</Text>
+            <Text style={styles.progressPercent}>{payoffDate}</Text>
+          </View>
+          <View style={styles.breakdownTrack}>
+            {breakdownSegments.map(segment => (
+              <View
+                key={segment.key}
+                style={[
+                  styles.breakdownSegment,
+                  {
+                    width: `${(segment.value / breakdownTotal) * 100}%`,
+                    backgroundColor: segment.color,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+          <View style={styles.breakdownLegend}>
+            {breakdownSegments.map(segment => (
+              <View key={segment.key} style={styles.breakdownLegendItem}>
+                <View style={[styles.breakdownDot, { backgroundColor: segment.color }]} />
+                <Text style={styles.breakdownLegendLabel}>{segment.label}</Text>
+                <Text style={styles.breakdownLegendValue}>{formatCurrency(segment.value, currency)}</Text>
+              </View>
+            ))}
+          </View>
+        </Card>
+      )}
 
       {shouldShowSavings ? (
         <Card style={styles.savingsCard}>
@@ -202,7 +260,10 @@ const styles = StyleSheet.create({
     marginVertical: 18,
   },
   statRow: { flexDirection: 'row', gap: 20 },
-  stat: { flex: 1 },
+  stat: {
+    flex: 1,
+    minWidth: 0,
+  },
   statLabel: {
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
@@ -214,6 +275,30 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
     color: colours.textPrimary,
+  },
+  ratePill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.button,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  rateLabel: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colours.textSecondary,
+  },
+  rateValue: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colours.primary,
   },
   progressCard: { marginBottom: 14 },
   progressHeader: {
@@ -244,6 +329,7 @@ const styles = StyleSheet.create({
   },
   metricGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginTop: 18,
   },
@@ -266,6 +352,45 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.bold,
     color: colours.primary,
     marginTop: 4,
+  },
+  breakdownTrack: {
+    height: 14,
+    flexDirection: 'row',
+    borderRadius: 7,
+    overflow: 'hidden',
+    backgroundColor: colours.surfaceStrong,
+  },
+  breakdownSegment: {
+    height: '100%',
+  },
+  breakdownLegend: {
+    marginTop: 14,
+    gap: 9,
+  },
+  breakdownLegendItem: {
+    minHeight: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  breakdownDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  breakdownLegendLabel: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colours.textSecondary,
+  },
+  breakdownLegendValue: {
+    maxWidth: 150,
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colours.textPrimary,
+    textAlign: 'right',
   },
   progressLabel: {
     fontFamily: fonts.body,

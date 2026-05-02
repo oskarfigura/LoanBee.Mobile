@@ -11,6 +11,9 @@ interface Props {
   rightAction?: React.ReactNode;
   variant?: 'top-level' | 'detail' | 'editor';
   showBrand?: boolean;
+  showBottomBorder?: boolean;
+  backgroundColor?: string;
+  titleAlign?: 'left' | 'center';
 }
 
 export const ScreenHeader = ({
@@ -20,48 +23,75 @@ export const ScreenHeader = ({
   rightAction,
   variant = 'top-level',
   showBrand = false,
+  showBottomBorder = true,
+  backgroundColor,
+  titleAlign = 'left',
 }: Props) => {
   const insets = useSafeAreaInsets();
   const compact = variant !== 'top-level';
+  const centeredTitle = titleAlign === 'center' && !showBrand;
 
   return (
-    <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.brandRow}>
-        <View style={styles.leading}>
-          {leftAction ? <View style={styles.actionWrap}>{leftAction}</View> : null}
-          {showBrand ? (
-            <View style={styles.brandCopy}>
-              <View style={styles.wordmarkRow}>
-                <AppText variant="display" style={[styles.wordmark, styles.wordmarkLoan]} numberOfLines={1}>
-                  Loan
-                </AppText>
-                <View style={styles.wordmarkBeeWrap}>
-                  <AppText
-                    variant="display"
-                    style={[styles.wordmark, styles.wordmarkBee, styles.wordmarkBeeLayerOne]}
-                    numberOfLines={1}
-                    accessible={false}
-                  >
-                    Bee
-                  </AppText>
-                  <AppText variant="display" style={[styles.wordmark, styles.wordmarkBee]} numberOfLines={1}>
-                    Bee
+    <View style={[
+      styles.header,
+      !showBottomBorder && styles.headerNoBorder,
+      { paddingTop: insets.top + 8 },
+      backgroundColor ? { backgroundColor } : null,
+    ]}>
+      <View style={[styles.brandRow, centeredTitle && styles.brandRowCentered]}>
+        {centeredTitle ? (
+          <>
+            <View style={styles.centerActionSlot}>
+              {leftAction ? <View style={styles.centerActionWrap}>{leftAction}</View> : null}
+            </View>
+            <View style={styles.centerTitleWrap}>
+              <AppText variant={compact ? 'title2' : 'title1'} style={[styles.plainTitle, styles.centerTitle]} numberOfLines={1}>
+                {title}
+              </AppText>
+            </View>
+            <View style={styles.centerActionSlot}>
+              {rightAction ? <View style={styles.centerRightAction}>{rightAction}</View> : null}
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.leading}>
+              {leftAction ? <View style={styles.actionWrap}>{leftAction}</View> : null}
+              {showBrand ? (
+                <View style={styles.brandCopy}>
+                  <View style={styles.wordmarkRow}>
+                    <AppText variant="display" style={[styles.wordmark, styles.wordmarkLoan]} numberOfLines={1}>
+                      Loan
+                    </AppText>
+                    <View style={styles.wordmarkBeeWrap}>
+                      <AppText
+                        variant="display"
+                        style={[styles.wordmark, styles.wordmarkBee, styles.wordmarkBeeLayerOne]}
+                        numberOfLines={1}
+                        accessible={false}
+                      >
+                        Bee
+                      </AppText>
+                      <AppText variant="display" style={[styles.wordmark, styles.wordmarkBee]} numberOfLines={1}>
+                        Bee
+                      </AppText>
+                    </View>
+                  </View>
+                  <AppText variant="bodyLg" tone="muted" style={styles.brandSubtitle} numberOfLines={2}>
+                    {title}
                   </AppText>
                 </View>
-              </View>
-              <AppText variant="bodyLg" tone="muted" style={styles.brandSubtitle} numberOfLines={2}>
-                {title}
-              </AppText>
+              ) : (
+                <View style={[styles.brandCopy, styles.brandCopyCompact]}>
+                  <AppText variant={compact ? 'title2' : 'title1'} style={styles.plainTitle} numberOfLines={2}>
+                    {title}
+                  </AppText>
+                </View>
+              )}
             </View>
-          ) : (
-            <View style={[styles.brandCopy, styles.brandCopyCompact]}>
-              <AppText variant={compact ? 'title2' : 'title1'} style={styles.plainTitle} numberOfLines={2}>
-                {title}
-              </AppText>
-            </View>
-          )}
-        </View>
-        {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
+            {rightAction ? <View style={styles.rightAction}>{rightAction}</View> : null}
+          </>
+        )}
       </View>
       {subtitle ? (
         <AppText variant="bodyMd" tone="muted" style={styles.subtitle}>
@@ -80,10 +110,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colours.borderSoft,
   },
+  headerNoBorder: {
+    borderBottomWidth: 0,
+  },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  brandRowCentered: {
+    minHeight: 46,
   },
   leading: {
     flexDirection: 'row',
@@ -139,6 +175,27 @@ const styles = StyleSheet.create({
   },
   plainTitle: {
     color: colours.textPrimary,
+  },
+  centerTitleWrap: {
+    position: 'absolute',
+    left: 58,
+    right: 58,
+    alignItems: 'center',
+  },
+  centerTitle: {
+    textAlign: 'center',
+  },
+  centerActionSlot: {
+    width: 58,
+    minHeight: 42,
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  centerActionWrap: {
+    alignSelf: 'flex-start',
+  },
+  centerRightAction: {
+    alignSelf: 'flex-end',
   },
   actionWrap: {
     minWidth: 32,

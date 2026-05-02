@@ -100,27 +100,51 @@ export const SegmentedControl = <T extends string>({
   options: Array<{ label: string; value: T }>;
   onChange: (next: T) => void;
   style?: StyleProp<ViewStyle>;
-  variant?: 'surface' | 'primary';
+  variant?: 'surface' | 'primary' | 'underline';
   textVariant?: 'labelMd' | 'labelSm';
-}) => (
-  <View style={[styles.segmented, variant === 'primary' && styles.segmentedPrimary, style]}>
-    {options.map(option => {
-      const active = option.value === value;
-      return (
-        <TouchableOpacity
-          key={option.value}
-          style={[styles.segment, active && styles.segmentActive, variant === 'primary' && active && styles.segmentActivePrimary]}
-          onPress={() => onChange(option.value)}
-          activeOpacity={0.84}
-        >
-          <AppText variant={textVariant} tone={active ? (variant === 'primary' ? 'inverse' : 'default') : 'muted'}>
-            {option.label}
-          </AppText>
-        </TouchableOpacity>
-      );
-    })}
-  </View>
-);
+}) => {
+  const isUnderline = variant === 'underline';
+
+  return (
+    <View style={[
+      isUnderline ? styles.underlineTabs : styles.segmented,
+      variant === 'primary' && styles.segmentedPrimary,
+      style,
+    ]}>
+      {options.map(option => {
+        const active = option.value === value;
+        const textTone = active
+          ? (variant === 'primary' ? 'inverse' : variant === 'underline' ? 'accent' : 'default')
+          : 'muted';
+
+        return (
+          <TouchableOpacity
+            key={option.value}
+            style={[
+              isUnderline ? styles.underlineTab : styles.segment,
+              active && !isUnderline && styles.segmentActive,
+              variant === 'primary' && active && styles.segmentActivePrimary,
+            ]}
+            onPress={() => onChange(option.value)}
+            activeOpacity={0.84}
+          >
+            {isUnderline ? (
+              <View style={[styles.underlineTabContent, active && styles.underlineTabActive]}>
+                <AppText variant={textVariant} tone={textTone}>
+                  {option.label}
+                </AppText>
+              </View>
+            ) : (
+              <AppText variant={textVariant} tone={textTone}>
+                {option.label}
+              </AppText>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
 
 export const PillSelector = <T extends string>({
   value,
@@ -256,6 +280,29 @@ const styles = StyleSheet.create({
   segmentActivePrimary: {
     backgroundColor: colours.primary,
     borderColor: colours.primary,
+  },
+  underlineTabs: {
+    flexDirection: 'row',
+    backgroundColor: colours.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colours.border,
+  },
+  underlineTab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xs,
+  },
+  underlineTabContent: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: colours.background,
+  },
+  underlineTabActive: {
+    borderBottomColor: colours.primary,
   },
   pillRow: {
     flexDirection: 'row',

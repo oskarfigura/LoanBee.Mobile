@@ -1,26 +1,48 @@
 import React, { useState } from 'react';
-import { TouchableOpacity, StyleSheet, View } from 'react-native';
+import { TouchableOpacity, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText } from './AppText';
 import { colours, radii, spacing } from '@/theme';
 
-export const FinancialDisclaimer = () => {
+interface Props {
+  dismissible?: boolean;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const FinancialDisclaimer = ({ dismissible = false, style }: Props) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => setExpanded(value => !value)}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-      >
-        <AppText variant="bodySm" tone="muted" style={styles.text}>
-          <AppText variant="labelSm" tone="accent" style={styles.label}>{t('disclaimer.label')} </AppText>
-          {t('disclaimer.shortText')} <AppText variant="labelMd" tone="accent" style={styles.link}>{expanded ? t('disclaimer.less') : t('disclaimer.more')}</AppText>
-        </AppText>
-      </TouchableOpacity>
+    <View style={[styles.container, style]}>
+      <View style={styles.summaryRow}>
+        <TouchableOpacity
+          style={styles.summaryButton}
+          activeOpacity={0.8}
+          onPress={() => setExpanded(value => !value)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+        >
+          <AppText variant="bodySm" tone="muted" style={styles.text}>
+            <AppText variant="labelSm" tone="accent" style={styles.label}>{t('disclaimer.label')} </AppText>
+            {t('disclaimer.shortText')} <AppText variant="labelMd" tone="accent" style={styles.link}>{expanded ? t('disclaimer.less') : t('disclaimer.more')}</AppText>
+          </AppText>
+        </TouchableOpacity>
+        {dismissible ? (
+          <TouchableOpacity
+            style={styles.dismissButton}
+            onPress={() => setDismissed(true)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('disclaimer.dismiss')}
+          >
+            <AppText variant="labelMd" tone="accent">X</AppText>
+          </TouchableOpacity>
+        ) : null}
+      </View>
       {expanded && (
         <AppText variant="bodySm" tone="muted" style={styles.fullText}>{t('disclaimer.fullText')}</AppText>
       )}
@@ -38,8 +60,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginBottom: spacing.md,
   },
-  text: {
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
   },
+  summaryButton: {
+    flex: 1,
+  },
+  text: {},
   label: {
     textTransform: 'uppercase',
   },
@@ -48,5 +77,15 @@ const styles = StyleSheet.create({
   },
   fullText: {
     marginTop: spacing.xs,
+  },
+  dismissButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.full,
+    backgroundColor: colours.surfaceRaised,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
 });

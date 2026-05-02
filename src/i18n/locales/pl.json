@@ -173,7 +173,8 @@
     "fullText": "Ta aplikacja udostępnia ogólne informacje i narzędzia obliczeniowe wyłącznie w celach edukacyjnych. Nic w aplikacji nie stanowi porady finansowej, prawnej, podatkowej ani inwestycyjnej. Wszystkie obliczenia i przykłady są orientacyjne i mogą nie odzwierciedlać Twojej sytuacji. Przed podjęciem decyzji finansowych skonsultuj się z wykwalifikowanym doradcą finansowym. The Tech Narrative Ltd. nie ponosi odpowiedzialności za decyzje podjęte na podstawie informacji lub narzędzi udostępnionych w aplikacji.",
     "more": "[Więcej]",
     "less": "[Mniej]",
-    "text": "Wyłącznie do celów informacyjnych. Nie jest poradą finansową."
+    "text": "Wyłącznie do celów informacyjnych. Nie jest poradą finansową.",
+    "dismiss": "Zamknij zastrzeżenie"
   },
   "errors": {
     "loanAmount": "Kwota kredytu musi być większa niż 0",

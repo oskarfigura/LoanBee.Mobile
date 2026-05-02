@@ -89,13 +89,18 @@ export default function LoanDetailScreen() {
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <ScreenHeader
           title={t('saved.loanDetail')}
-          leftAction={<HeaderBackAction onPress={handleBack} />}
+          leftAction={<HeaderBackAction onPress={handleBack} variant="circle" />}
+          showBottomBorder={false}
+          backgroundColor={colours.background}
+          titleAlign="center"
         />
         <ScrollView contentContainerStyle={styles.container}>
           <LoanCalculationView
             result={result}
             startDate={loan.formSnapshot.startDate}
             currency={loan.currency}
+            tabStyle="underline"
+            showFinancialDisclaimer
             summaryContent={(
               <>
                 <MortgageGroupDetail
@@ -118,19 +123,25 @@ export default function LoanDetailScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScreenHeader
         title={t('saved.loanDetail')}
-        leftAction={<HeaderBackAction onPress={handleBack} />}
+        leftAction={<HeaderBackAction onPress={handleBack} variant="circle" />}
+        showBottomBorder={false}
+        backgroundColor={colours.background}
+        titleAlign="center"
       />
       <ScrollView contentContainerStyle={styles.container}>
         <LoanCalculationView
           result={result}
           startDate={loan.formSnapshot.startDate}
           currency={loan.currency}
+          tabStyle="underline"
+          showFinancialDisclaimer
           summaryContent={(
             <>
               <LoanSummaryOverview
                 result={result}
                 startDate={loan.formSnapshot.startDate}
                 currency={loan.currency}
+                mode="saved"
                 title={loan.nickname}
                 subtitle={loan.lender || t('saved.category.loan')}
                 headerAction={(
@@ -157,7 +168,10 @@ export default function LoanDetailScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
-  container: { padding: layout.screenPadding, paddingBottom: spacing['3xl'] },
+  container: {
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: spacing['3xl'],
+  },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
   pinButton: {

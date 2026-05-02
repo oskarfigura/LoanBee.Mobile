@@ -16,10 +16,11 @@ import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
 import { LoanBreakdownDonut } from '@/components/charts/LoanBreakdownDonut';
 import { RepaymentBarChart } from '@/components/charts/RepaymentBarChart';
 import { Card } from '@/components/ui/Card';
+import { FinancialDisclaimer } from '@/components/ui/FinancialDisclaimer';
 import { SegmentedControl } from '@/components/ui/FormPrimitives';
 import { CurrencyCode } from '@/currency/currencies';
 import { LoanResult } from '@/results/loanResultRoute';
-import { colours, fonts, fontSizes, fontWeights, radii, spacing } from '@/theme';
+import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
 import { AmortisationTable } from './AmortisationTable';
 import { buildAmortisationCsv } from './amortisationTableUtils';
 import { LoanSummaryOverview } from './LoanSummaryOverview';
@@ -35,6 +36,8 @@ interface Props {
   shareLabel?: string;
   shareIcon?: React.ReactNode;
   summaryContent?: React.ReactNode;
+  tabStyle?: 'segmented' | 'underline';
+  showFinancialDisclaimer?: boolean;
 }
 
 export const LoanCalculationView = ({
@@ -46,6 +49,8 @@ export const LoanCalculationView = ({
   shareLabel,
   shareIcon,
   summaryContent,
+  tabStyle = 'segmented',
+  showFinancialDisclaimer = false,
 }: Props) => {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<CalculationTab>('summary');
@@ -109,10 +114,13 @@ export const LoanCalculationView = ({
         value={activeTab}
         onChange={setActiveTab}
         options={tabs}
-        variant="primary"
-        textVariant="labelSm"
-        style={styles.tabControl}
+        variant={tabStyle === 'underline' ? 'underline' : 'primary'}
+        textVariant={tabStyle === 'underline' ? 'labelMd' : 'labelSm'}
+        style={[styles.tabControl, tabStyle === 'underline' && styles.underlineTabControl]}
       />
+      {showFinancialDisclaimer ? (
+        <FinancialDisclaimer dismissible style={styles.financialDisclaimer} />
+      ) : null}
 
       {activeTab === 'summary' && (
         <View style={styles.tabPanel}>
@@ -196,6 +204,13 @@ export const LoanCalculationView = ({
 const styles = StyleSheet.create({
   root: {},
   tabControl: { marginBottom: spacing.sm },
+  underlineTabControl: {
+    marginHorizontal: -layout.screenPadding,
+    marginBottom: 0,
+  },
+  financialDisclaimer: {
+    marginTop: spacing.xxs,
+  },
   tabPanel: {
     marginTop: 2,
   },

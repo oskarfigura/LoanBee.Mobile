@@ -185,7 +185,8 @@
     "fullText": "This app provides general information and calculation tools for educational purposes only. Nothing in this app constitutes financial, legal, tax, or investment advice. All calculations and examples are illustrative and may not reflect your personal circumstances. Always consult a qualified financial adviser before making financial decisions. The Tech Narrative Ltd. accepts no liability for decisions made based on information or tools provided in this app.",
     "more": "[More]",
     "less": "[Less]",
-    "text": "For illustrative purposes only. Not financial advice."
+    "text": "For illustrative purposes only. Not financial advice.",
+    "dismiss": "Dismiss disclaimer"
   },
   "errors": {
     "loanAmount": "Loan amount must be greater than 0",
