@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { AppText } from './AppText';
-import { colours, elevation, layout, radii, spacing } from '@/theme';
+import { colours, elevation, fonts, fontSizes, layout, radii, spacing } from '@/theme';
 
 export const FormSection = ({
   title,
@@ -49,14 +49,24 @@ export const InputSurface = ({
   children,
   focused,
   error,
+  multiline,
   style,
 }: {
   children: React.ReactNode;
   focused?: boolean;
   error?: boolean;
+  multiline?: boolean;
   style?: StyleProp<ViewStyle>;
 }) => (
-  <View style={[styles.inputSurface, focused && styles.inputSurfaceFocused, error && styles.inputSurfaceError, style]}>
+  <View
+    style={[
+      styles.inputSurface,
+      multiline && styles.inputSurfaceMultiline,
+      focused && styles.inputSurfaceFocused,
+      error && styles.inputSurfaceError,
+      style,
+    ]}
+  >
     {children}
   </View>
 );
@@ -83,23 +93,27 @@ export const SegmentedControl = <T extends string>({
   options,
   onChange,
   style,
+  variant = 'surface',
+  textVariant = 'labelMd',
 }: {
   value: T;
   options: Array<{ label: string; value: T }>;
   onChange: (next: T) => void;
   style?: StyleProp<ViewStyle>;
+  variant?: 'surface' | 'primary';
+  textVariant?: 'labelMd' | 'labelSm';
 }) => (
-  <View style={[styles.segmented, style]}>
+  <View style={[styles.segmented, variant === 'primary' && styles.segmentedPrimary, style]}>
     {options.map(option => {
       const active = option.value === value;
       return (
         <TouchableOpacity
           key={option.value}
-          style={[styles.segment, active && styles.segmentActive]}
+          style={[styles.segment, active && styles.segmentActive, variant === 'primary' && active && styles.segmentActivePrimary]}
           onPress={() => onChange(option.value)}
           activeOpacity={0.84}
         >
-          <AppText variant="labelMd" tone={active ? 'default' : 'muted'}>
+          <AppText variant={textVariant} tone={active ? (variant === 'primary' ? 'inverse' : 'default') : 'muted'}>
             {option.label}
           </AppText>
         </TouchableOpacity>
@@ -112,35 +126,47 @@ export const PillSelector = <T extends string>({
   value,
   options,
   onChange,
+  wrap,
+  style,
 }: {
   value: T;
   options: Array<{ label: string; value: T; icon?: React.ReactNode }>;
   onChange: (next: T) => void;
-}) => (
-  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
-    {options.map(option => {
-      const active = option.value === value;
-      return (
-        <TouchableOpacity
-          key={option.value}
-          style={[styles.pill, active && styles.pillActive]}
-          onPress={() => onChange(option.value)}
-          activeOpacity={0.84}
-        >
-          {option.icon}
-          <AppText variant="labelMd" tone={active ? 'inverse' : 'accent'}>
-            {option.label}
-          </AppText>
-        </TouchableOpacity>
-      );
-    })}
-  </ScrollView>
-);
+  wrap?: boolean;
+  style?: StyleProp<ViewStyle>;
+}) => {
+  const items = options.map(option => {
+    const active = option.value === value;
+    return (
+      <TouchableOpacity
+        key={option.value}
+        style={[styles.pill, active && styles.pillActive]}
+        onPress={() => onChange(option.value)}
+        activeOpacity={0.84}
+      >
+        {option.icon}
+        <AppText variant="labelMd" tone={active ? 'inverse' : 'accent'}>
+          {option.label}
+        </AppText>
+      </TouchableOpacity>
+    );
+  });
+
+  if (wrap) {
+    return <View style={[styles.pillRow, styles.pillRowWrap, style]}>{items}</View>;
+  }
+
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.pillRow, style]}>
+      {items}
+    </ScrollView>
+  );
+};
 
 const styles = StyleSheet.create({
   section: {
     backgroundColor: colours.surfaceRaised,
-    borderRadius: radii.lg,
+    borderRadius: radii.card,
     borderWidth: 1,
     borderColor: colours.borderSoft,
     padding: layout.cardPadding,
@@ -168,11 +194,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 48,
-    borderRadius: radii.md,
+    borderRadius: radii.input,
     borderWidth: 1,
     borderColor: colours.borderSoft,
     backgroundColor: colours.surfaceRaised,
     paddingHorizontal: spacing.sm,
+  },
+  inputSurfaceMultiline: {
+    alignItems: 'flex-start',
+    paddingVertical: spacing.xs,
   },
   inputSurfaceFocused: {
     borderColor: colours.secondary,
@@ -189,8 +219,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 48,
     color: colours.textPrimary,
-    fontFamily: 'Manrope',
-    fontSize: 15,
+    fontFamily: fonts.body,
+    fontSize: fontSizes.base,
     paddingVertical: spacing.xs,
   },
   affix: {
@@ -202,15 +232,20 @@ const styles = StyleSheet.create({
   segmented: {
     flexDirection: 'row',
     padding: 3,
-    borderRadius: radii.md,
+    borderRadius: radii.input,
     backgroundColor: colours.surfaceAccent,
+  },
+  segmentedPrimary: {
+    backgroundColor: colours.surfaceRaised,
+    borderWidth: 1,
+    borderColor: colours.border,
   },
   segment: {
     flex: 1,
-    borderRadius: radii.md - 2,
+    borderRadius: radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: spacing.xs,
   },
   segmentActive: {
@@ -218,10 +253,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colours.borderSoft,
   },
+  segmentActivePrimary: {
+    backgroundColor: colours.primary,
+    borderColor: colours.primary,
+  },
   pillRow: {
     flexDirection: 'row',
     gap: spacing.xs,
     paddingVertical: spacing.xxs,
+  },
+  pillRowWrap: {
+    flexWrap: 'wrap',
   },
   pill: {
     flexDirection: 'row',
@@ -229,7 +271,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radii.full,
+    borderRadius: radii.chip,
     borderWidth: 1,
     borderColor: colours.borderSoft,
     backgroundColor: colours.surfaceRaised,

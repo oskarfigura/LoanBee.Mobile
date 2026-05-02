@@ -18,7 +18,7 @@ export const Card = ({ children, style, padding = 16, variant = 'default' }: Pro
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colours.surfaceRaised,
-    borderRadius: radii.lg,
+    borderRadius: radii.card,
     borderWidth: 1,
     borderColor: colours.borderSoft,
     ...elevation.level1,

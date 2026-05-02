@@ -31,7 +31,7 @@ export const FinancialDisclaimer = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colours.surfaceMuted,
-    borderRadius: radii.md,
+    borderRadius: radii.input,
     borderWidth: 1,
     borderColor: colours.borderSoft,
     paddingHorizontal: spacing.md,

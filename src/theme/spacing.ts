@@ -13,7 +13,7 @@ export const spacing = {
 
 export const layout = {
   screenPadding: 16,
-  headerPadding: 16,
+  headerPadding: 20,
   sectionGap: 16,
   cardPadding: 16,
   denseCardPadding: 12,

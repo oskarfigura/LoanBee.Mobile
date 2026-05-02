@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   base: {
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xxs,
-    borderRadius: radii.full,
+    borderRadius: radii.chip,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },

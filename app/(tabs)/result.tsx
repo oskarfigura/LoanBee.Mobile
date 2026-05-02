@@ -22,10 +22,11 @@ import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { FinancialDisclaimer } from '@/components/ui/FinancialDisclaimer';
+import { SegmentedControl } from '@/components/ui/FormPrimitives';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { BannerAd } from '@/ads/BannerAd';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
 import { CurrencyCode } from '@/currency/currencies';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SavedLoan } from '@/types/SavedLoan';
@@ -278,10 +279,10 @@ export default function ResultScreen() {
   }
 
   const principalAmount = result.amount - result.downPayment;
-  const tabs: Array<{ key: ResultTab; label: string }> = [
-    { key: 'summary', label: t('results.summary') },
-    { key: 'charts', label: t('results.charts') },
-    { key: 'schedule', label: t('results.schedule') },
+  const tabs: Array<{ value: ResultTab; label: string }> = [
+    { value: 'summary', label: t('results.summary') },
+    { value: 'charts', label: t('results.charts') },
+    { value: 'schedule', label: t('results.schedule') },
   ];
 
   return (
@@ -313,23 +314,14 @@ export default function ResultScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <FinancialDisclaimer />
 
-        <View style={styles.tabBar}>
-          {tabs.map(tab => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text
-                style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <SegmentedControl
+          value={activeTab}
+          onChange={setActiveTab}
+          options={tabs}
+          variant="primary"
+          textVariant="labelSm"
+          style={styles.tabControl}
+        />
 
         {activeTab === 'summary' && (
           <View style={styles.tabPanel}>
@@ -427,7 +419,7 @@ export default function ResultScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
   scroll: { flex: 1 },
-  container: { padding: 14, paddingBottom: 20 },
+  container: { padding: layout.screenPadding, paddingBottom: spacing.lg },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
   headerSaveButton: {
@@ -435,9 +427,9 @@ const styles = StyleSheet.create({
     minWidth: 70,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
+    borderRadius: radii.button,
     backgroundColor: colours.primary,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
   },
   headerSaveText: {
     fontFamily: fonts.heading,
@@ -448,7 +440,7 @@ const styles = StyleSheet.create({
   headerEditButton: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: radii.full,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colours.white,
@@ -459,41 +451,10 @@ const styles = StyleSheet.create({
     backgroundColor: colours.white,
     borderTopWidth: 1,
     borderTopColor: colours.surface,
-    paddingHorizontal: 16,
+    paddingHorizontal: layout.screenPadding,
     paddingTop: 2,
   },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colours.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colours.border,
-    marginTop: 0,
-    marginBottom: 10,
-    minHeight: 44,
-    padding: 3,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 9,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  tabActive: {
-    backgroundColor: colours.primary,
-  },
-  tabText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colours.textSecondary,
-    textAlign: 'center',
-  },
-  tabTextActive: {
-    color: colours.white,
-  },
+  tabControl: { marginBottom: spacing.sm },
   tabPanel: {
     marginTop: 2,
   },
@@ -530,7 +491,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 14,
-    borderRadius: 18,
+    borderRadius: radii.button,
     backgroundColor: colours.surface,
     borderWidth: 1,
     borderColor: colours.border,

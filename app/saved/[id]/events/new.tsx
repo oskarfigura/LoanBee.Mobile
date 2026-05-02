@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
+import { AppTextInput, FieldLabel, InputAffix, InputSurface, PillSelector } from '@/components/ui/FormPrimitives';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { CURRENCIES } from '@/currency/currencies';
@@ -11,7 +13,7 @@ import { getCurrentDeal, projectDeal } from '@/mortgage/tracker';
 import { savedLoansStorage } from '@/storage/savedLoans';
 import { MortgageEventType } from '@/types/SavedLoan';
 import { createLocalId } from '@/utils/id';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, layout, spacing } from '@/theme';
 
 const eventTypes: MortgageEventType[] = [
   'lumpOverpayment',
@@ -54,7 +56,7 @@ export default function NewMortgageEventScreen() {
           leftAction={<HeaderBackAction onPress={() => router.back()} />}
         />
         <View style={styles.notFound}>
-          <Text style={styles.notFoundText}>{t('mortgage.noCurrentDeal')}</Text>
+          <AppText variant="title3" style={styles.notFoundText}>{t('mortgage.noCurrentDeal')}</AppText>
           <Button label={t('common.goBack')} onPress={() => router.back()} />
         </View>
       </SafeAreaView>
@@ -72,71 +74,69 @@ export default function NewMortgageEventScreen() {
         leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.label}>{t('mortgage.eventType')}</Text>
-        <View style={styles.chips}>
-          {eventTypes.map(item => (
-            <TouchableOpacity
-              key={item}
-              style={[styles.chip, eventType === item && styles.chipActive]}
-              onPress={() => setEventType(item)}
-            >
-              <Text style={[styles.chipText, eventType === item && styles.chipTextActive]}>{eventLabel(item)}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.field}>
+          <FieldLabel>{t('mortgage.eventType')}</FieldLabel>
+          <PillSelector
+            value={eventType}
+            onChange={setEventType}
+            options={eventTypes.map(item => ({ value: item, label: eventLabel(item) }))}
+            wrap
+          />
         </View>
 
-        <Text style={styles.label}>{t('mortgage.eventDate')}</Text>
-        <TextInput
-          style={styles.input}
-          value={date}
-          onChangeText={setDate}
-          placeholder="2026-06-01"
-          placeholderTextColor={colours.textSecondary}
-        />
+        <View style={styles.field}>
+          <FieldLabel>{t('mortgage.eventDate')}</FieldLabel>
+          <InputSurface>
+            <AppTextInput
+              value={date}
+              onChangeText={setDate}
+              placeholder="2026-06-01"
+            />
+          </InputSurface>
+        </View>
 
         {needsAmount && (
-          <>
-            <Text style={styles.label}>{t('mortgage.amount')}</Text>
-            <View style={styles.inputShell}>
-              <Text style={styles.affix}>{currencySymbol}</Text>
-              <TextInput
-                style={styles.inputField}
+          <View style={styles.field}>
+            <FieldLabel>{t('mortgage.amount')}</FieldLabel>
+            <InputSurface>
+              <InputAffix>{currencySymbol}</InputAffix>
+              <AppTextInput
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="decimal-pad"
                 placeholder="5000"
-                placeholderTextColor={colours.textSecondary}
               />
-            </View>
-          </>
+            </InputSurface>
+          </View>
         )}
 
         {needsBalance && (
-          <>
-            <Text style={styles.label}>{t('mortgage.bankConfirmedBalance')}</Text>
-            <View style={styles.inputShell}>
-              <Text style={styles.affix}>{currencySymbol}</Text>
-              <TextInput
-                style={styles.inputField}
+          <View style={styles.field}>
+            <FieldLabel>{t('mortgage.bankConfirmedBalance')}</FieldLabel>
+            <InputSurface>
+              <InputAffix>{currencySymbol}</InputAffix>
+              <AppTextInput
                 value={balance}
                 onChangeText={setBalance}
                 keyboardType="decimal-pad"
                 placeholder="238420"
-                placeholderTextColor={colours.textSecondary}
               />
-            </View>
-          </>
+            </InputSurface>
+          </View>
         )}
 
-        <Text style={styles.label}>{t('mortgage.notes')}</Text>
-        <TextInput
-          style={[styles.input, styles.noteInput]}
-          value={note}
-          onChangeText={setNote}
-          placeholder={t('mortgage.notesPlaceholder')}
-          placeholderTextColor={colours.textSecondary}
-          multiline
-        />
+        <View style={styles.field}>
+          <FieldLabel>{t('mortgage.notes')}</FieldLabel>
+          <InputSurface multiline>
+            <AppTextInput
+              style={styles.noteInput}
+              value={note}
+              onChangeText={setNote}
+              placeholder={t('mortgage.notesPlaceholder')}
+              multiline
+            />
+          </InputSurface>
+        </View>
 
         <Button
           label={t('mortgage.saveEvent')}
@@ -185,93 +185,13 @@ export default function NewMortgageEventScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
-  container: { padding: 16, paddingBottom: 40 },
+  container: { padding: layout.screenPadding, paddingBottom: spacing['3xl'] },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.extrabold,
-    color: colours.primary,
-  },
-  helper: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    lineHeight: 20,
-    marginTop: 8,
-    marginBottom: 10,
-  },
-  label: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colours.textPrimary,
-    marginTop: 14,
-    marginBottom: 6,
-  },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colours.border,
-    backgroundColor: colours.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  chipActive: {
-    borderColor: colours.primary,
-    backgroundColor: colours.primary,
-  },
-  chipText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colours.primary,
-  },
-  chipTextActive: { color: colours.white },
-  input: {
-    backgroundColor: colours.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colours.border,
-    minHeight: 48,
-    paddingHorizontal: 14,
-    fontFamily: fonts.body,
-    fontSize: fontSizes.base,
-    color: colours.textPrimary,
-  },
+  notFoundText: { marginBottom: spacing.md },
+  field: { marginTop: spacing.md },
   noteInput: {
     minHeight: 88,
-    paddingTop: 12,
     textAlignVertical: 'top',
   },
-  inputShell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colours.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colours.border,
-    minHeight: 48,
-    paddingHorizontal: 14,
-  },
-  inputField: {
-    flex: 1,
-    fontFamily: fonts.body,
-    fontSize: fontSizes.base,
-    color: colours.textPrimary,
-    paddingVertical: 10,
-  },
-  affix: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
-    color: colours.textSecondary,
-  },
-  action: { marginTop: 24 },
+  action: { marginTop: spacing.xl },
 });

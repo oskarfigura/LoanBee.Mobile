@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,13 +7,15 @@ import { CurrencyCode } from '@/currency/currencies';
 import { CurrencyPicker } from '@/components/calculator/CurrencyPicker';
 import { LenderTextInput } from '@/components/loans/LenderTextInput';
 import { PinIcon } from '@/components/loans/LoanIcons';
+import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { AppTextInput, FieldLabel, InputSurface, SegmentedControl } from '@/components/ui/FormPrimitives';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { getDraftDeals, getMortgageTrackerSummary } from '@/mortgage/tracker';
 import { savedLoansStorage } from '@/storage/savedLoans';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, layout, radii, spacing } from '@/theme';
 
 type EditTab = 'general' | 'specifics';
 
@@ -45,7 +47,7 @@ export default function EditLoanScreen() {
           leftAction={<HeaderBackAction onPress={() => router.back()} />}
         />
         <View style={styles.notFound}>
-          <Text style={styles.notFoundText}>{t('saved.notFound')}</Text>
+          <AppText variant="title3" style={styles.notFoundText}>{t('saved.notFound')}</AppText>
           <Button label={t('common.goBack')} onPress={() => router.back()} />
         </View>
       </SafeAreaView>
@@ -86,66 +88,67 @@ export default function EditLoanScreen() {
         leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.tabBar}>
-          {(['general', 'specifics'] as const).map(tab => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                {tab === 'general' ? t('edit.general') : t('edit.specifics')}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <SegmentedControl
+          value={activeTab}
+          onChange={setActiveTab}
+          options={[
+            { value: 'general', label: t('edit.general') },
+            { value: 'specifics', label: t('edit.specifics') },
+          ]}
+          variant="primary"
+          style={styles.tabControl}
+        />
 
         {activeTab === 'general' && (
           <View>
-            <Text style={styles.label}>{t('save.nickname')}</Text>
-            <TextInput
-              style={styles.input}
-              value={nickname}
-              onChangeText={setNickname}
-              placeholder={t('save.nicknamePlaceholder')}
-              placeholderTextColor={colours.textSecondary}
-            />
-
-            <Text style={styles.label}>{t('save.category')}</Text>
-            <View style={styles.toggleRow}>
-              {(['mortgage', 'loan'] as const).map(cat => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[styles.toggleBtn, category === cat && styles.toggleBtnActive]}
-                  onPress={() => setCategory(cat)}
-                >
-                  <Text style={[styles.toggleText, category === cat && styles.toggleTextActive]}>
-                    {cat === 'mortgage' ? t('save.mortgage') : t('save.loan')}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.field}>
+              <FieldLabel>{t('save.nickname')}</FieldLabel>
+              <InputSurface>
+                <AppTextInput
+                  value={nickname}
+                  onChangeText={setNickname}
+                  placeholder={t('save.nicknamePlaceholder')}
+                />
+              </InputSurface>
             </View>
 
-            <Text style={styles.label}>{t('save.lender')}</Text>
-            <LenderTextInput value={lender} onChange={setLender} />
+            <View style={styles.field}>
+              <FieldLabel>{t('save.category')}</FieldLabel>
+              <SegmentedControl
+                value={category}
+                onChange={setCategory}
+                options={[
+                  { value: 'mortgage', label: t('save.mortgage') },
+                  { value: 'loan', label: t('save.loan') },
+                ]}
+                variant="primary"
+              />
+            </View>
 
-            <Text style={styles.label}>{t('save.currency')}</Text>
-            <CurrencyPicker value={currency} onChange={setCurrency} />
+            <View style={styles.field}>
+              <FieldLabel>{t('save.lender')}</FieldLabel>
+              <LenderTextInput value={lender} onChange={setLender} />
+            </View>
+
+            <View style={styles.field}>
+              <FieldLabel>{t('save.currency')}</FieldLabel>
+              <CurrencyPicker value={currency} onChange={setCurrency} />
+            </View>
 
             <TouchableOpacity
-              style={styles.pinToggle}
+              style={[styles.pinToggle, pinnedToDashboard && styles.pinToggleActive]}
               onPress={() => setPinnedToDashboard(value => !value)}
               activeOpacity={0.8}
             >
               <View style={styles.pinCopy}>
                 <PinIcon color={colours.primary} />
-                <Text style={[styles.pinTitle, pinnedToDashboard && styles.pinTitleActive]}>
+                <AppText variant="title3" tone="accent">
                   {pinnedToDashboard ? t('mortgage.pinned') : t('mortgage.pinToDashboard')}
-                </Text>
+                </AppText>
               </View>
-              <Text style={[styles.pinMeta, pinnedToDashboard && styles.pinMetaActive]}>
+              <AppText variant="bodySm" tone="muted" style={styles.pinMeta}>
                 {t('edit.pinHelp')}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
         )}
@@ -153,21 +156,23 @@ export default function EditLoanScreen() {
         {activeTab === 'specifics' && loan.category === 'mortgage' && (
           <View>
             <Card style={styles.specificsCard}>
-              <Text style={styles.cardTitle}>{t('mortgage.currentDeal')}</Text>
+              <AppText variant="title3">{t('mortgage.currentDeal')}</AppText>
               {currentDeal ? (
                 <>
-                  <Text style={styles.dealTitle}>{currentDeal.name}</Text>
-                  <Text style={styles.dealMeta}>{currentDeal.startDate} - {currentDeal.endDate}</Text>
-                  <Text style={styles.dealMeta}>{currentDeal.interestRate}% · {currentDeal.repaymentType === 'interestOnly' ? t('mortgage.interestOnly') : t('mortgage.repayment')}</Text>
+                  <AppText variant="title2" tone="accent" style={styles.dealTitle}>{currentDeal.name}</AppText>
+                  <AppText variant="bodySm" tone="muted" style={styles.dealMeta}>{currentDeal.startDate} - {currentDeal.endDate}</AppText>
+                  <AppText variant="bodySm" tone="muted" style={styles.dealMeta}>
+                    {currentDeal.interestRate}% · {currentDeal.repaymentType === 'interestOnly' ? t('mortgage.interestOnly') : t('mortgage.repayment')}
+                  </AppText>
                 </>
               ) : (
-                <Text style={styles.bodyText}>{t('mortgage.noCurrentDeal')}</Text>
+                <AppText variant="bodyMd" tone="muted" style={styles.bodyText}>{t('mortgage.noCurrentDeal')}</AppText>
               )}
             </Card>
 
             {draftDeals.length > 0 && (
               <Card style={styles.specificsCard}>
-                <Text style={styles.cardTitle}>{t('mortgage.nextDealDraft')}</Text>
+                <AppText variant="title3">{t('mortgage.nextDealDraft')}</AppText>
                 {draftDeals.map(deal => (
                   <TouchableOpacity
                     key={deal.id}
@@ -175,16 +180,16 @@ export default function EditLoanScreen() {
                     onPress={() => router.push(`/saved/${loan.id}/deals/${deal.id}`)}
                   >
                     <View>
-                      <Text style={styles.dealTitle}>{deal.name}</Text>
-                      <Text style={styles.dealMeta}>{t('mortgage.startsOn', { date: deal.startDate })}</Text>
+                      <AppText variant="title2" tone="accent" style={styles.dealTitle}>{deal.name}</AppText>
+                      <AppText variant="bodySm" tone="muted" style={styles.dealMeta}>{t('mortgage.startsOn', { date: deal.startDate })}</AppText>
                     </View>
-                    <Text style={styles.editLink}>{t('saved.edit')}</Text>
+                    <AppText variant="labelMd" tone="accent">{t('saved.edit')}</AppText>
                   </TouchableOpacity>
                 ))}
               </Card>
             )}
 
-            <Text style={styles.helperText}>{t('edit.mortgageSpecificsHelp')}</Text>
+            <AppText variant="bodySm" tone="muted" style={styles.helperText}>{t('edit.mortgageSpecificsHelp')}</AppText>
             <Button label={t('mortgage.viewTimeline')} onPress={() => router.push(`/saved/${loan.id}/timeline`)} variant="secondary" style={styles.stackAction} />
             <Button label={t('mortgage.addNextDeal')} onPress={() => router.push(`/saved/${loan.id}/deals/new`)} variant="secondary" style={styles.stackAction} />
             <Button label={t('mortgage.completeCurrentDeal')} onPress={() => router.push(`/saved/${loan.id}/complete-current`)} variant="secondary" style={styles.stackAction} />
@@ -193,8 +198,8 @@ export default function EditLoanScreen() {
 
         {activeTab === 'specifics' && loan.category !== 'mortgage' && (
           <Card style={styles.specificsCard}>
-            <Text style={styles.cardTitle}>{t('edit.loanInputsLockedTitle')}</Text>
-            <Text style={styles.bodyText}>{t('edit.loanInputsLockedBody')}</Text>
+            <AppText variant="title3">{t('edit.loanInputsLockedTitle')}</AppText>
+            <AppText variant="bodyMd" tone="muted" style={styles.bodyText}>{t('edit.loanInputsLockedBody')}</AppText>
             <Button
               label={t('saved.createNewCalculation')}
               onPress={() => router.push({
@@ -225,158 +230,42 @@ export default function EditLoanScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
-  container: { padding: 16, paddingBottom: 40 },
+  container: { padding: layout.screenPadding, paddingBottom: spacing['3xl'] },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.extrabold,
-    color: colours.primary,
-  },
-  subtitle: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    lineHeight: 20,
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colours.border,
-    backgroundColor: colours.surface,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  tab: {
-    flex: 1,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabActive: { backgroundColor: colours.primary },
-  tabText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colours.textSecondary,
-  },
-  tabTextActive: { color: colours.white },
-  label: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colours.textPrimary,
-    marginTop: 16,
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: colours.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colours.border,
-    minHeight: 48,
-    paddingHorizontal: 14,
-    fontFamily: fonts.body,
-    fontSize: fontSizes.base,
-    color: colours.textPrimary,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    backgroundColor: colours.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colours.border,
-    overflow: 'hidden',
-    minHeight: 44,
-  },
-  toggleBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  toggleBtnActive: { backgroundColor: colours.primary },
-  toggleText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colours.textSecondary,
-  },
-  toggleTextActive: { color: colours.white },
+  notFoundText: { marginBottom: spacing.md },
+  tabControl: { marginBottom: spacing.xs },
+  field: { marginTop: spacing.md },
   pinToggle: {
-    borderRadius: 16,
+    borderRadius: radii.card,
     borderWidth: 1,
     borderColor: colours.border,
-    backgroundColor: colours.surface,
-    padding: 14,
-    marginTop: 18,
+    backgroundColor: colours.surfaceRaised,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+  },
+  pinToggleActive: {
+    borderColor: colours.successBorder,
+    backgroundColor: colours.successSurface,
   },
   pinCopy: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.xs,
   },
-  pinTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
-    color: colours.primary,
-  },
-  pinTitleActive: { color: colours.textPrimary },
-  pinMeta: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    marginTop: 6,
-  },
-  pinMetaActive: { color: colours.textSecondary },
-  specificsCard: { marginTop: 16 },
-  cardTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
-    color: colours.textPrimary,
-  },
-  dealTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
-    color: colours.primary,
-    marginTop: 10,
-  },
-  dealMeta: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    marginTop: 4,
-  },
+  pinMeta: { marginTop: spacing.xs },
+  specificsCard: { marginTop: spacing.md },
+  dealTitle: { marginTop: spacing.sm },
+  dealMeta: { marginTop: spacing.xxs },
   draftRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
-    paddingTop: 10,
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
   },
-  editLink: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colours.primary,
-  },
-  bodyText: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  helperText: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    lineHeight: 20,
-    marginTop: 14,
-  },
-  stackAction: { marginTop: 10 },
-  saveBtn: { marginTop: 24 },
-  cancelBtn: { marginTop: 8 },
+  bodyText: { marginTop: spacing.xs },
+  helperText: { marginTop: spacing.md },
+  stackAction: { marginTop: spacing.sm },
+  saveBtn: { marginTop: spacing.xl },
+  cancelBtn: { marginTop: spacing.xs },
 });

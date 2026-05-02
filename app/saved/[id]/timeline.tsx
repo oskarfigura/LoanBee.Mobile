@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
@@ -12,12 +13,10 @@ import { getCurrentDeal, getDraftDeals, getPublishedDeals, getTimelineWarnings }
 import { savedLoansStorage } from '@/storage/savedLoans';
 import { LoanDeal } from '@/types/SavedLoan';
 import { CurrencyCode } from '@/currency/currencies';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
 
-const StatusPill = ({ label, active }: { label: string; active?: boolean }) => (
-  <View style={[styles.statusPill, active && styles.statusPillActive]}>
-    <Text style={[styles.statusText, active && styles.statusTextActive]}>{label}</Text>
-  </View>
+const StatusBadge = ({ label, variant = 'neutral' }: { label: string; variant?: 'neutral' | 'active' | 'success' }) => (
+  <Badge label={label} variant={variant} />
 );
 
 const DealStats = ({ deal, currency }: { deal: LoanDeal; currency: CurrencyCode }) => (
@@ -84,7 +83,7 @@ export default function MortgageTimelineScreen() {
                     <Text style={styles.kicker}>{t('mortgage.future')}</Text>
                     <Text style={styles.futureTitle}>{deal.name}</Text>
                   </View>
-                  <StatusPill label={t('mortgage.inactive')} />
+                  <StatusBadge label={t('mortgage.inactive')} />
                 </View>
                 <Text style={styles.meta}>{t('mortgage.startsOn', { date: deal.startDate })}</Text>
                 <Button
@@ -103,7 +102,7 @@ export default function MortgageTimelineScreen() {
               <Card style={styles.currentCard}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.currentKicker}>{t('mortgage.currentDeal')}</Text>
-                  <StatusPill label={t('mortgage.active')} active />
+                  <StatusBadge label={t('mortgage.active')} variant="active" />
                 </View>
                 <Text style={styles.currentTitle}>{timeline.current.name}</Text>
                 <Text style={styles.meta}>{timeline.current.startDate} - {timeline.current.endDate}</Text>
@@ -144,7 +143,7 @@ export default function MortgageTimelineScreen() {
                     <Text style={styles.pastTitle}>{deal.name}</Text>
                   </View>
                   <View style={styles.completedActions}>
-                    <StatusPill label={t('saved.completed')} />
+                    <StatusBadge label={t('saved.completed')} variant="success" />
                     <TouchableOpacity onPress={() => router.push(`/saved/${loan.id}/deals/${deal.id}`)}>
                       <Text style={styles.editLink}>{t('saved.edit')}</Text>
                     </TouchableOpacity>
@@ -175,7 +174,7 @@ export default function MortgageTimelineScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
-  container: { padding: 20, paddingBottom: 40 },
+  container: { padding: layout.screenPadding, paddingBottom: spacing['3xl'] },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
   header: { marginBottom: 28 },
@@ -210,7 +209,7 @@ const styles = StyleSheet.create({
     top: 28,
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: radii.full,
     borderWidth: 3,
     borderColor: colours.border,
     backgroundColor: colours.background,
@@ -221,7 +220,7 @@ const styles = StyleSheet.create({
     top: 36,
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: radii.full,
     borderWidth: 5,
     borderColor: colours.teal,
     backgroundColor: colours.white,
@@ -232,7 +231,7 @@ const styles = StyleSheet.create({
     top: 20,
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: radii.full,
     borderWidth: 3,
     borderColor: colours.error,
     backgroundColor: colours.background,
@@ -243,7 +242,7 @@ const styles = StyleSheet.create({
     top: 28,
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: radii.full,
     borderWidth: 3,
     borderColor: colours.textSecondary,
     backgroundColor: colours.background,
@@ -254,7 +253,7 @@ const styles = StyleSheet.create({
     top: 0,
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: radii.full,
     borderWidth: 3,
     borderColor: colours.border,
     backgroundColor: colours.background,
@@ -316,28 +315,12 @@ const styles = StyleSheet.create({
     color: colours.textSecondary,
     marginTop: 16,
   },
-  statusPill: {
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    backgroundColor: colours.surface,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  statusPillActive: { backgroundColor: colours.teal, borderColor: colours.teal },
-  statusText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colours.textSecondary,
-  },
-  statusTextActive: { color: colours.white },
   cardButton: { marginTop: 24 },
   dealStats: {
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: colours.border,
-    borderRadius: 12,
+    borderRadius: radii.input,
     marginTop: 22,
     overflow: 'hidden',
   },
