@@ -22,7 +22,7 @@ import { LoanResult } from '@/results/loanResultRoute';
 import { colours, fonts, fontSizes, fontWeights, radii, spacing } from '@/theme';
 import { AmortisationTable } from './AmortisationTable';
 import { buildAmortisationCsv } from './amortisationTableUtils';
-import { ResultsSummary } from './ResultsSummary';
+import { LoanSummaryOverview } from './LoanSummaryOverview';
 
 type CalculationTab = 'summary' | 'charts' | 'schedule';
 
@@ -34,6 +34,7 @@ interface Props {
   onShare?: () => void;
   shareLabel?: string;
   shareIcon?: React.ReactNode;
+  summaryContent?: React.ReactNode;
 }
 
 export const LoanCalculationView = ({
@@ -44,6 +45,7 @@ export const LoanCalculationView = ({
   onShare,
   shareLabel,
   shareIcon,
+  summaryContent,
 }: Props) => {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<CalculationTab>('summary');
@@ -114,19 +116,16 @@ export const LoanCalculationView = ({
 
       {activeTab === 'summary' && (
         <View style={styles.tabPanel}>
-          <ResultsSummary
-            monthlyPayments={result.monthlyPayments}
-            principalAmount={principalAmount}
-            totalInterestPaid={result.totalInterestPaid}
-            totalAmountPaid={result.totalAmountPaid}
-            termInYears={result.termInYears}
-            termInMonths={result.termInMonths}
-            startDate={startDate}
-            currency={currency}
-            onShare={onShare}
-            shareLabel={shareLabel}
-            shareIcon={shareIcon}
-          />
+          {summaryContent ?? (
+            <LoanSummaryOverview
+              result={result}
+              startDate={startDate}
+              currency={currency}
+              onShare={onShare}
+              shareLabel={shareLabel}
+              shareIcon={shareIcon}
+            />
+          )}
         </View>
       )}
 

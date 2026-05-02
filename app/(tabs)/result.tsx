@@ -253,7 +253,7 @@ export default function ResultScreen() {
           currency={currency}
           onShare={handleShare}
           shareLabel={t('share.short')}
-          shareIcon={<ShareIcon color={colours.white} />}
+          shareIcon={<ShareIcon color={colours.primary} />}
         />
       </ScrollView>
 
