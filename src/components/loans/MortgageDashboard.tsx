@@ -231,7 +231,7 @@ export const MortgageDashboard = ({ loans, onNewCalculation }: Props) => {
 
   return (
     <View style={styles.root}>
-      <ScreenHeader title={t('mortgage.dashboard')} variant="top-level" />
+      <ScreenHeader title={t('mortgage.dashboard')} variant="top-level" showBrand />
       <View style={[styles.content, { paddingBottom: FOOTER_HEIGHT + Math.max(insets.bottom, spacing.xs) }]}>
         <ScrollView
           style={styles.carousel}

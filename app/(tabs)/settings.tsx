@@ -24,7 +24,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScreenHeader title={t('settings.title')} variant="top-level" />
+      <ScreenHeader title={t('settings.title')} variant="top-level" showBrand />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={styles.section} variant="accent" padding={layout.cardPadding}>
           <AppText variant="labelSm" tone="muted" style={styles.sectionLabel}>{t('settings.language')}</AppText>

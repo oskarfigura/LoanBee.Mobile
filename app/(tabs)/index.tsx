@@ -85,6 +85,7 @@ export default function CalculatorScreen() {
       <ScreenHeader
         title={t('calculator.title')}
         variant="top-level"
+        showBrand
         leftAction={pinnedLoans.length > 0 ? <HeaderBackAction onPress={() => setShowCalculator(false)} /> : undefined}
       />
       <LoanForm
@@ -92,9 +93,6 @@ export default function CalculatorScreen() {
         onSubmit={handleSubmit}
         topContent={(
           <View style={styles.pageIntro}>
-            <AppText variant="display" tone="accent" style={styles.pageTitle}>
-              Mortgage & Loan Calculator
-            </AppText>
             <AppText variant="bodyLg" tone="muted" style={styles.pageSubtitle}>
               {t('calculator.subtitle')}
             </AppText>
@@ -122,10 +120,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
   pageIntro: {
     marginBottom: spacing.lg,
-  },
-  pageTitle: {
-    marginBottom: spacing.sm,
-    maxWidth: '92%',
   },
   pageSubtitle: {
     maxWidth: '96%',

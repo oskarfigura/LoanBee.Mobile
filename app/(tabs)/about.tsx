@@ -21,7 +21,7 @@ export default function AboutScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScreenHeader title={t('tabs.about')} variant="top-level" />
+      <ScreenHeader title={t('tabs.about')} variant="top-level" showBrand />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={styles.card} variant="accent" padding={layout.cardPadding}>
           <AppText variant="title2" tone="accent" style={styles.title}>{t('about.formula')}</AppText>

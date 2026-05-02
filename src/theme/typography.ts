@@ -1,6 +1,6 @@
 export const fonts = {
   body: 'Manrope',
-  heading: 'Manrope',
+  heading: 'Nunito',
 } as const;
 
 export const fontSizes = {

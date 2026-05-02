@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './AppText';
-import { colours, fontWeights, layout, radii, spacing } from '@/theme';
+import { colours, fontSizes, fontWeights, layout, spacing } from '@/theme';
 
 const logo = require('../../../assets/bee-logo.png');
 
@@ -12,6 +12,7 @@ interface Props {
   leftAction?: React.ReactNode;
   rightAction?: React.ReactNode;
   variant?: 'top-level' | 'detail' | 'editor';
+  showBrand?: boolean;
 }
 
 export const ScreenHeader = ({
@@ -20,6 +21,7 @@ export const ScreenHeader = ({
   leftAction,
   rightAction,
   variant = 'top-level',
+  showBrand = false,
 }: Props) => {
   const insets = useSafeAreaInsets();
   const compact = variant !== 'top-level';
@@ -29,28 +31,21 @@ export const ScreenHeader = ({
       <View style={styles.brandRow}>
         <View style={styles.leading}>
           {leftAction ? <View style={styles.actionWrap}>{leftAction}</View> : null}
-          {compact ? (
-            <View style={[styles.brandCopy, styles.brandCopyCompact]}>
-              <AppText variant="title2" style={styles.compactTitle} numberOfLines={2}>
+          {showBrand ? (
+            <View style={styles.brandCopy}>
+              <View style={styles.wordmarkRow}>
+                <AppText variant="display" style={styles.wordmark} numberOfLines={1}>
+                  LoanBee
+                </AppText>
+                <Image source={logo} style={styles.inlineBee} resizeMode="contain" />
+              </View>
+              <AppText variant="bodyLg" tone="muted" style={styles.brandSubtitle} numberOfLines={2}>
                 {title}
               </AppText>
             </View>
           ) : (
-            <View style={styles.brandCopy}>
-              <View style={styles.wordmarkRow}>
-                <AppText variant="title2" style={styles.wordmarkLoan}>
-                  Loan
-                </AppText>
-                <View style={styles.wordmarkBeePill}>
-                  <AppText variant="labelMd" tone="inverse" style={styles.wordmarkBeeText}>
-                    Bee
-                  </AppText>
-                </View>
-                <View style={styles.inlineBeeWrap}>
-                  <Image source={logo} style={styles.inlineBee} resizeMode="contain" />
-                </View>
-              </View>
-              <AppText variant="title1" style={styles.brandTitle} numberOfLines={2}>
+            <View style={[styles.brandCopy, styles.brandCopyCompact]}>
+              <AppText variant={compact ? 'title2' : 'title1'} style={styles.plainTitle} numberOfLines={2}>
                 {title}
               </AppText>
             </View>
@@ -90,7 +85,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   brandCopyCompact: {
-    marginLeft: spacing.xs,
     flex: 1,
   },
   wordmarkRow: {
@@ -99,47 +93,22 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     gap: spacing.xs,
   },
-  wordmarkLoan: {
+  wordmark: {
     color: colours.primaryInk,
+    fontSize: fontSizes['3xl'],
+    lineHeight: 40,
     fontWeight: fontWeights.extrabold,
-    letterSpacing: 0.2,
-  },
-  wordmarkBeePill: {
-    minHeight: 24,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radii.full,
-    backgroundColor: colours.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colours.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  wordmarkBeeText: {
-    fontWeight: fontWeights.bold,
-  },
-  inlineBeeWrap: {
-    width: 24,
-    height: 24,
-    borderRadius: radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colours.surfaceAccent,
-    borderWidth: 1,
-    borderColor: colours.surfaceStrong,
   },
   inlineBee: {
-    width: 14,
-    height: 14,
+    width: 30,
+    height: 30,
+    marginLeft: -2,
   },
-  brandTitle: {
-    marginTop: spacing.xs,
-    color: colours.textPrimary,
-    fontWeight: fontWeights.extrabold,
+  brandSubtitle: {
+    marginTop: spacing.xxs,
+    maxWidth: '92%',
   },
-  compactTitle: {
+  plainTitle: {
     color: colours.textPrimary,
   },
   actionWrap: {

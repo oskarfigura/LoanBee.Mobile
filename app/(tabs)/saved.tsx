@@ -18,7 +18,7 @@ export default function SavedScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <ScreenHeader title={t('saved.title')} variant="top-level" />
+      <ScreenHeader title={t('saved.title')} variant="top-level" showBrand />
       <FlatList
         data={loans}
         keyExtractor={item => item.id}
