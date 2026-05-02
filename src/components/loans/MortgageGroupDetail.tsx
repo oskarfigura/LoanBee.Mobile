@@ -1,19 +1,19 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/currency/format';
-import { getMortgageTrackerSummary, getTimelineWarnings } from '@/mortgage/tracker';
+import { getMortgageTrackerSummary } from '@/mortgage/tracker';
 import { MortgageEvent, SavedLoan } from '@/types/SavedLoan';
 import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
+import { MortgageTimelineView } from '@/components/loans/MortgageTimelineView';
 
 interface Props {
   loan: SavedLoan;
   onTogglePinned: () => void;
-  onViewCalculation: () => void;
 }
 
 const eventTitle = (event: MortgageEvent) => {
@@ -24,11 +24,10 @@ const eventTitle = (event: MortgageEvent) => {
   return 'Note';
 };
 
-export const MortgageGroupDetail = ({ loan, onTogglePinned, onViewCalculation }: Props) => {
+export const MortgageGroupDetail = ({ loan, onTogglePinned }: Props) => {
   const { t } = useTranslation();
   const router = useRouter();
   const summary = getMortgageTrackerSummary(loan);
-  const warnings = getTimelineWarnings(loan);
   const currentDeal = summary.currentDeal;
 
   return (
@@ -88,41 +87,10 @@ export const MortgageGroupDetail = ({ loan, onTogglePinned, onViewCalculation }:
         </View>
       </Card>
 
-      {warnings.map(warning => (
-        <Card key={`${warning.type}-${warning.dealId ?? 'group'}`} style={styles.warningCard}>
-          <Text style={styles.warningTitle}>{warning.title}</Text>
-          <Text style={styles.warningText}>{warning.message}</Text>
-        </Card>
-      ))}
-
-      <Card style={styles.card}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('mortgage.dealTimeline')}</Text>
-          <TouchableOpacity onPress={() => router.push(`/saved/${loan.id}/timeline`)}>
-            <Text style={styles.sectionLink}>{t('mortgage.viewFullTimeline')}</Text>
-          </TouchableOpacity>
-        </View>
-        {summary.nextDraftDeal && (
-          <View style={styles.timelineRow}>
-            <View style={styles.timelineNodeMuted} />
-            <View style={styles.timelineCopy}>
-              <Text style={styles.timelineKicker}>{t('mortgage.future')}</Text>
-              <Text style={styles.timelineTitle}>{summary.nextDraftDeal.name}</Text>
-              <Text style={styles.timelineMeta}>{t('mortgage.startsOn', { date: summary.nextDraftDeal.startDate })}</Text>
-            </View>
-          </View>
-        )}
-        {currentDeal && (
-          <View style={styles.timelineRow}>
-            <View style={styles.timelineNodeActive} />
-            <View style={styles.timelineCopy}>
-              <Text style={styles.timelineKicker}>{t('mortgage.currentDeal')}</Text>
-              <Text style={styles.timelineTitle}>{currentDeal.name}</Text>
-              <Text style={styles.timelineMeta}>{currentDeal.startDate} - {currentDeal.endDate}</Text>
-            </View>
-          </View>
-        )}
-      </Card>
+      <View style={styles.timelineSection}>
+        <Text style={styles.sectionTitle}>{t('mortgage.dealTimeline')}</Text>
+        <MortgageTimelineView loan={loan} showFooterAction={false} />
+      </View>
 
       <Card style={styles.card}>
         <Text style={styles.sectionTitle}>{t('mortgage.recentEvents')}</Text>
@@ -154,8 +122,6 @@ export const MortgageGroupDetail = ({ loan, onTogglePinned, onViewCalculation }:
         <Button label={t('mortgage.addNextDeal')} onPress={() => router.push(`/saved/${loan.id}/deals/new`)} variant="secondary" style={styles.action} />
         <Button label={t('mortgage.completeCurrentDeal')} onPress={() => router.push(`/saved/${loan.id}/complete-current`)} variant="secondary" style={styles.action} />
       </View>
-
-      <Button label={t('saved.viewFullCalculation')} onPress={onViewCalculation} style={styles.primaryAction} />
     </View>
   );
 };
@@ -275,86 +241,15 @@ const styles = StyleSheet.create({
     color: colours.primary,
     marginTop: 4,
   },
-  warningCard: {
-    borderColor: colours.error,
-    borderWidth: 1,
-    marginBottom: 14,
-  },
-  warningTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
-    color: colours.error,
-  },
-  warningText: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-    marginTop: 6,
-    lineHeight: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border,
-    paddingBottom: 12,
-    marginBottom: 14,
-  },
   sectionTitle: {
     fontFamily: fonts.heading,
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
     color: colours.primary,
+    marginBottom: 14,
   },
-  sectionLink: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
-    color: colours.primary,
-  },
-  timelineRow: {
-    flexDirection: 'row',
-    gap: 14,
+  timelineSection: {
     marginBottom: 16,
-  },
-  timelineNodeMuted: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colours.border,
-    marginTop: 4,
-  },
-  timelineNodeActive: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 4,
-    borderColor: colours.teal,
-    marginTop: 4,
-  },
-  timelineCopy: { flex: 1 },
-  timelineKicker: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colours.textSecondary,
-    textTransform: 'uppercase',
-  },
-  timelineTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
-    color: colours.textPrimary,
-    marginTop: 4,
-  },
-  timelineMeta: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    marginTop: 4,
   },
   eventRow: {
     flexDirection: 'row',
@@ -406,5 +301,4 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   action: { flexBasis: '100%', flexGrow: 1 },
-  primaryAction: { marginTop: 10 },
 });

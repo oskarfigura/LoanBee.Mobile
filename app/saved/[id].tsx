@@ -3,16 +3,14 @@ import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { savedLoansStorage } from '@/storage/savedLoans';
-import { getLoanCalculations } from '@/core/amortisation';
-import { LoanCalculationType } from '@/core/LoanCalculationType';
-import { DownPaymentType } from '@/core/DownPaymentType';
-import { ResultsSummary } from '@/components/calculator/ResultsSummary';
+import { LoanCalculationView } from '@/components/calculator/LoanCalculationView';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
 import { formatCurrency } from '@/currency/format';
 import { monthsBetween } from '@/utils/date';
-import { buildSavedLoanResultParams } from '@/results/loanResultRoute';
+import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MortgageGroupDetail } from '@/components/loans/MortgageGroupDetail';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
@@ -60,16 +58,7 @@ export default function LoanDetailScreen() {
 
   const result = useMemo(() => {
     if (!loan) return null;
-    const fs = loan.formSnapshot;
-    return getLoanCalculations(
-      fs.loanAmount, fs.interest, fs.termInYears, fs.termInMonths,
-      fs.desiredMonthlyPayment ?? 0,
-      fs.calculationType.toLowerCase() as LoanCalculationType,
-      fs.downPayment,
-      fs.downPaymentType.toLowerCase() as DownPaymentType,
-      fs.additionalMonthlyPayment ?? 0,
-      fs.startDate,
-    );
+    return getResultForSavedLoan(loan);
   }, [loan]);
 
   if (!loan || !result) {
@@ -88,16 +77,19 @@ export default function LoanDetailScreen() {
   }
 
   const now = new Date();
-  const elapsed = monthsBetween(loan.formSnapshot.startDate, now);
+  const elapsed = Math.max(0, monthsBetween(loan.formSnapshot.startDate, now));
   const total = loan.resultSnapshot.totalTermInMonths;
-  const progress = Math.min(elapsed / total, 1.0);
+  const progress = total > 0 ? Math.min(elapsed / total, 1.0) : 0;
   const remaining = Math.max(0, total - elapsed);
   const hasSavings = (loan.formSnapshot.additionalMonthlyPayment ?? 0) > 0;
   const savings = loan.resultSnapshot.totalInterestPaidBaseline - loan.resultSnapshot.totalInterestPaid;
-  const openResult = () => router.push({
-    pathname: '/result' as never,
-    params: buildSavedLoanResultParams(loan),
-  });
+  const principalAmount = result.amount - result.downPayment;
+  const currentBalanceIndex = Math.min(elapsed, result.tableItems.length) - 1;
+  const currentBalanceCandidate = currentBalanceIndex >= 0
+    ? Number(result.tableItems[currentBalanceIndex]?.ending ?? principalAmount)
+    : principalAmount;
+  const currentBalance = Number.isFinite(currentBalanceCandidate) ? currentBalanceCandidate : principalAmount;
+  const paidSoFar = Math.max(0, principalAmount - currentBalance);
 
   if (loan.category === 'mortgage') {
     return (
@@ -113,8 +105,15 @@ export default function LoanDetailScreen() {
               savedLoansStorage.togglePinned(loan.id);
               refresh();
             }}
-            onViewCalculation={openResult}
           />
+          <View style={styles.calculationSection}>
+            <Text style={styles.sectionTitle}>{t('results.title')}</Text>
+            <LoanCalculationView
+              result={result}
+              startDate={loan.formSnapshot.startDate}
+              currency={loan.currency}
+            />
+          </View>
           <Button
             label={t('edit.manageShort')}
             onPress={() => router.push(`/saved/${id}/edit`)}
@@ -133,10 +132,10 @@ export default function LoanDetailScreen() {
         leftAction={<HeaderBackAction onPress={handleBack} />}
       />
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleCopy}>
+        <View style={styles.hero}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.lender}>{loan.lender || t('saved.category.loan')}</Text>
             <Text style={styles.nickname}>{loan.nickname}</Text>
-            {loan.lender && <Text style={styles.lender}>{loan.lender}</Text>}
           </View>
           <DashboardPinButton
             pinned={loan.pinnedToDashboard}
@@ -148,21 +147,41 @@ export default function LoanDetailScreen() {
           />
         </View>
 
-        <ResultsSummary
-          monthlyPayments={result.monthlyPayments}
-          principalAmount={result.amount - result.downPayment}
-          totalInterestPaid={result.totalInterestPaid}
-          totalAmountPaid={result.totalAmountPaid}
-          termInYears={result.termInYears}
-          termInMonths={result.termInMonths}
-          startDate={loan.formSnapshot.startDate}
-          currency={loan.currency}
-        />
+        <Card style={styles.balanceCard}>
+          <Text style={styles.kicker}>{t('results.monthlyPayment')}</Text>
+          <Text style={styles.balance}>{formatCurrency(result.monthlyPayments, loan.currency)}</Text>
+          <View style={styles.divider} />
+          <View style={styles.statRow}>
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>{t('results.totalInterest')}</Text>
+              <Text style={styles.statValue}>{formatCurrency(result.totalInterestPaid, loan.currency)}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>{t('results.totalCost')}</Text>
+              <Text style={styles.statValue}>{formatCurrency(result.totalAmountPaid, loan.currency)}</Text>
+            </View>
+          </View>
+        </Card>
 
         <Card style={styles.progressCard}>
-          <Text style={styles.sectionTitle}>{t('saved.loanProgress')}</Text>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+          <View style={styles.progressHeader}>
+            <Text style={styles.kicker}>{t('saved.loanProgress')}</Text>
+            <Text style={styles.progressPercent}>{Math.round(progress * 100)}%</Text>
+          </View>
+          <ProgressBar progress={progress} color={colours.teal} trackStyle={styles.progressTrack} />
+          <View style={styles.progressLabels}>
+            <Text style={styles.progressCaption}>{t('mortgage.paidAmount', { amount: formatCurrency(paidSoFar, loan.currency) })}</Text>
+            <Text style={styles.progressCaption}>{t('mortgage.totalAmount', { amount: formatCurrency(principalAmount, loan.currency) })}</Text>
+          </View>
+          <View style={styles.metricGrid}>
+            <View style={styles.metric}>
+              <Text style={styles.metricLabel}>{t('mortgage.currentBalance')}</Text>
+              <Text style={styles.metricValue}>{formatCurrency(currentBalance, loan.currency)}</Text>
+            </View>
+            <View style={styles.metric}>
+              <Text style={styles.metricLabel}>{t('calculator.interestRate')}</Text>
+              <Text style={styles.metricValue}>{loan.formSnapshot.interest}%</Text>
+            </View>
           </View>
           <Text style={styles.progressLabel}>
             {remaining > 0
@@ -181,11 +200,15 @@ export default function LoanDetailScreen() {
           </Card>
         )}
 
-        <Button
-          label={t('saved.viewFullCalculation')}
-          onPress={openResult}
-          style={styles.primaryAction}
-        />
+        <View style={styles.calculationSection}>
+          <Text style={styles.sectionTitle}>{t('results.title')}</Text>
+          <LoanCalculationView
+            result={result}
+            startDate={loan.formSnapshot.startDate}
+            currency={loan.currency}
+          />
+        </View>
+
         <Button
           label={t('edit.manageShort')}
           onPress={() => router.push(`/saved/${id}/edit`)}
@@ -199,57 +222,130 @@ export default function LoanDetailScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
-  container: { padding: 16, paddingBottom: 40 },
+  container: { padding: layout.screenPadding, paddingBottom: spacing['3xl'] },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
-  titleRow: {
+  hero: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
+    marginBottom: 18,
   },
-  titleCopy: { flex: 1 },
+  heroCopy: { flex: 1, paddingRight: 12 },
   pinButton: {
     marginBottom: 0,
     marginTop: 4,
   },
   nickname: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
-    color: colours.textPrimary,
+    fontSize: fontSizes['3xl'],
+    fontWeight: fontWeights.extrabold,
+    color: colours.primary,
   },
   lender: {
     fontFamily: fonts.body,
     fontSize: fontSizes.base,
     color: colours.textSecondary,
-    marginTop: 2,
+    marginBottom: 4,
   },
-  progressCard: { marginBottom: 12 },
-  sectionTitle: {
+  balanceCard: { marginBottom: 14 },
+  kicker: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
-    marginBottom: 10,
+    textTransform: 'uppercase',
   },
-  progressTrack: {
-    height: 8,
+  balance: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes['3xl'],
+    fontWeight: fontWeights.extrabold,
+    color: colours.primary,
+    marginTop: 16,
+  },
+  divider: {
+    height: 1,
     backgroundColor: colours.border,
-    borderRadius: 4,
-    overflow: 'hidden',
+    marginVertical: 18,
+  },
+  statRow: { flexDirection: 'row', gap: 20 },
+  stat: { flex: 1 },
+  statLabel: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colours.textSecondary,
     marginBottom: 6,
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colours.primary,
-    borderRadius: 4,
+  statValue: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold,
+    color: colours.textPrimary,
+  },
+  progressCard: { marginBottom: 14 },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  progressPercent: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold,
+    color: colours.secondary,
+  },
+  progressTrack: {
+    height: 14,
+    borderRadius: 7,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  progressCaption: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+  },
+  metricGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 18,
+  },
+  metric: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: radii.input,
+    backgroundColor: colours.white,
+    padding: 12,
+  },
+  metricLabel: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+  },
+  metricValue: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.bold,
+    color: colours.primary,
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold,
+    color: colours.primary,
+    marginBottom: 14,
   },
   progressLabel: {
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
+    marginTop: 14,
   },
   savingsCard: {
     backgroundColor: colours.successSurface,
@@ -277,8 +373,9 @@ const styles = StyleSheet.create({
     color: colours.secondary,
     marginTop: 2,
   },
-  primaryAction: {
-    marginTop: 16,
+  calculationSection: {
+    marginTop: 8,
+    marginBottom: 6,
   },
   secondaryAction: {
     marginTop: 8,
