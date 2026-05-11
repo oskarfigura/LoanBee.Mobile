@@ -21,6 +21,7 @@ import { SegmentedControl } from '@/components/ui/FormPrimitives';
 import { CurrencyCode } from '@/currency/currencies';
 import { LoanResult } from '@/results/loanResultRoute';
 import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
+import { SavedLoan } from '@/types/SavedLoan';
 import { AmortisationTable } from './AmortisationTable';
 import { buildAmortisationCsv } from './amortisationTableUtils';
 import { LoanSummaryOverview } from './LoanSummaryOverview';
@@ -35,6 +36,7 @@ interface Props {
   onShare?: () => void;
   shareLabel?: string;
   shareIcon?: React.ReactNode;
+  savedLoan?: SavedLoan;
   summaryContent?: React.ReactNode;
   tabStyle?: 'segmented' | 'underline';
   showFinancialDisclaimer?: boolean;
@@ -48,6 +50,7 @@ export const LoanCalculationView = ({
   onShare,
   shareLabel,
   shareIcon,
+  savedLoan,
   summaryContent,
   tabStyle = 'segmented',
   showFinancialDisclaimer = false,
@@ -129,6 +132,8 @@ export const LoanCalculationView = ({
               result={result}
               startDate={startDate}
               currency={currency}
+              mode={savedLoan ? 'saved' : 'calculation'}
+              savedLoan={savedLoan}
               onShare={onShare}
               shareLabel={shareLabel}
               shareIcon={shareIcon}

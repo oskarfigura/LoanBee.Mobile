@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -6,9 +6,12 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/currency/format';
 import { getMortgageTrackerSummary } from '@/mortgage/tracker';
+import { buildSavedLoanSummary } from '@/loans/loanInsightSummary';
+import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { MortgageEvent, SavedLoan } from '@/types/SavedLoan';
 import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
+import { LoanInsightCard } from '@/components/loans/LoanInsightCard';
 import { MortgageTimelineView } from '@/components/loans/MortgageTimelineView';
 
 interface Props {
@@ -29,63 +32,27 @@ export const MortgageGroupDetail = ({ loan, onTogglePinned }: Props) => {
   const router = useRouter();
   const summary = getMortgageTrackerSummary(loan);
   const currentDeal = summary.currentDeal;
+  const result = useMemo(() => getResultForSavedLoan(loan), [loan]);
+  const insightSummary = useMemo(() => (
+    buildSavedLoanSummary(loan, result, new Date())
+  ), [loan, result]);
 
   return (
     <View>
-      <View style={styles.hero}>
-        <View style={styles.heroCopy}>
-          <Text style={styles.lender}>{loan.lender || currentDeal?.lender || t('saved.category.mortgage')}</Text>
-          <Text style={styles.title}>{loan.nickname}</Text>
-        </View>
-        <DashboardPinButton
-          pinned={loan.pinnedToDashboard}
-          onPress={onTogglePinned}
-          style={styles.pinButton}
-        />
-      </View>
-
-      <Card style={styles.balanceCard}>
-        <Text style={styles.kicker}>{t('mortgage.currentBalance')}</Text>
-        <Text style={styles.balance}>{formatCurrency(summary.currentBalance, loan.currency)}</Text>
-        <View style={styles.divider} />
-        <View style={styles.statRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statLabel}>{t('results.monthlyPayment')}</Text>
-            <Text style={styles.statValue}>{formatCurrency(currentDeal?.monthlyPayment ?? loan.resultSnapshot.monthlyPayments, loan.currency)}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statLabel}>{t('calculator.interestRate')}</Text>
-            <Text style={styles.statValue}>
-              {currentDeal?.interestRate ?? loan.formSnapshot.interest}%
-              <Text style={styles.statSuffix}>{currentDeal?.repaymentType === 'interestOnly' ? ' IO' : ' Fixed'}</Text>
-            </Text>
-          </View>
-        </View>
-      </Card>
-
-      <Card style={styles.card}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.kicker}>{t('mortgage.balancePaidShort')}</Text>
-          <Text style={styles.progressPercent}>{Math.round(summary.balanceProgress * 100)}%</Text>
-        </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${summary.balanceProgress * 100}%` }]} />
-        </View>
-        <View style={styles.progressLabels}>
-          <Text style={styles.progressCaption}>{t('mortgage.paidAmount', { amount: formatCurrency(summary.principalPaid, loan.currency) })}</Text>
-          <Text style={styles.progressCaption}>{t('mortgage.totalAmount', { amount: formatCurrency(summary.originalBalance, loan.currency) })}</Text>
-        </View>
-        <View style={styles.metricGrid}>
-          <View style={styles.metric}>
-            <Text style={styles.metricLabel}>{t('mortgage.estimatedInterestPaid')}</Text>
-            <Text style={styles.metricValue}>{formatCurrency(summary.interestPaidEstimate, loan.currency)}</Text>
-          </View>
-          <View style={styles.metric}>
-            <Text style={styles.metricLabel}>{t('mortgage.estimatedSavings')}</Text>
-            <Text style={styles.metricValue}>{formatCurrency(summary.overpaymentSavingsEstimate, loan.currency)}</Text>
-          </View>
-        </View>
-      </Card>
+      <LoanInsightCard
+        summary={insightSummary}
+        density="full"
+        title={loan.nickname}
+        subtitle={loan.lender || currentDeal?.lender || t('saved.category.mortgage')}
+        headerAction={(
+          <DashboardPinButton
+            pinned={loan.pinnedToDashboard}
+            onPress={onTogglePinned}
+            style={styles.pinButton}
+          />
+        )}
+        showProgress
+      />
 
       <View style={styles.timelineSection}>
         <Text style={styles.sectionTitle}>{t('mortgage.dealTimeline')}</Text>

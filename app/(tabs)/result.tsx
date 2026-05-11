@@ -251,6 +251,7 @@ export default function ResultScreen() {
           result={result}
           startDate={String(formValues.startDate)}
           currency={currency}
+          savedLoan={savedLoan ?? undefined}
           onShare={handleShare}
           shareLabel={t('share.short')}
           shareIcon={<ShareIcon color={colours.primary} />}

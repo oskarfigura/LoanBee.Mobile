@@ -73,8 +73,6 @@ export default function LoanDetailScreen() {
     );
   }
 
-  const hasSavings = (loan.formSnapshot.additionalMonthlyPayment ?? 0) > 0;
-  const savings = loan.resultSnapshot.totalInterestPaidBaseline - loan.resultSnapshot.totalInterestPaid;
   const manageButton = (
     <Button
       label={t('edit.manageShort')}
@@ -142,6 +140,7 @@ export default function LoanDetailScreen() {
                 startDate={loan.formSnapshot.startDate}
                 currency={loan.currency}
                 mode="saved"
+                savedLoan={loan}
                 title={loan.nickname}
                 subtitle={loan.lender || t('saved.category.loan')}
                 headerAction={(
@@ -154,8 +153,6 @@ export default function LoanDetailScreen() {
                     style={styles.pinButton}
                   />
                 )}
-                showSavings={hasSavings}
-                savingsAmount={savings}
               />
               {manageButton}
             </>
