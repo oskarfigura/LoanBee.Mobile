@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  ScrollView,
   Share,
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
@@ -12,12 +10,12 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { LoanCalculationView } from '@/components/calculator/LoanCalculationView';
+import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
-import { FinancialDisclaimer } from '@/components/ui/FinancialDisclaimer';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { BannerAd } from '@/ads/BannerAd';
-import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
+import { colours, layout, radii, spacing } from '@/theme';
 import { CurrencyCode } from '@/currency/currencies';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SavedLoan } from '@/types/SavedLoan';
@@ -211,7 +209,7 @@ export default function ResultScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.notFound}>
-          <Text style={styles.notFoundText}>{t('results.notFound')}</Text>
+          <AppText variant="bodyLg" style={styles.notFoundText}>{t('results.notFound')}</AppText>
           <Button label={t('common.goBack')} onPress={() => router.back()} />
         </View>
       </SafeAreaView>
@@ -223,40 +221,41 @@ export default function ResultScreen() {
       <ScreenHeader
         title={t('results.title')}
         subtitle={savedLoan ? undefined : t('results.unsavedSubtitle')}
-        leftAction={<HeaderBackAction onPress={handleBack} />}
+        leftAction={<HeaderBackAction onPress={handleBack} variant="circle" />}
         rightAction={!isSavedMode ? (
-          <TouchableOpacity
-            style={styles.headerSaveButton}
+          <Button
+            label={t('results.save')}
             onPress={openSave}
-            accessibilityRole="button"
-            activeOpacity={0.8}
-          >
-            <Text style={styles.headerSaveText}>{t('results.save')}</Text>
-          </TouchableOpacity>
+            variant="primary"
+            style={styles.headerSaveButton}
+          />
         ) : savedLoan ? (
           <TouchableOpacity
-            style={styles.headerEditButton}
+            style={styles.headerIconButton}
             onPress={() => router.push(`/saved/${savedLoan.id}/edit`)}
             accessibilityRole="button"
-            activeOpacity={0.8}
+            activeOpacity={0.84}
           >
             <EditIcon color={colours.primary} />
           </TouchableOpacity>
         ) : undefined}
+        showBottomBorder={false}
+        backgroundColor={colours.background}
+        titleAlign="center"
       />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <FinancialDisclaimer />
 
-        <LoanCalculationView
-          result={result}
-          startDate={String(formValues.startDate)}
-          currency={currency}
-          savedLoan={savedLoan ?? undefined}
-          onShare={handleShare}
-          shareLabel={t('share.short')}
-          shareIcon={<ShareIcon color={colours.primary} />}
-        />
-      </ScrollView>
+      <LoanCalculationView
+        result={result}
+        startDate={String(formValues.startDate)}
+        currency={currency}
+        savedLoan={savedLoan ?? undefined}
+        onShare={handleShare}
+        shareLabel={t('share.short')}
+        shareIcon={<ShareIcon color={colours.primary} />}
+        tabStyle="underline"
+        showFinancialDisclaimer
+        ownsScroll
+      />
 
       <View style={styles.adFooter}>
         <BannerAd />
@@ -273,34 +272,21 @@ export default function ResultScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
-  scroll: { flex: 1 },
-  container: { padding: layout.screenPadding, paddingBottom: spacing.lg },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
+  notFoundText: { marginBottom: 16 },
   headerSaveButton: {
-    minHeight: 36,
-    minWidth: 70,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.button,
-    backgroundColor: colours.primary,
+    minHeight: 38,
     paddingHorizontal: spacing.md,
   },
-  headerSaveText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
-    color: colours.white,
-  },
-  headerEditButton: {
-    width: 38,
-    height: 38,
+  headerIconButton: {
+    width: 42,
+    height: 42,
     borderRadius: radii.full,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colours.white,
+    backgroundColor: colours.surfaceRaised,
     borderWidth: 1,
-    borderColor: colours.border,
+    borderColor: colours.borderSoft,
   },
   adFooter: {
     backgroundColor: colours.white,
