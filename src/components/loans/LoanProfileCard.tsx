@@ -2,12 +2,13 @@ import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText } from '@/components/ui/AppText';
-import { LoanInsightCard } from '@/components/loans/LoanInsightCard';
-import { LoanCategoryIcon, MortgageIcon, PinIcon } from '@/components/loans/LoanIcons';
-import { buildSavedLoanSummary } from '@/loans/loanInsightSummary';
+import { Card } from '@/components/ui/Card';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { ChevronRightIcon, LoanCategoryIcon, MortgageIcon, PinIcon } from '@/components/loans/LoanIcons';
+import { buildSavedLoanSummary, LoanInsightMetric } from '@/loans/loanInsightSummary';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { SavedLoan } from '@/types/SavedLoan';
-import { colours, spacing } from '@/theme';
+import { colours, radii, spacing } from '@/theme';
 
 interface Props {
   loan: SavedLoan;
@@ -22,64 +23,173 @@ export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
     return buildSavedLoanSummary(loan, result, new Date(), i18n.language);
   }, [i18n.language, loan]);
   const CategoryIcon = loan.category === 'mortgage' ? MortgageIcon : LoanCategoryIcon;
+  const currentBalance = summary.progress?.metrics.find(metric => metric.labelKey === 'mortgage.currentBalance');
+  const monthlyPayment = summary.metrics.find(metric => metric.labelKey === 'results.monthlyPayment');
+  const interestRate = summary.metrics.find(metric => metric.labelKey === 'calculator.interestRate');
+  const payoffDate = summary.metrics.find(metric => metric.labelKey === 'results.payoffDate')
+    ?? (summary.hero.labelKey === 'results.payoffDate' ? summary.hero : undefined);
+  const primaryMetric = currentBalance ?? summary.hero;
+  const supportingMetrics = [monthlyPayment, interestRate, payoffDate]
+    .filter((metric): metric is LoanInsightMetric => Boolean(metric))
+    .slice(0, 3);
+  const metaLabel = loan.lender || t('saved.startedOn', { date: loan.formSnapshot.startDate });
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
-      <LoanInsightCard
-        summary={summary}
-        density="compact"
-        title={loan.nickname}
-        subtitle={loan.lender || t(`saved.category.${loan.category}`)}
-        eyebrowContent={(
-          <View style={styles.categoryLabel}>
-            <CategoryIcon color={colours.primary} size={14} />
-            <AppText variant="labelSm" tone="accent">
-              {t(`saved.category.${loan.category}`)}
-            </AppText>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} accessibilityRole="button">
+      <Card padding={0} style={styles.card}>
+        <View style={styles.inner}>
+          <View style={styles.header}>
+            <View style={styles.identity}>
+              <View style={styles.iconTile}>
+                <CategoryIcon color={colours.primary} size={18} />
+              </View>
+              <View style={styles.titleBlock}>
+                <AppText variant="title3" tone="default" numberOfLines={1} adjustsFontSizeToFit>
+                  {loan.nickname}
+                </AppText>
+                <View style={styles.metaRow}>
+                  <View style={styles.categoryLabel}>
+                    <AppText variant="labelSm" tone="accent" numberOfLines={1}>
+                      {t(`saved.category.${loan.category}`)}
+                    </AppText>
+                  </View>
+                  <AppText variant="helper" tone="muted" numberOfLines={1} style={styles.metaText}>
+                    {metaLabel}
+                  </AppText>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={event => {
+                event.stopPropagation();
+                onTogglePinned();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={loan.pinnedToDashboard ? t('mortgage.unpinHint') : t('mortgage.pinToDashboard')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={[styles.pinButton, loan.pinnedToDashboard && styles.pinButtonActive]}
+              activeOpacity={0.84}
+            >
+              <PinIcon color={loan.pinnedToDashboard ? colours.secondary : colours.primary} size={16} />
+            </TouchableOpacity>
           </View>
-        )}
-        headerAction={(
-          <TouchableOpacity
-            onPress={event => {
-              event.stopPropagation();
-              onTogglePinned();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={loan.pinnedToDashboard ? t('mortgage.unpinHint') : t('mortgage.pinToDashboard')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={[styles.pinButton, loan.pinnedToDashboard && styles.pinButtonActive]}
-            activeOpacity={0.84}
-          >
-            <PinIcon color={loan.pinnedToDashboard ? colours.secondary : colours.primary} size={16} />
-          </TouchableOpacity>
-        )}
-        footerContent={(
+
+          <View style={styles.balanceBlock}>
+            <View style={styles.balanceCopy}>
+              <AppText variant="helper" tone="muted" numberOfLines={1}>
+                {t(primaryMetric.labelKey)}
+              </AppText>
+              <AppText variant="metricMd" tone="accent" numberOfLines={1} adjustsFontSizeToFit>
+                {primaryMetric.value}
+              </AppText>
+            </View>
+            <View style={styles.detailsCue}>
+              <ChevronRightIcon color={colours.primary} size={18} />
+            </View>
+          </View>
+
+          {summary.progress ? (
+            <View style={styles.progressBlock}>
+              <View style={styles.progressHeader}>
+                <AppText variant="helper" tone="muted" numberOfLines={1} style={styles.progressLabel}>
+                  {t(summary.progress.labelKey)}
+                </AppText>
+                <AppText variant="labelMd" tone="accent" numberOfLines={1}>
+                  {Math.round(summary.progress.value * 100)}%
+                </AppText>
+              </View>
+              <ProgressBar
+                progress={summary.progress.value}
+                color={loan.category === 'mortgage' ? colours.teal : colours.accent}
+                trackStyle={styles.progressTrack}
+              />
+              <AppText variant="helper" tone="muted" numberOfLines={1}>
+                {t(summary.progress.caption.key, summary.progress.caption.values)}
+              </AppText>
+            </View>
+          ) : null}
+
+          <View style={styles.metricRow}>
+            {supportingMetrics.map(metric => (
+              <View key={metric.labelKey} style={styles.metricPill}>
+                <AppText variant="helper" tone="muted" numberOfLines={1}>
+                  {t(metric.labelKey)}
+                </AppText>
+                <AppText variant="labelMd" tone="default" numberOfLines={1} adjustsFontSizeToFit>
+                  {metric.value}
+                </AppText>
+              </View>
+            ))}
+          </View>
+
           <View style={styles.footer}>
-            <AppText variant="helper" tone="muted">
-              {t('saved.startedOn', { date: loan.formSnapshot.startDate })}
+            <AppText variant="helper" tone="muted" numberOfLines={1} style={styles.footerMeta}>
+              {loan.lender ? t('saved.startedOn', { date: loan.formSnapshot.startDate }) : t('mortgage.tapForDetails')}
+            </AppText>
+            <AppText variant="helper" tone="accent" numberOfLines={1}>
+              {t('saved.view')}
             </AppText>
           </View>
-        )}
-      />
+        </View>
+      </Card>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  footer: {
+  card: {
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  inner: {
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  identity: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  iconTile: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colours.surfaceAccent,
+    borderWidth: 1,
+    borderColor: colours.surfaceStrong,
+  },
+  titleBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xxs,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
+  },
+  metaText: {
+    flex: 1,
+    minWidth: 0,
   },
   categoryLabel: {
     alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xxs,
-    borderRadius: 16,
+    borderRadius: radii.chip,
     borderWidth: 1,
     borderColor: colours.border,
     backgroundColor: colours.surfaceMuted,
     paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xxs,
+    paddingVertical: spacing.xxxs,
   },
   pinButton: {
     width: 36,
@@ -94,5 +204,76 @@ const styles = StyleSheet.create({
   pinButtonActive: {
     backgroundColor: colours.successSurface,
     borderColor: colours.successBorder,
+  },
+  balanceBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    borderRadius: radii.input,
+    borderWidth: 1,
+    borderColor: colours.surfaceStrong,
+    backgroundColor: colours.surfaceMuted,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  balanceCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xxs,
+  },
+  detailsCue: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colours.surfaceRaised,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  progressBlock: {
+    gap: spacing.xxs,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  progressLabel: {
+    flex: 1,
+    minWidth: 0,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  metricPill: {
+    flex: 1,
+    flexBasis: '30%',
+    minWidth: 96,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colours.border,
+    backgroundColor: colours.backgroundCanvas,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
+    gap: spacing.xxs,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  footerMeta: {
+    flex: 1,
+    minWidth: 0,
   },
 });
