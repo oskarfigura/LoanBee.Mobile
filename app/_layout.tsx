@@ -88,6 +88,7 @@ export default function RootLayout() {
                   presentation: 'modal',
                 }}
               />
+              <Stack.Screen name="saved/[id]/events/[eventId]" />
               <Stack.Screen
                 name="saved/[id]/complete-current"
                 options={{

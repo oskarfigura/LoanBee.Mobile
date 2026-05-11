@@ -5,6 +5,7 @@ import {
   getTimelineWarnings,
   projectDeal,
 } from '../../src/mortgage/tracker';
+import { removeMortgageEvent, upsertMortgageEvent } from '../../src/mortgage/events';
 import { LoanGroup } from '../../src/types/SavedLoan';
 
 const makeMortgage = (overrides: Partial<LoanGroup> = {}): LoanGroup => ({
@@ -228,5 +229,92 @@ describe('mortgage tracker', () => {
     expect(warnings.map(warning => warning.type)).toEqual(
       expect.arrayContaining(['gap', 'overlap', 'incompleteActiveDeal', 'draftBlocked']),
     );
+  });
+
+  it('edits an event while preserving id and created date', () => {
+    const loan = makeMortgage({
+      events: [
+        {
+          id: 'event-1',
+          createdAt: '2026-07-01T00:00:00.000Z',
+          updatedAt: '2026-07-01T00:00:00.000Z',
+          dealId: 'deal-current',
+          type: 'lumpOverpayment',
+          date: '2026-07-01',
+          amount: 5000,
+        },
+      ],
+    });
+
+    const updated = upsertMortgageEvent(loan, {
+      ...loan.events[0],
+      updatedAt: '2026-07-02T00:00:00.000Z',
+      amount: 7000,
+    });
+
+    expect(updated.events).toHaveLength(1);
+    expect(updated.events[0].id).toBe('event-1');
+    expect(updated.events[0].createdAt).toBe('2026-07-01T00:00:00.000Z');
+    expect(updated.events[0].updatedAt).toBe('2026-07-02T00:00:00.000Z');
+    expect(updated.events[0].amount).toBe(7000);
+  });
+
+  it('deletes only the selected event', () => {
+    const loan = makeMortgage({
+      events: [
+        {
+          id: 'keep',
+          createdAt: '2026-07-01T00:00:00.000Z',
+          updatedAt: '2026-07-01T00:00:00.000Z',
+          dealId: 'deal-current',
+          type: 'note',
+          date: '2026-07-01',
+          note: 'Keep this',
+        },
+        {
+          id: 'remove',
+          createdAt: '2026-08-01T00:00:00.000Z',
+          updatedAt: '2026-08-01T00:00:00.000Z',
+          dealId: 'deal-current',
+          type: 'balanceCheckpoint',
+          date: '2026-08-01',
+          balance: 230000,
+        },
+      ],
+    });
+
+    const updated = removeMortgageEvent(loan, 'remove');
+
+    expect(updated.events).toHaveLength(1);
+    expect(updated.events[0].id).toBe('keep');
+  });
+
+  it('reflects edited and deleted events in mortgage projections', () => {
+    const loan = makeMortgage({
+      events: [
+        {
+          id: 'overpay',
+          createdAt: '2026-07-01T00:00:00.000Z',
+          updatedAt: '2026-07-01T00:00:00.000Z',
+          dealId: 'deal-current',
+          type: 'lumpOverpayment',
+          date: '2026-07-01',
+          amount: 2000,
+        },
+      ],
+    });
+
+    const originalProjection = projectDeal(loan.deals[0], loan.events, new Date('2026-09-01T00:00:00'), true);
+    const editedLoan = upsertMortgageEvent(loan, {
+      ...loan.events[0],
+      updatedAt: '2026-07-02T00:00:00.000Z',
+      amount: 8000,
+    });
+    const editedProjection = projectDeal(editedLoan.deals[0], editedLoan.events, new Date('2026-09-01T00:00:00'), true);
+    const deletedLoan = removeMortgageEvent(editedLoan, 'overpay');
+    const deletedProjection = projectDeal(deletedLoan.deals[0], deletedLoan.events, new Date('2026-09-01T00:00:00'), true);
+
+    expect(editedProjection.balance).toBeLessThan(originalProjection.balance);
+    expect(deletedProjection.balance).toBeGreaterThan(editedProjection.balance);
   });
 });

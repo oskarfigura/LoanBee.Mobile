@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { mortgageEventLabelKey } from '@/components/loans/MortgageEventForm';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency } from '@/currency/format';
@@ -9,7 +10,7 @@ import { getMortgageTrackerSummary } from '@/mortgage/tracker';
 import { buildSavedLoanSummary } from '@/loans/loanInsightSummary';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { MortgageEvent, SavedLoan } from '@/types/SavedLoan';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, fonts, fontSizes, fontWeights, radii, spacing } from '@/theme';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
 import { LoanInsightCard } from '@/components/loans/LoanInsightCard';
 import { MortgageTimelineView } from '@/components/loans/MortgageTimelineView';
@@ -20,23 +21,29 @@ interface Props {
   onTogglePinned: () => void;
 }
 
-const eventTitle = (event: MortgageEvent) => {
-  if (event.type === 'lumpOverpayment') return 'Lump overpayment';
-  if (event.type === 'missedPayment') return 'Missed payment';
-  if (event.type === 'paymentHoliday') return 'Payment holiday';
-  if (event.type === 'balanceCheckpoint') return 'Bank balance checkpoint';
-  return 'Note';
+const eventIcon = (event: MortgageEvent) => {
+  if (event.type === 'balanceCheckpoint') return 'B';
+  if (event.type === 'missedPayment') return '!';
+  if (event.type === 'paymentHoliday') return 'P';
+  if (event.type === 'note') return 'N';
+  return '+';
 };
 
 export const MortgageGroupDetail = ({ loan, onTogglePinned }: Props) => {
   const { t } = useTranslation();
   const router = useRouter();
+  const [pickerVisible, setPickerVisible] = useState(false);
   const summary = getMortgageTrackerSummary(loan);
   const currentDeal = summary.currentDeal;
+  const draftDeal = summary.nextDraftDeal;
   const result = useMemo(() => getResultForSavedLoan(loan), [loan]);
   const insightSummary = useMemo(() => (
     buildSavedLoanSummary(loan, result, new Date())
   ), [loan, result]);
+  const navigateFromPicker = (href: string) => {
+    setPickerVisible(false);
+    router.push(href as Parameters<typeof router.push>[0]);
+  };
 
   return (
     <View>
@@ -62,38 +69,161 @@ export const MortgageGroupDetail = ({ loan, onTogglePinned }: Props) => {
       </View>
 
       <Card style={styles.card}>
-        <Text style={styles.sectionTitle}>{t('mortgage.recentEvents')}</Text>
+        <View style={styles.activityHeader}>
+          <Text style={styles.sectionTitle}>{t('mortgage.recentActivity')}</Text>
+          <Button
+            label={t('mortgage.addActivity')}
+            onPress={() => setPickerVisible(true)}
+            variant="icon-pill"
+            style={styles.addActivityButton}
+          />
+        </View>
         {summary.recentEvents.length > 0 ? summary.recentEvents.map(event => (
-          <View key={event.id} style={styles.eventRow}>
+          <TouchableOpacity
+            key={event.id}
+            style={styles.eventRow}
+            onPress={() => router.push(`/saved/${loan.id}/events/${event.id}`)}
+            activeOpacity={0.84}
+          >
             <View style={styles.eventIcon}>
-              <Text style={styles.eventIconText}>{event.type === 'balanceCheckpoint' ? 'B' : '+'}</Text>
+              <Text style={styles.eventIconText}>{eventIcon(event)}</Text>
             </View>
             <View style={styles.eventCopy}>
-              <Text style={styles.eventTitle}>{eventTitle(event)}</Text>
+              <Text style={styles.eventTitle}>{t(mortgageEventLabelKey(event.type))}</Text>
               <Text style={styles.eventMeta}>
                 {event.balance !== undefined
                   ? formatCurrency(event.balance, loan.currency)
                   : event.amount !== undefined
                     ? formatCurrency(event.amount, loan.currency)
-                    : event.note || event.date}
+                    : event.note || t('mortgage.eventNoAmount')}
               </Text>
             </View>
             <Text style={styles.eventDate}>{event.date}</Text>
-          </View>
+          </TouchableOpacity>
         )) : (
-          <Text style={styles.empty}>{t('mortgage.noEventsYet')}</Text>
+          <TouchableOpacity
+            style={styles.emptyActivity}
+            onPress={() => setPickerVisible(true)}
+            activeOpacity={0.84}
+          >
+            <Text style={styles.empty}>{t('mortgage.noEventsYet')}</Text>
+            <Text style={styles.emptyAction}>{t('mortgage.addActivity')}</Text>
+          </TouchableOpacity>
         )}
       </Card>
 
-      <View style={styles.actions}>
-        <Button label={t('mortgage.recordBalance')} onPress={() => router.push(`/saved/${loan.id}/events/new?type=balanceCheckpoint`)} variant="secondary" style={styles.action} />
-        <Button label={t('mortgage.addOverpayment')} onPress={() => router.push(`/saved/${loan.id}/events/new?type=lumpOverpayment`)} variant="secondary" style={styles.action} />
-        <Button label={t('mortgage.addNextDeal')} onPress={() => router.push(`/saved/${loan.id}/deals/new`)} variant="secondary" style={styles.action} />
-        <Button label={t('mortgage.completeCurrentDeal')} onPress={() => router.push(`/saved/${loan.id}/complete-current`)} variant="secondary" style={styles.action} />
-      </View>
+      <Modal
+        visible={pickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickerVisible(false)}
+      >
+        <Pressable style={styles.modalScrim} onPress={() => setPickerVisible(false)}>
+          <Pressable style={styles.modalCard}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('mortgage.addActivity')}</Text>
+              <TouchableOpacity onPress={() => setPickerVisible(false)} activeOpacity={0.84}>
+                <Text style={styles.closeText}>{t('common.close')}</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.optionList}>
+              {currentDeal ? (
+                <>
+                  <Text style={styles.optionGroupTitle}>{t('mortgage.eventGroup')}</Text>
+                  <ActivityOption
+                    title={t('mortgage.addOverpayment')}
+                    description={t('mortgage.addOverpaymentHelp')}
+                    marker="+"
+                    onPress={() => navigateFromPicker(`/saved/${loan.id}/events/new?type=lumpOverpayment`)}
+                  />
+                  <ActivityOption
+                    title={t('mortgage.recordBalance')}
+                    description={t('mortgage.recordBalanceHelp')}
+                    marker="B"
+                    onPress={() => navigateFromPicker(`/saved/${loan.id}/events/new?type=balanceCheckpoint`)}
+                  />
+                  <ActivityOption
+                    title={t('mortgage.addNote')}
+                    description={t('mortgage.addNoteHelp')}
+                    marker="N"
+                    onPress={() => navigateFromPicker(`/saved/${loan.id}/events/new?type=note`)}
+                  />
+                  <ActivityOption
+                    title={t('mortgage.eventMissedPayment')}
+                    description={t('mortgage.missedPaymentHelp')}
+                    marker="!"
+                    onPress={() => navigateFromPicker(`/saved/${loan.id}/events/new?type=missedPayment`)}
+                  />
+                  <ActivityOption
+                    title={t('mortgage.eventPaymentHoliday')}
+                    description={t('mortgage.paymentHolidayHelp')}
+                    marker="P"
+                    onPress={() => navigateFromPicker(`/saved/${loan.id}/events/new?type=paymentHoliday`)}
+                  />
+                </>
+              ) : null}
+
+              <Text style={styles.optionGroupTitle}>{t('mortgage.dealGroup')}</Text>
+              <ActivityOption
+                title={t('mortgage.addNextDeal')}
+                description={t('mortgage.addNextDealHelp')}
+                marker="D"
+                onPress={() => navigateFromPicker(`/saved/${loan.id}/deals/new`)}
+              />
+              {currentDeal ? (
+                <ActivityOption
+                  title={t('mortgage.editCurrentDeal')}
+                  description={t('mortgage.editCurrentDealHelp')}
+                  marker="E"
+                  onPress={() => navigateFromPicker(`/saved/${loan.id}/deals/${currentDeal.id}`)}
+                />
+              ) : null}
+              {draftDeal ? (
+                <ActivityOption
+                  title={t('mortgage.editDraftDeal')}
+                  description={t('mortgage.editDraftDealHelp')}
+                  marker="R"
+                  onPress={() => navigateFromPicker(`/saved/${loan.id}/deals/${draftDeal.id}`)}
+                />
+              ) : null}
+              {currentDeal?.status === 'active' ? (
+                <ActivityOption
+                  title={t('mortgage.completeCurrentDeal')}
+                  description={t('mortgage.completeCurrentDealHelp')}
+                  marker="C"
+                  onPress={() => navigateFromPicker(`/saved/${loan.id}/complete-current`)}
+                />
+              ) : null}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
+
+const ActivityOption = ({
+  title,
+  description,
+  marker,
+  onPress,
+}: {
+  title: string;
+  description: string;
+  marker: string;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity style={styles.optionRow} onPress={onPress} activeOpacity={0.84}>
+    <View style={styles.optionMarker}>
+      <Text style={styles.optionMarkerText}>{marker}</Text>
+    </View>
+    <View style={styles.optionCopy}>
+      <Text style={styles.optionTitle}>{title}</Text>
+      <Text style={styles.optionDescription}>{description}</Text>
+    </View>
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   hero: {
@@ -182,10 +312,20 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.bold,
     color: colours.primary,
-    marginBottom: 14,
   },
   timelineSection: {
     marginBottom: 16,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  addActivityButton: {
+    minHeight: 40,
+    paddingHorizontal: spacing.md,
   },
   eventRow: {
     flexDirection: 'row',
@@ -228,13 +368,113 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
-    marginTop: 12,
   },
-  actions: {
+  emptyActivity: {
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: radii.input,
+    backgroundColor: colours.surface,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  emptyAction: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colours.primary,
+    marginTop: spacing.xs,
+  },
+  modalScrim: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: colours.modalScrim,
+    padding: spacing.md,
+  },
+  modalCard: {
+    maxHeight: '86%',
+    borderRadius: radii.card,
+    backgroundColor: colours.surfaceRaised,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 4,
+    borderRadius: radii.full,
+    backgroundColor: colours.borderSoft,
+    marginBottom: spacing.md,
+  },
+  modalHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
   },
-  action: { flexBasis: '100%', flexGrow: 1 },
+  modalTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.bold,
+    color: colours.primary,
+  },
+  closeText: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: colours.primary,
+  },
+  optionList: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  optionGroupTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.bold,
+    color: colours.textSecondary,
+    textTransform: 'uppercase',
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: radii.input,
+    backgroundColor: colours.surfaceRaised,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  optionMarker: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.full,
+    backgroundColor: colours.focusRing,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionMarkerText: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: colours.primary,
+  },
+  optionCopy: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: colours.textPrimary,
+  },
+  optionDescription: {
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    color: colours.textSecondary,
+    marginTop: spacing.xxxs,
+  },
 });
