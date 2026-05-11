@@ -1,21 +1,18 @@
 import React from 'react';
-import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { colours, radii } from '@/theme';
 
 interface Props {
   progress: number;
   color?: string;
-  style?: StyleProp<ViewStyle>;
-  trackStyle?: StyleProp<ViewStyle>;
 }
 
-export const ProgressBar = ({ progress, color = colours.teal, style, trackStyle }: Props) => (
-  <View style={[styles.track, trackStyle]}>
+export const ProgressBar = ({ progress, color = colours.teal }: Props) => (
+  <View style={styles.track}>
     <View
       style={[
         styles.fill,
         { width: `${Math.max(0, Math.min(progress, 1)) * 100}%`, backgroundColor: color },
-        style,
       ]}
     />
   </View>
@@ -23,7 +20,7 @@ export const ProgressBar = ({ progress, color = colours.teal, style, trackStyle 
 
 const styles = StyleSheet.create({
   track: {
-    height: 12,
+    height: 8,
     backgroundColor: colours.surfaceStrong,
     borderRadius: radii.full,
     overflow: 'hidden',

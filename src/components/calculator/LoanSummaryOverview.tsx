@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LoanInsightCard } from '@/components/loans/LoanInsightCard';
+import { SavedLoanProgressBar } from '@/components/loans/SavedLoanProgressBar';
 import { CurrencyCode } from '@/currency/currencies';
 import {
   buildCalculationSummary,
@@ -67,6 +68,9 @@ export const LoanSummaryOverview = ({
       subtitle={subtitle}
       headerAction={headerAction ?? shareAction}
       showProgress={mode === 'saved'}
+      progressContent={mode === 'saved' && savedLoan ? (
+        <SavedLoanProgressBar loan={savedLoan} result={result} summary={summary} />
+      ) : undefined}
       style={styles.card}
     />
   );

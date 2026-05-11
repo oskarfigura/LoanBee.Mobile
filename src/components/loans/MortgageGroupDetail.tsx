@@ -13,6 +13,7 @@ import { colours, fonts, fontSizes, fontWeights } from '@/theme';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
 import { LoanInsightCard } from '@/components/loans/LoanInsightCard';
 import { MortgageTimelineView } from '@/components/loans/MortgageTimelineView';
+import { SavedLoanProgressBar } from '@/components/loans/SavedLoanProgressBar';
 
 interface Props {
   loan: SavedLoan;
@@ -52,6 +53,7 @@ export const MortgageGroupDetail = ({ loan, onTogglePinned }: Props) => {
           />
         )}
         showProgress
+        progressContent={<SavedLoanProgressBar loan={loan} result={result} summary={insightSummary} />}
       />
 
       <View style={styles.timelineSection}>
@@ -155,39 +157,6 @@ const styles = StyleSheet.create({
   statSuffix: {
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  progressPercent: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
-    color: colours.secondary,
-  },
-  progressTrack: {
-    height: 14,
-    backgroundColor: colours.border,
-    borderRadius: 7,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colours.teal,
-    borderRadius: 7,
-  },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  progressCaption: {
-    fontFamily: fonts.body,
-    fontSize: fontSizes.xs,
     color: colours.textSecondary,
   },
   metricGrid: {

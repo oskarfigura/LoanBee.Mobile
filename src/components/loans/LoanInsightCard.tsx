@@ -17,6 +17,7 @@ interface Props {
   headerAction?: React.ReactNode;
   footerContent?: React.ReactNode;
   showProgress?: boolean;
+  progressContent?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -29,6 +30,7 @@ export const LoanInsightCard = ({
   headerAction,
   footerContent,
   showProgress = false,
+  progressContent,
   style,
 }: Props) => {
   const { t } = useTranslation();
@@ -61,7 +63,12 @@ export const LoanInsightCard = ({
                 </Text>
               ) : null}
               {title ? (
-                <Text style={[styles.title, isCompact && styles.compactTitle]} numberOfLines={2} adjustsFontSizeToFit>
+                <Text
+                  style={[styles.title, isCompact && styles.compactTitle]}
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.72}
+                >
                   {title}
                 </Text>
               ) : null}
@@ -103,28 +110,32 @@ export const LoanInsightCard = ({
 
         {showProgress && summary.progress ? (
           <View style={styles.progressSection}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>{t(summary.progress.labelKey)}</Text>
-              <Text style={styles.progressPercent}>{Math.round(summary.progress.value * 100)}%</Text>
-            </View>
-            <ProgressBar progress={summary.progress.value} color={colours.teal} trackStyle={styles.progressTrack} />
-            {summary.progress.startCaption || summary.progress.endCaption ? (
-              <View style={styles.progressCaptions}>
-                <Text style={styles.progressCaption} numberOfLines={1} adjustsFontSizeToFit>
-                  {summary.progress.startCaption
-                    ? t(summary.progress.startCaption.key, summary.progress.startCaption.values)
-                    : t(summary.progress.caption.key, summary.progress.caption.values)}
-                </Text>
-                <Text style={styles.progressCaption} numberOfLines={1} adjustsFontSizeToFit>
-                  {summary.progress.endCaption
-                    ? t(summary.progress.endCaption.key, summary.progress.endCaption.values)
-                    : null}
-                </Text>
-              </View>
-            ) : (
-              <Text style={styles.progressCaption}>
-                {t(summary.progress.caption.key, summary.progress.caption.values)}
-              </Text>
+            {progressContent ?? (
+              <>
+                <View style={styles.progressHeader}>
+                  <Text style={styles.progressLabel}>{t(summary.progress.labelKey)}</Text>
+                  <Text style={styles.progressPercent}>{Math.round(summary.progress.value * 100)}%</Text>
+                </View>
+                <ProgressBar progress={summary.progress.value} color={colours.teal} />
+                {summary.progress.startCaption || summary.progress.endCaption ? (
+                  <View style={styles.progressCaptions}>
+                    <Text style={styles.progressCaption} numberOfLines={1} adjustsFontSizeToFit>
+                      {summary.progress.startCaption
+                        ? t(summary.progress.startCaption.key, summary.progress.startCaption.values)
+                        : t(summary.progress.caption.key, summary.progress.caption.values)}
+                    </Text>
+                    <Text style={styles.progressCaption} numberOfLines={1} adjustsFontSizeToFit>
+                      {summary.progress.endCaption
+                        ? t(summary.progress.endCaption.key, summary.progress.endCaption.values)
+                        : null}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.progressCaption}>
+                    {t(summary.progress.caption.key, summary.progress.caption.values)}
+                  </Text>
+                )}
+              </>
             )}
             <View style={styles.progressMetricGrid}>
               {summary.progress.metrics.map(metric => (
@@ -188,6 +199,7 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
+    flexShrink: 1,
     minWidth: 0,
   },
   eyebrow: {
@@ -204,13 +216,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fonts.heading,
-    fontSize: fontSizes['3xl'],
+    fontSize: fontSizes['2xl'],
     fontWeight: fontWeights.extrabold,
+    lineHeight: 36,
     color: colours.primary,
   },
   compactTitle: {
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.bold,
+    lineHeight: 25,
   },
   hero: {
     paddingTop: spacing.xxs,
@@ -298,10 +312,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.lg,
     fontWeight: fontWeights.bold,
     color: colours.secondary,
-  },
-  progressTrack: {
-    height: 12,
-    borderRadius: 6,
   },
   progressCaption: {
     fontFamily: fonts.body,

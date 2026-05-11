@@ -3,8 +3,8 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { ChevronRightIcon, LoanCategoryIcon, MortgageIcon, PinIcon } from '@/components/loans/LoanIcons';
+import { SavedLoanProgressBar } from '@/components/loans/SavedLoanProgressBar';
 import { buildSavedLoanSummary, LoanInsightMetric } from '@/loans/loanInsightSummary';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { SavedLoan } from '@/types/SavedLoan';
@@ -16,11 +16,42 @@ interface Props {
   onTogglePinned: () => void;
 }
 
+const getOrdinalSuffix = (day: number) => {
+  if (day >= 11 && day <= 13) return 'th';
+  const lastDigit = day % 10;
+
+  if (lastDigit === 1) return 'st';
+  if (lastDigit === 2) return 'nd';
+  if (lastDigit === 3) return 'rd';
+
+  return 'th';
+};
+
+const formatStartedDate = (dateString: string, locale: string) => {
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateString;
+
+  if (locale.startsWith('en')) {
+    const day = date.getDate();
+    const month = date.toLocaleDateString(locale, { month: 'long' });
+    return `${day}${getOrdinalSuffix(day)} ${month} ${date.getFullYear()}`;
+  }
+
+  return date.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
 export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
   const { t, i18n } = useTranslation();
-  const summary = useMemo(() => {
+  const { result, summary } = useMemo(() => {
     const result = getResultForSavedLoan(loan);
-    return buildSavedLoanSummary(loan, result, new Date(), i18n.language);
+    return {
+      result,
+      summary: buildSavedLoanSummary(loan, result, new Date(), i18n.language),
+    };
   }, [i18n.language, loan]);
   const CategoryIcon = loan.category === 'mortgage' ? MortgageIcon : LoanCategoryIcon;
   const currentBalance = summary.progress?.metrics.find(metric => metric.labelKey === 'mortgage.currentBalance');
@@ -32,7 +63,7 @@ export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
   const supportingMetrics = [monthlyPayment, interestRate, payoffDate]
     .filter((metric): metric is LoanInsightMetric => Boolean(metric))
     .slice(0, 3);
-  const metaLabel = loan.lender || t('saved.startedOn', { date: loan.formSnapshot.startDate });
+  const startedDate = formatStartedDate(loan.formSnapshot.startDate, i18n.language);
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85} accessibilityRole="button">
@@ -53,9 +84,11 @@ export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
                       {t(`saved.category.${loan.category}`)}
                     </AppText>
                   </View>
-                  <AppText variant="helper" tone="muted" numberOfLines={1} style={styles.metaText}>
-                    {metaLabel}
-                  </AppText>
+                  {loan.lender ? (
+                    <AppText variant="helper" tone="muted" numberOfLines={1} style={styles.metaText}>
+                      {loan.lender}
+                    </AppText>
+                  ) : null}
                 </View>
               </View>
             </View>
@@ -89,24 +122,7 @@ export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
           </View>
 
           {summary.progress ? (
-            <View style={styles.progressBlock}>
-              <View style={styles.progressHeader}>
-                <AppText variant="helper" tone="muted" numberOfLines={1} style={styles.progressLabel}>
-                  {t(summary.progress.labelKey)}
-                </AppText>
-                <AppText variant="labelMd" tone="accent" numberOfLines={1}>
-                  {Math.round(summary.progress.value * 100)}%
-                </AppText>
-              </View>
-              <ProgressBar
-                progress={summary.progress.value}
-                color={loan.category === 'mortgage' ? colours.teal : colours.accent}
-                trackStyle={styles.progressTrack}
-              />
-              <AppText variant="helper" tone="muted" numberOfLines={1}>
-                {t(summary.progress.caption.key, summary.progress.caption.values)}
-              </AppText>
-            </View>
+            <SavedLoanProgressBar loan={loan} result={result} summary={summary} />
           ) : null}
 
           <View style={styles.metricRow}>
@@ -124,7 +140,7 @@ export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
 
           <View style={styles.footer}>
             <AppText variant="helper" tone="muted" numberOfLines={1} style={styles.footerMeta}>
-              {loan.lender ? t('saved.startedOn', { date: loan.formSnapshot.startDate }) : t('mortgage.tapForDetails')}
+              {t('saved.startedOn', { date: startedDate })}
             </AppText>
             <AppText variant="helper" tone="accent" numberOfLines={1}>
               {t('saved.view')}
@@ -231,23 +247,6 @@ const styles = StyleSheet.create({
     backgroundColor: colours.surfaceRaised,
     borderWidth: 1,
     borderColor: colours.border,
-  },
-  progressBlock: {
-    gap: spacing.xxs,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  progressLabel: {
-    flex: 1,
-    minWidth: 0,
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: 4,
   },
   metricRow: {
     flexDirection: 'row',

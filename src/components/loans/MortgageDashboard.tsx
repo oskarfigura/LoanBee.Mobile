@@ -53,7 +53,6 @@ const DashboardProgressBars = ({ progress }: { progress: LoanDashboardProgress[]
           <ProgressBar
             progress={item.value}
             color={index === 0 ? colours.accent : colours.teal}
-            trackStyle={styles.progressTrack}
           />
           <Text style={styles.progressCaption} numberOfLines={1} adjustsFontSizeToFit>
             {t(item.caption.key, item.caption.values)}
@@ -266,9 +265,6 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.bold,
     color: colours.secondary,
-  },
-  progressTrack: {
-    height: 8,
   },
   progressCaption: {
     fontFamily: fonts.body,
