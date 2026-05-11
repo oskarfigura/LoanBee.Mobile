@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
+  ScrollView,
   Share,
   StyleProp,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -15,12 +15,13 @@ import { useTranslation } from 'react-i18next';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
 import { LoanBreakdownDonut } from '@/components/charts/LoanBreakdownDonut';
 import { RepaymentBarChart } from '@/components/charts/RepaymentBarChart';
+import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
 import { FinancialDisclaimer } from '@/components/ui/FinancialDisclaimer';
 import { SegmentedControl } from '@/components/ui/FormPrimitives';
 import { CurrencyCode } from '@/currency/currencies';
 import { LoanResult } from '@/results/loanResultRoute';
-import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
+import { colours, layout, radii, spacing } from '@/theme';
 import { SavedLoan } from '@/types/SavedLoan';
 import { AmortisationTable } from './AmortisationTable';
 import { buildAmortisationCsv } from './amortisationTableUtils';
@@ -40,6 +41,8 @@ interface Props {
   summaryContent?: React.ReactNode;
   tabStyle?: 'segmented' | 'underline';
   showFinancialDisclaimer?: boolean;
+  ownsScroll?: boolean;
+  scrollContentStyle?: StyleProp<ViewStyle>;
 }
 
 export const LoanCalculationView = ({
@@ -54,6 +57,8 @@ export const LoanCalculationView = ({
   summaryContent,
   tabStyle = 'segmented',
   showFinancialDisclaimer = false,
+  ownsScroll = false,
+  scrollContentStyle,
 }: Props) => {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<CalculationTab>('summary');
@@ -111,16 +116,19 @@ export const LoanCalculationView = ({
     }
   }, [i18n.language, isExportingCsv, result.tableItems, startDate, t]);
 
-  return (
-    <View style={[styles.root, style]}>
-      <SegmentedControl
-        value={activeTab}
-        onChange={setActiveTab}
-        options={tabs}
-        variant={tabStyle === 'underline' ? 'underline' : 'primary'}
-        textVariant={tabStyle === 'underline' ? 'labelMd' : 'labelSm'}
-        style={[styles.tabControl, tabStyle === 'underline' && styles.underlineTabControl]}
-      />
+  const tabStrip = (
+    <SegmentedControl
+      value={activeTab}
+      onChange={setActiveTab}
+      options={tabs}
+      variant={tabStyle === 'underline' ? 'underline' : 'primary'}
+      textVariant={tabStyle === 'underline' ? 'labelMd' : 'labelSm'}
+      style={[styles.tabControl, tabStyle === 'underline' && styles.underlineTabControl]}
+    />
+  );
+
+  const tabBody = (
+    <>
       {showFinancialDisclaimer ? (
         <FinancialDisclaimer dismissible style={styles.financialDisclaimer} />
       ) : null}
@@ -146,7 +154,7 @@ export const LoanCalculationView = ({
         <View style={[styles.tabPanel, tabStyle === 'underline' && styles.underlineTabPanel]}>
           <Card style={styles.chartCard}>
             <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>{t('results.repaymentBreakdown')}</Text>
+              <AppText variant="title3">{t('results.repaymentBreakdown')}</AppText>
             </View>
             <RepaymentBarChart
               monthlyArray={result.loanChartMonthlyArray}
@@ -157,7 +165,7 @@ export const LoanCalculationView = ({
           </Card>
           <Card style={styles.chartCard}>
             <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>{t('results.loanBreakdown')}</Text>
+              <AppText variant="title3">{t('results.loanBreakdown')}</AppText>
             </View>
             <LoanBreakdownDonut
               principal={principalAmount}
@@ -167,7 +175,7 @@ export const LoanCalculationView = ({
           </Card>
           <Card style={styles.chartCard}>
             <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>{t('results.cumulativePayments')}</Text>
+              <AppText variant="title3">{t('results.cumulativePayments')}</AppText>
             </View>
             <CumulativeAreaChart
               monthlyArray={result.loanChartMonthlyArray}
@@ -182,7 +190,7 @@ export const LoanCalculationView = ({
       {activeTab === 'schedule' && (
         <Card style={[styles.chartCard, styles.scheduleCard, tabStyle === 'underline' && styles.underlineTabPanel]}>
           <View style={[styles.chartHeader, styles.scheduleHeader]}>
-            <Text style={[styles.chartTitle, styles.scheduleTitle]}>{t('results.amortisationTable')}</Text>
+            <AppText variant="title3" style={styles.scheduleTitle}>{t('results.amortisationTable')}</AppText>
             <TouchableOpacity
               style={[styles.exportButton, isExportingCsv && styles.exportButtonDisabled]}
               onPress={handleExportCsv}
@@ -190,9 +198,9 @@ export const LoanCalculationView = ({
               accessibilityRole="button"
               activeOpacity={0.8}
             >
-              <Text style={styles.exportButtonText}>
+              <AppText variant="labelSm" tone="accent" style={styles.exportButtonText}>
                 {isExportingCsv ? t('results.exportingCsv') : t('results.exportCsv')}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
           <AmortisationTable
@@ -202,12 +210,47 @@ export const LoanCalculationView = ({
           />
         </Card>
       )}
+    </>
+  );
+
+  if (ownsScroll) {
+    return (
+      <ScrollView
+        style={[styles.scroll, style]}
+        contentContainerStyle={[styles.scrollContent, scrollContentStyle]}
+        stickyHeaderIndices={[0]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.stickyTabs}>{tabStrip}</View>
+        {tabBody}
+      </ScrollView>
+    );
+  }
+
+  return (
+    <View style={[styles.root, style]}>
+      {tabStrip}
+      {tabBody}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   root: {},
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: spacing['3xl'],
+  },
+  stickyTabs: {
+    marginHorizontal: -layout.screenPadding,
+    backgroundColor: colours.background,
+    zIndex: 2,
+    elevation: 2,
+  },
   tabControl: { marginBottom: spacing.sm },
   underlineTabControl: {
     marginHorizontal: -layout.screenPadding,
@@ -239,14 +282,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
-  chartTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
-    color: colours.textSecondary,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-  },
   scheduleTitle: {
     flex: 1,
   },
@@ -264,12 +299,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   exportButtonText: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
-    color: colours.primary,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
   },
   scheduleCard: {
     paddingBottom: 8,

@@ -164,7 +164,7 @@ export const MortgageDetailView = ({
         <View style={styles.tabPanel}>
           <Card style={styles.chartCard}>
             <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>{t('results.repaymentBreakdown')}</Text>
+              <AppText variant="title3">{t('results.repaymentBreakdown')}</AppText>
             </View>
             <RepaymentBarChart
               monthlyArray={projection.loanChartMonthlyArray}
@@ -175,7 +175,7 @@ export const MortgageDetailView = ({
           </Card>
           <Card style={styles.chartCard}>
             <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>{t('results.cumulativePayments')}</Text>
+              <AppText variant="title3">{t('results.cumulativePayments')}</AppText>
             </View>
             <CumulativeAreaChart
               monthlyArray={projection.loanChartMonthlyArray}
@@ -186,7 +186,7 @@ export const MortgageDetailView = ({
           </Card>
           <Card style={[styles.chartCard, styles.scheduleCard]}>
             <View style={styles.chartHeader}>
-              <Text style={styles.chartTitle}>{t('mortgage.trackedSchedule')}</Text>
+              <AppText variant="title3">{t('mortgage.trackedSchedule')}</AppText>
             </View>
             <AmortisationTable
               items={projection.tableItems}
@@ -710,14 +710,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colours.border,
     paddingBottom: 10,
     marginBottom: 12,
-  },
-  chartTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
-    color: colours.textSecondary,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
   },
   scheduleCard: {
     paddingBottom: 8,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { Alert, Modal, Pressable, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { savedLoansStorage } from '@/storage/savedLoans';
@@ -237,49 +237,44 @@ export default function LoanDetailScreen() {
         backgroundColor={colours.background}
         titleAlign="center"
       />
-      <ScrollView contentContainerStyle={styles.container}>
-        <LoanCalculationView
-          result={result}
-          startDate={loan.formSnapshot.startDate}
-          currency={loan.currency}
-          tabStyle="underline"
-          showFinancialDisclaimer
-          summaryContent={(
-            <>
-              <LoanSummaryOverview
-                result={result}
-                startDate={loan.formSnapshot.startDate}
-                currency={loan.currency}
-                mode="saved"
-                savedLoan={loan}
-                title={loan.nickname}
-                subtitle={loan.lender || t('saved.category.loan')}
-                headerAction={(
-                  <DashboardPinButton
-                    pinned={loan.pinnedToDashboard}
-                    onPress={() => {
-                      savedLoansStorage.togglePinned(loan.id);
-                      refresh();
-                    }}
-                    style={styles.pinButton}
-                  />
-                )}
-              />
-              {manageButton}
-            </>
-          )}
-        />
-      </ScrollView>
+      <LoanCalculationView
+        result={result}
+        startDate={loan.formSnapshot.startDate}
+        currency={loan.currency}
+        tabStyle="underline"
+        showFinancialDisclaimer
+        ownsScroll
+        summaryContent={(
+          <>
+            <LoanSummaryOverview
+              result={result}
+              startDate={loan.formSnapshot.startDate}
+              currency={loan.currency}
+              mode="saved"
+              savedLoan={loan}
+              title={loan.nickname}
+              subtitle={loan.lender || t('saved.category.loan')}
+              headerAction={(
+                <DashboardPinButton
+                  pinned={loan.pinnedToDashboard}
+                  onPress={() => {
+                    savedLoansStorage.togglePinned(loan.id);
+                    refresh();
+                  }}
+                  style={styles.pinButton}
+                />
+              )}
+            />
+            {manageButton}
+          </>
+        )}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
-  container: {
-    paddingHorizontal: layout.screenPadding,
-    paddingBottom: spacing['3xl'],
-  },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
   pinButton: {
