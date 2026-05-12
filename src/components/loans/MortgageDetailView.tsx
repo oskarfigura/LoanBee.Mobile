@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View 
 import { useRouter } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { AmortisationTable } from '@/components/calculator/AmortisationTable';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
@@ -379,12 +380,15 @@ export const MortgageDetailView = ({
 };
 
 const FullscreenIcon = () => (
-  <View style={styles.fullscreenIcon} pointerEvents="none">
-    <View style={[styles.fullscreenCorner, styles.fullscreenCornerTopLeft]} />
-    <View style={[styles.fullscreenCorner, styles.fullscreenCornerTopRight]} />
-    <View style={[styles.fullscreenCorner, styles.fullscreenCornerBottomLeft]} />
-    <View style={[styles.fullscreenCorner, styles.fullscreenCornerBottomRight]} />
-  </View>
+  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M14 10L21 3M21 3H16.5M21 3V7.5M10 14L3 21M3 21H7.5M3 21L3 16.5"
+      stroke={colours.primary}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
 );
 
 const TimelinePreview = ({
@@ -1328,42 +1332,6 @@ const styles = StyleSheet.create({
   fullscreenContent: {
     padding: layout.screenPadding,
     paddingBottom: spacing['2xl'],
-  },
-  fullscreenIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: radii.full,
-    backgroundColor: colours.surface,
-  },
-  fullscreenCorner: {
-    position: 'absolute',
-    width: 7,
-    height: 7,
-    borderColor: colours.primary,
-  },
-  fullscreenCornerTopLeft: {
-    top: 6,
-    left: 6,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-  },
-  fullscreenCornerTopRight: {
-    top: 6,
-    right: 6,
-    borderTopWidth: 2,
-    borderRightWidth: 2,
-  },
-  fullscreenCornerBottomLeft: {
-    bottom: 6,
-    left: 6,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-  },
-  fullscreenCornerBottomRight: {
-    right: 6,
-    bottom: 6,
-    borderRightWidth: 2,
-    borderBottomWidth: 2,
   },
   timelineSection: {
     marginBottom: spacing.md,

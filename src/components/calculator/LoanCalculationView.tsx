@@ -15,6 +15,7 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
 import { LoanBreakdownDonut } from '@/components/charts/LoanBreakdownDonut';
@@ -294,28 +295,30 @@ export const LoanCalculationView = ({
         <Card style={[styles.chartCard, styles.scheduleCard, tabStyle === 'underline' && styles.underlineTabPanel]}>
           <View style={[styles.chartHeader, styles.scheduleHeader]}>
             <AppText variant="title3" style={styles.scheduleTitle}>{t('results.amortisationTable')}</AppText>
-            <TouchableOpacity
-              style={styles.fullscreenButton}
-              onPress={() => openFullscreenPreview('schedule')}
-              accessibilityRole="button"
-              activeOpacity={0.8}
-            >
-              <FullscreenIcon />
-              <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
-                {t('results.fullScreen')}
-              </AppText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.exportButton, isExportingCsv && styles.exportButtonDisabled]}
-              onPress={handleExportCsv}
-              disabled={isExportingCsv}
-              accessibilityRole="button"
-              activeOpacity={0.8}
-            >
-              <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
-                {isExportingCsv ? t('results.exportingCsv') : t('results.exportCsv')}
-              </AppText>
-            </TouchableOpacity>
+            <View style={styles.scheduleActions}>
+              <TouchableOpacity
+                style={styles.fullscreenButton}
+                onPress={() => openFullscreenPreview('schedule')}
+                accessibilityRole="button"
+                activeOpacity={0.8}
+              >
+                <FullscreenIcon />
+                <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
+                  {t('results.fullScreen')}
+                </AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.exportButton, isExportingCsv && styles.exportButtonDisabled]}
+                onPress={handleExportCsv}
+                disabled={isExportingCsv}
+                accessibilityRole="button"
+                activeOpacity={0.8}
+              >
+                <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
+                  {isExportingCsv ? t('results.exportingCsv') : t('results.exportCsv')}
+                </AppText>
+              </TouchableOpacity>
+            </View>
           </View>
           <AmortisationTable
             items={result.tableItems}
@@ -382,12 +385,15 @@ export const LoanCalculationView = ({
 };
 
 const FullscreenIcon = () => (
-  <View style={styles.fullscreenIcon} pointerEvents="none">
-    <View style={[styles.fullscreenCorner, styles.fullscreenCornerTopLeft]} />
-    <View style={[styles.fullscreenCorner, styles.fullscreenCornerTopRight]} />
-    <View style={[styles.fullscreenCorner, styles.fullscreenCornerBottomLeft]} />
-    <View style={[styles.fullscreenCorner, styles.fullscreenCornerBottomRight]} />
-  </View>
+  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M14 10L21 3M21 3H16.5M21 3V7.5M10 14L3 21M3 21H7.5M3 21L3 16.5"
+      stroke={colours.primary}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
 );
 
 const styles = StyleSheet.create({
@@ -439,14 +445,19 @@ const styles = StyleSheet.create({
     opacity: 0.84,
   },
   scheduleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'stretch',
     gap: 10,
-    flexWrap: 'wrap',
   },
   scheduleTitle: {
-    flex: 1,
+    width: '100%',
+  },
+  scheduleActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
+    flexWrap: 'wrap',
   },
   exportButton: {
     minHeight: 36,
@@ -510,41 +521,5 @@ const styles = StyleSheet.create({
   fullscreenContent: {
     padding: layout.screenPadding,
     paddingBottom: spacing['2xl'],
-  },
-  fullscreenIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: radii.full,
-    backgroundColor: colours.surface,
-  },
-  fullscreenCorner: {
-    position: 'absolute',
-    width: 7,
-    height: 7,
-    borderColor: colours.primary,
-  },
-  fullscreenCornerTopLeft: {
-    top: 6,
-    left: 6,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-  },
-  fullscreenCornerTopRight: {
-    top: 6,
-    right: 6,
-    borderTopWidth: 2,
-    borderRightWidth: 2,
-  },
-  fullscreenCornerBottomLeft: {
-    bottom: 6,
-    left: 6,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-  },
-  fullscreenCornerBottomRight: {
-    right: 6,
-    bottom: 6,
-    borderRightWidth: 2,
-    borderBottomWidth: 2,
   },
 });
