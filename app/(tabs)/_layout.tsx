@@ -78,10 +78,24 @@ export default function TabLayout() {
         tabPress: event => {
           const state = navigation.getState();
           const currentRoute = state.routes[state.index];
+          const navigateToTab = () => {
+            if (route.name === 'index') {
+              navigation.navigate('index', { dashboard: String(Date.now()) });
+              return;
+            }
+
+            navigation.navigate(route.name);
+          };
 
           if (currentRoute?.name === 'result' && route.name !== 'result' && hasResultLeaveGuard()) {
             event.preventDefault();
-            confirmResultLeave(() => navigation.navigate(route.name));
+            confirmResultLeave(navigateToTab);
+            return;
+          }
+
+          if (route.name === 'index') {
+            event.preventDefault();
+            navigateToTab();
           }
         },
       })}

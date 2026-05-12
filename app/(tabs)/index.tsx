@@ -24,7 +24,7 @@ import { MortgageDashboard } from '@/components/loans/MortgageDashboard';
 export default function CalculatorScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ calculator?: string }>();
+  const params = useLocalSearchParams<{ calculator?: string; dashboard?: string }>();
   const form = useLoanCalculatorForm();
   const { loans, refresh } = useSavedLoans();
   const [showCalculator, setShowCalculator] = useState(false);
@@ -39,6 +39,12 @@ export default function CalculatorScreen() {
       setShowCalculator(true);
     }
   }, [params.calculator]);
+
+  useEffect(() => {
+    if (params.dashboard) {
+      setShowCalculator(false);
+    }
+  }, [params.dashboard]);
 
   useFocusEffect(
     useCallback(() => {
