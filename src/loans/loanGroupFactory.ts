@@ -23,6 +23,11 @@ type RawResultValues = {
   tableItems: unknown[];
 };
 
+interface InitialDealOptions {
+  name?: string;
+  durationInMonths?: number;
+}
+
 const addMonths = (dateString: string, months: number): string => {
   const date = new Date(`${dateString}T00:00:00`);
   if (Number.isNaN(date.getTime())) return dateString;
@@ -71,11 +76,18 @@ export const buildResultSnapshot = (
 export const buildInitialDeal = (
   id: string,
   loan: Pick<LoanGroup, 'category' | 'lender' | 'createdAt' | 'updatedAt' | 'mortgageTermInMonths' | 'formSnapshot' | 'resultSnapshot'>,
+  options: InitialDealOptions = {},
 ): LoanDeal => {
   const totalMonths = loan.mortgageTermInMonths
     || loan.resultSnapshot.totalTermInMonths
     || (loan.formSnapshot.termInYears * 12) + loan.formSnapshot.termInMonths
     || 12;
+  const requestedDealDuration = Number.isFinite(options.durationInMonths)
+    ? Number(options.durationInMonths)
+    : undefined;
+  const dealDurationInMonths = loan.category === 'mortgage' && requestedDealDuration !== undefined
+    ? Math.min(Math.max(1, Math.round(requestedDealDuration)), totalMonths)
+    : totalMonths;
   const years = Math.floor(totalMonths / 12);
   const months = totalMonths % 12;
 
@@ -83,11 +95,11 @@ export const buildInitialDeal = (
     id,
     createdAt: loan.createdAt,
     updatedAt: loan.updatedAt,
-    name: loan.category === 'mortgage' ? 'Initial deal' : 'Fixed loan',
+    name: options.name?.trim() || (loan.category === 'mortgage' ? 'Initial deal' : 'Fixed loan'),
     lender: loan.lender,
     status: 'active',
     startDate: loan.formSnapshot.startDate,
-    endDate: addMonths(loan.formSnapshot.startDate, totalMonths),
+    endDate: addMonths(loan.formSnapshot.startDate, dealDurationInMonths),
     openingBalance: getEffectiveLoanAmount(loan.formSnapshot),
     interestRate: loan.formSnapshot.interest,
     repaymentType: 'repayment',

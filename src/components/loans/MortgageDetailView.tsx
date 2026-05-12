@@ -1,6 +1,8 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { AmortisationTable } from '@/components/calculator/AmortisationTable';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
@@ -17,8 +19,13 @@ import { FinancialDisclaimer } from '@/components/ui/FinancialDisclaimer';
 import { SegmentedControl } from '@/components/ui/FormPrimitives';
 import { formatCurrency } from '@/currency/format';
 import { buildSavedLoanSummary, LoanInsightSummary } from '@/loans/loanInsightSummary';
-import { buildMortgageProjection } from '@/mortgage/projection';
 import {
+  buildMortgageProjection,
+  MortgageProjection,
+  MortgageProjectionDealSegment,
+} from '@/mortgage/projection';
+import {
+  CURRENT_STATE_PROJECTION_DEAL_ID,
   formatDealDuration,
   getCurrentDeal,
   getMortgageTrackerSummary,
@@ -30,6 +37,7 @@ import { colours, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
 import { formatFriendlyDate, formatFriendlyDateRange } from '@/utils/date';
 
 type MortgageDetailTab = 'overview' | 'projection' | 'timeline';
+type ProjectionPreview = 'repayment' | 'cumulative' | 'schedule';
 
 interface Props {
   loan: SavedLoan;
@@ -57,6 +65,8 @@ export const MortgageDetailView = ({
   const scrollRef = useRef<ScrollView>(null);
   const [activeTab, setActiveTab] = useState<MortgageDetailTab>('overview');
   const [actionDrawerVisible, setActionDrawerVisible] = useState(false);
+  const [projectionPreview, setProjectionPreview] = useState<ProjectionPreview | null>(null);
+  const isProjectionPreviewOpen = projectionPreview !== null;
   const asOf = useMemo(() => new Date(), [loan]);
   const result = useMemo(() => getResultForSavedLoan(loan), [loan]);
   const projection = useMemo(() => buildMortgageProjection(loan, asOf), [asOf, loan]);
@@ -93,6 +103,68 @@ export const MortgageDetailView = ({
     setActionDrawerVisible(false);
     router.push(href as Parameters<typeof router.push>[0]);
   };
+  const openProjectionPreview = useCallback((preview: ProjectionPreview) => {
+    setProjectionPreview(preview);
+    ScreenOrientation.unlockAsync().catch(() => undefined);
+  }, []);
+  const closeProjectionPreview = useCallback(() => {
+    setProjectionPreview(null);
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
+  }, []);
+  const getProjectionPreviewTitle = () => {
+    if (projectionPreview === 'repayment') return t('results.repaymentBreakdown');
+    if (projectionPreview === 'cumulative') return t('results.cumulativePayments');
+    return t('mortgage.trackedSchedule');
+  };
+  const renderProjectionPreview = () => {
+    if (projectionPreview === 'repayment') {
+      return (
+        <>
+          <RepaymentBarChart
+            monthlyArray={projection.loanChartMonthlyArray}
+            interestArray={projection.loanChartInterestArray}
+            labelArray={projection.loanChartLabelArray}
+            currency={loan.currency}
+            height={320}
+          />
+          <DealSegmentStrip segments={projection.dealSegments} />
+        </>
+      );
+    }
+
+    if (projectionPreview === 'cumulative') {
+      return (
+        <>
+          <CumulativeAreaChart
+            monthlyArray={projection.loanChartMonthlyArray}
+            interestArray={projection.loanChartInterestArray}
+            remainingArray={projection.loanChartRemainingArray}
+            currency={loan.currency}
+            height={320}
+          />
+          <DealSegmentStrip segments={projection.dealSegments} />
+        </>
+      );
+    }
+
+    if (projectionPreview === 'schedule') {
+      return (
+        <AmortisationTable
+          items={projection.tableItems}
+          startDate={publishedDeals[0]?.startDate ?? loan.formSnapshot.startDate}
+          currency={loan.currency}
+        />
+      );
+    }
+
+    return null;
+  };
+
+  useEffect(() => (
+    () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
+    }
+  ), []);
 
   return (
     <ScrollView
@@ -130,6 +202,12 @@ export const MortgageDetailView = ({
               />
             )}
             showProgress
+            footerContent={(
+              <MortgageTopCardContext
+                loan={loan}
+                currentDeal={currentDeal}
+              />
+            )}
           />
 
           <TimelinePreview
@@ -137,6 +215,7 @@ export const MortgageDetailView = ({
             currentDeal={activeDeal}
             draftDeal={draftDeal}
             publishedDeals={publishedDeals}
+            projection={projection}
             onAddDeal={() => router.push(`/saved/${loan.id}/deals/new`)}
             onOpenTimeline={() => switchTab('timeline')}
           />
@@ -151,42 +230,79 @@ export const MortgageDetailView = ({
             />
           ) : null}
 
-          <Button
-            label={t('mortgage.quickActions')}
-            onPress={() => setActionDrawerVisible(true)}
-            variant="secondary"
-            style={styles.quickActionsTrigger}
-          />
+          {activeDeal ? (
+            <Button
+              label={t('mortgage.quickActions')}
+              onPress={() => setActionDrawerVisible(true)}
+              variant="secondary"
+              style={styles.quickActionsTrigger}
+            />
+          ) : null}
         </View>
       ) : null}
 
       {activeTab === 'projection' ? (
         <View style={styles.tabPanel}>
-          <Card style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <AppText variant="title3">{t('results.repaymentBreakdown')}</AppText>
-            </View>
-            <RepaymentBarChart
-              monthlyArray={projection.loanChartMonthlyArray}
-              interestArray={projection.loanChartInterestArray}
-              labelArray={projection.loanChartLabelArray}
-              currency={loan.currency}
-            />
-          </Card>
-          <Card style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <AppText variant="title3">{t('results.cumulativePayments')}</AppText>
-            </View>
-            <CumulativeAreaChart
-              monthlyArray={projection.loanChartMonthlyArray}
-              interestArray={projection.loanChartInterestArray}
-              remainingArray={projection.loanChartRemainingArray}
-              currency={loan.currency}
-            />
-          </Card>
+          <ProjectionBasisCard
+            loan={loan}
+            projection={projection}
+            currentDeal={currentDeal}
+            draftDeal={draftDeal}
+          />
+          <Pressable
+            onPress={() => openProjectionPreview('repayment')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('results.repaymentBreakdown')} ${t('results.fullScreen')}`}
+            style={({ pressed }) => [pressed && styles.previewPressed]}
+          >
+            <Card style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <AppText variant="title3">{t('results.repaymentBreakdown')}</AppText>
+                <FullscreenIcon />
+              </View>
+              <RepaymentBarChart
+                monthlyArray={projection.loanChartMonthlyArray}
+                interestArray={projection.loanChartInterestArray}
+                labelArray={projection.loanChartLabelArray}
+                currency={loan.currency}
+              />
+              <DealSegmentStrip segments={projection.dealSegments} />
+            </Card>
+          </Pressable>
+          <Pressable
+            onPress={() => openProjectionPreview('cumulative')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('results.cumulativePayments')} ${t('results.fullScreen')}`}
+            style={({ pressed }) => [pressed && styles.previewPressed]}
+          >
+            <Card style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <AppText variant="title3">{t('results.cumulativePayments')}</AppText>
+                <FullscreenIcon />
+              </View>
+              <CumulativeAreaChart
+                monthlyArray={projection.loanChartMonthlyArray}
+                interestArray={projection.loanChartInterestArray}
+                remainingArray={projection.loanChartRemainingArray}
+                currency={loan.currency}
+              />
+              <DealSegmentStrip segments={projection.dealSegments} />
+            </Card>
+          </Pressable>
           <Card style={[styles.chartCard, styles.scheduleCard]}>
             <View style={styles.chartHeader}>
               <AppText variant="title3">{t('mortgage.trackedSchedule')}</AppText>
+              <TouchableOpacity
+                style={styles.fullscreenButton}
+                onPress={() => openProjectionPreview('schedule')}
+                accessibilityRole="button"
+                activeOpacity={0.8}
+              >
+                <FullscreenIcon />
+                <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
+                  {t('results.fullScreen')}
+                </AppText>
+              </TouchableOpacity>
             </View>
             <AmortisationTable
               items={projection.tableItems}
@@ -221,6 +337,36 @@ export const MortgageDetailView = ({
       ) : null}
 
       {footerActions}
+      <Modal
+        visible={isProjectionPreviewOpen}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+        onRequestClose={closeProjectionPreview}
+      >
+        <SafeAreaView style={styles.fullscreenSafe} edges={['top', 'bottom']}>
+          <View style={styles.fullscreenHeader}>
+            <AppText variant="title3" style={styles.previewTitle}>{getProjectionPreviewTitle()}</AppText>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeProjectionPreview}
+              accessibilityRole="button"
+              activeOpacity={0.8}
+            >
+              <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
+                {t('common.close')}
+              </AppText>
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            style={styles.fullscreenBody}
+            contentContainerStyle={styles.fullscreenContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderProjectionPreview()}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
       <QuickActionsDrawer
             visible={actionDrawerVisible}
             loan={loan}
@@ -232,11 +378,21 @@ export const MortgageDetailView = ({
   );
 };
 
+const FullscreenIcon = () => (
+  <View style={styles.fullscreenIcon} pointerEvents="none">
+    <View style={[styles.fullscreenCorner, styles.fullscreenCornerTopLeft]} />
+    <View style={[styles.fullscreenCorner, styles.fullscreenCornerTopRight]} />
+    <View style={[styles.fullscreenCorner, styles.fullscreenCornerBottomLeft]} />
+    <View style={[styles.fullscreenCorner, styles.fullscreenCornerBottomRight]} />
+  </View>
+);
+
 const TimelinePreview = ({
   loan,
   currentDeal,
   draftDeal,
   publishedDeals,
+  projection,
   onAddDeal,
   onOpenTimeline,
 }: {
@@ -244,15 +400,12 @@ const TimelinePreview = ({
   currentDeal?: LoanDeal;
   draftDeal?: LoanDeal;
   publishedDeals: LoanDeal[];
+  projection: MortgageProjection;
   onAddDeal: () => void;
   onOpenTimeline: () => void;
 }) => {
   const { t, i18n } = useTranslation();
-  const latestCompletedDeal = [...publishedDeals]
-    .reverse()
-    .find(deal => deal.status === 'completed');
   const firstDeal = publishedDeals[0];
-  const completedDealIsInitial = Boolean(latestCompletedDeal && latestCompletedDeal.id === firstDeal?.id);
   const items: Array<{
     key: string;
     marker: 'future' | 'current' | 'past' | 'start';
@@ -260,77 +413,90 @@ const TimelinePreview = ({
     title: string;
     meta: string;
   }> = [
-    ...(draftDeal ? [{
-      key: `draft-${draftDeal.id}`,
-      marker: 'future' as const,
-      label: t('mortgage.future'),
-      title: draftDeal.name,
-      meta: `${t('mortgage.startsOn', { date: formatFriendlyDate(draftDeal.startDate, i18n.language) })} · ${formatDealDuration(draftDeal, i18n.language)}`,
-    }] : []),
-    ...(currentDeal ? [{
-      key: `current-${currentDeal.id}`,
+    {
+      key: 'saved-start',
+      marker: 'start',
+      label: t('mortgage.timelineStart'),
+      title: formatFriendlyDate(firstDeal?.startDate ?? loan.formSnapshot.startDate, i18n.language),
+      meta: formatCurrency(projection.openingBalance, loan.currency),
+    },
+    {
+      key: currentDeal ? `current-${currentDeal.id}` : 'current-estimate',
       marker: 'current' as const,
-      label: t('mortgage.currentDeal'),
-      title: currentDeal.name,
-      meta: `${formatFriendlyDateRange(currentDeal.startDate, currentDeal.endDate, i18n.language)} · ${formatDealDuration(currentDeal, i18n.language)}`,
-    }] : []),
-    ...(latestCompletedDeal && latestCompletedDeal.id !== currentDeal?.id ? [{
-      key: `completed-${latestCompletedDeal.id}`,
-      marker: completedDealIsInitial ? 'start' as const : 'past' as const,
-      label: completedDealIsInitial ? t('mortgage.mortgageStart') : t('mortgage.past'),
-      title: latestCompletedDeal.name,
-      meta: latestCompletedDeal.completion
-        ? `${t('mortgage.closedAt', { amount: formatCurrency(latestCompletedDeal.completion.closingBalance, loan.currency) })} · ${formatDealDuration(latestCompletedDeal, i18n.language)}`
-        : `${formatFriendlyDateRange(latestCompletedDeal.startDate, latestCompletedDeal.endDate, i18n.language)} · ${formatDealDuration(latestCompletedDeal, i18n.language)}`,
-    }] : []),
-    ...(!firstDeal ? [{
-      key: 'mortgage-start',
-      marker: 'start' as const,
-      label: t('mortgage.mortgageStart'),
-      title: formatFriendlyDate(loan.formSnapshot.startDate, i18n.language),
-      meta: loan.lender || t('saved.category.mortgage'),
-    }] : []),
-  ].slice(0, 3);
+      label: currentDeal ? t('mortgage.currentDeal') : t('mortgage.currentEstimate'),
+      title: currentDeal?.name ?? t('mortgage.currentBalance'),
+      meta: currentDeal
+        ? `${formatCurrency(projection.currentBalance, loan.currency)} · ${formatDealDuration(currentDeal, i18n.language)}`
+        : formatCurrency(projection.currentBalance, loan.currency),
+    },
+    {
+      key: 'projected-end',
+      marker: 'future',
+      label: t('mortgage.projectedEnd'),
+      title: projection.projectedEndDate
+        ? formatFriendlyDate(projection.projectedEndDate, i18n.language)
+        : t('results.payoffDate'),
+      meta: t('mortgage.includedEstimate'),
+    },
+  ];
+  const showTimelineList = items.length > 0;
 
   return (
     <Card style={styles.timelinePreviewCard}>
       <View style={styles.timelinePreviewHeader}>
         <Text style={styles.sectionTitle}>{t('mortgage.dealTimeline')}</Text>
-        <Button
-          label={loan.deals.length > 0 ? t('mortgage.addDeal') : t('mortgage.addFirstDeal')}
-          leftIcon={<PlusIcon color={colours.primaryInk} size={18} />}
-          onPress={onAddDeal}
-          variant="icon-pill"
-          style={styles.timelinePreviewAction}
-        />
+        {firstDeal || draftDeal ? (
+          <Button
+            label={firstDeal ? t('mortgage.addDeal') : t('mortgage.editDraftDeal')}
+            leftIcon={<PlusIcon color={colours.primaryInk} size={18} />}
+            onPress={onAddDeal}
+            variant="icon-pill"
+            style={styles.timelinePreviewAction}
+          />
+        ) : null}
       </View>
-      <View style={styles.timelinePreviewList}>
-        <View style={styles.timelinePreviewRail} />
-        {items.map(item => (
-          <TouchableOpacity
-            key={item.key}
-            style={styles.timelinePreviewRow}
-            onPress={onOpenTimeline}
-            activeOpacity={0.84}
-            accessibilityRole="button"
-          >
-            <View
-              style={[
-                styles.timelinePreviewNode,
-                item.marker === 'future' && styles.futurePreviewNode,
-                item.marker === 'current' && styles.currentPreviewNode,
-                item.marker === 'past' && styles.pastPreviewNode,
-                item.marker === 'start' && styles.startPreviewNode,
-              ]}
-            />
-            <View style={styles.timelinePreviewCopy}>
-              <Text style={styles.timelinePreviewLabel}>{item.label}</Text>
-              <Text style={styles.timelinePreviewTitle} numberOfLines={1}>{item.title}</Text>
-              <Text style={styles.timelinePreviewMeta} numberOfLines={1}>{item.meta}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {!firstDeal && !draftDeal ? (
+        <Text style={styles.timelinePreviewHelp}>
+          {t('mortgage.noDealChangesBody')}
+        </Text>
+      ) : null}
+      {showTimelineList ? (
+        <View style={styles.timelinePreviewList}>
+          <View style={styles.timelinePreviewRail} />
+          {items.map(item => (
+            <TouchableOpacity
+              key={item.key}
+              style={styles.timelinePreviewRow}
+              onPress={onOpenTimeline}
+              activeOpacity={0.84}
+              accessibilityRole="button"
+            >
+              <View
+                style={[
+                  styles.timelinePreviewNode,
+                  item.marker === 'future' && styles.futurePreviewNode,
+                  item.marker === 'current' && styles.currentPreviewNode,
+                  item.marker === 'past' && styles.pastPreviewNode,
+                  item.marker === 'start' && styles.startPreviewNode,
+                ]}
+              />
+              <View style={styles.timelinePreviewCopy}>
+                <Text style={styles.timelinePreviewLabel}>{item.label}</Text>
+                <Text style={styles.timelinePreviewTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.timelinePreviewMeta} numberOfLines={1}>{item.meta}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
+      {draftDeal ? (
+        <View style={styles.draftExcludedNote}>
+          <Text style={styles.draftExcludedTitle}>{t('mortgage.draftExcludedFromEstimate')}</Text>
+          <Text style={styles.draftExcludedText}>
+            {t('mortgage.draftExcludedFromEstimateBody', { name: draftDeal.name })}
+          </Text>
+        </View>
+      ) : null}
       <TouchableOpacity
         style={styles.viewTimelineLink}
         onPress={onOpenTimeline}
@@ -339,6 +505,172 @@ const TimelinePreview = ({
       >
         <Text style={styles.viewTimelineLinkText}>{t('mortgage.viewTimeline')}</Text>
       </TouchableOpacity>
+    </Card>
+  );
+};
+
+const ContextMetric = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) => (
+  <View style={styles.contextMetric}>
+    <Text style={styles.contextMetricLabel} numberOfLines={1}>{label}</Text>
+    <Text style={styles.contextMetricValue} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
+  </View>
+);
+
+const MortgageTopCardContext = ({
+  loan,
+  currentDeal,
+}: {
+  loan: SavedLoan;
+  currentDeal?: LoanDeal;
+}) => {
+  const { t, i18n } = useTranslation();
+  const latestCheckpoint = [...loan.events]
+    .filter(event => event.type === 'balanceCheckpoint' && (!currentDeal || event.dealId === currentDeal.id))
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  const balanceSource = latestCheckpoint
+    ? t('mortgage.sourceBankCheckpoint', { date: formatFriendlyDate(latestCheckpoint.date, i18n.language) })
+    : currentDeal?.status === 'completed' && currentDeal.completion
+      ? t('mortgage.sourceCompletedDeal', { date: formatFriendlyDate(currentDeal.completion.completedAt, i18n.language) })
+      : currentDeal
+        ? t('mortgage.sourceProjectedFromCurrentDeal')
+        : t('mortgage.sourceCurrentStateProjection');
+
+  return (
+    <View style={styles.topCardContext}>
+      <View style={styles.balanceSourceRow}>
+        <Text style={styles.balanceSourceLabel}>{t('mortgage.balanceSource')}</Text>
+        <Text style={styles.balanceSourceValue} numberOfLines={1} adjustsFontSizeToFit>
+          {balanceSource}
+        </Text>
+      </View>
+      {currentDeal ? (
+        <View style={styles.topDealContext}>
+          <View style={styles.topDealCopy}>
+            <Text style={styles.topDealLabel}>
+              {currentDeal.status === 'completed' ? t('mortgage.historicalContext') : t('mortgage.currentDealDriver')}
+            </Text>
+            <Text style={styles.topDealTitle} numberOfLines={1}>
+              {currentDeal.name}
+            </Text>
+          </View>
+          <View style={styles.topDealFacts}>
+            <Text style={styles.topDealFact} numberOfLines={1}>
+              {t('mortgage.currentDealEnds')}: {formatFriendlyDate(currentDeal.endDate, i18n.language)}
+            </Text>
+            <Text style={styles.topDealFact} numberOfLines={1}>
+              {t('calculator.additionalPayment')}: {formatCurrency(currentDeal.regularOverpayment, loan.currency)}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+};
+
+const getSegmentLabelKey = (segment: MortgageProjectionDealSegment) => {
+  if (segment.status === 'completed') return 'saved.completed';
+  if (segment.isCurrent && segment.projectedPointCount > 0) return 'mortgage.currentProjection';
+  if (segment.isCurrent) return 'mortgage.currentDeal';
+  return 'mortgage.historicalContext';
+};
+
+const DealSegmentStrip = ({
+  segments,
+}: {
+  segments: MortgageProjectionDealSegment[];
+}) => {
+  const { t, i18n } = useTranslation();
+  if (segments.length === 0) return null;
+  const visibleSegments = segments.filter(segment => segment.dealId !== CURRENT_STATE_PROJECTION_DEAL_ID);
+  if (visibleSegments.length === 0) return null;
+
+  return (
+    <View style={styles.segmentStrip}>
+      {visibleSegments.map(segment => (
+          <View
+            key={segment.dealId}
+            style={[
+              styles.segmentItem,
+              segment.isCurrent && styles.segmentItemCurrent,
+            ]}
+          >
+            <View style={[
+              styles.segmentDot,
+              segment.status === 'completed' && styles.segmentDotCompleted,
+              segment.isCurrent && styles.segmentDotCurrent,
+            ]} />
+            <View style={styles.segmentCopy}>
+              <Text style={styles.segmentTitle} numberOfLines={1}>{segment.dealName}</Text>
+              <Text style={styles.segmentMeta} numberOfLines={1}>
+                {t(getSegmentLabelKey(segment))} · {formatFriendlyDateRange(segment.startDate, segment.endDate, i18n.language)}
+              </Text>
+            </View>
+          </View>
+      ))}
+    </View>
+  );
+};
+
+const ProjectionBasisCard = ({
+  loan,
+  projection,
+  currentDeal,
+  draftDeal,
+}: {
+  loan: SavedLoan;
+  projection: MortgageProjection;
+  currentDeal?: LoanDeal;
+  draftDeal?: LoanDeal;
+}) => {
+  const { t, i18n } = useTranslation();
+
+  return (
+    <Card style={styles.projectionBasisCard}>
+      <View style={styles.contextHeader}>
+        <View style={styles.contextHeaderCopy}>
+          <Text style={styles.contextKicker}>{t('mortgage.projectionBasis')}</Text>
+          <Text style={styles.contextTitle} numberOfLines={2}>
+            {currentDeal ? t('mortgage.currentDealProjectionFrom', { name: currentDeal.name }) : t('mortgage.savedMortgageEstimate')}
+          </Text>
+        </View>
+        {projection.publishedDealCount > 0 ? (
+          <View style={styles.contextBadge}>
+            <Text style={styles.contextBadgeText}>
+              {t('mortgage.publishedDealCount', { count: projection.publishedDealCount })}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+      {!currentDeal ? (
+        <Text style={styles.projectionAssumptionText}>
+          {t('mortgage.savedMortgageEstimateBody')}
+        </Text>
+      ) : null}
+      <DealSegmentStrip segments={projection.dealSegments} />
+      {draftDeal ? (
+        <View style={styles.draftPreview}>
+          <View style={styles.draftPreviewHeader}>
+            <Text style={styles.contextKicker}>{t('mortgage.draftPreview')}</Text>
+            <Text style={styles.draftPreviewBadge}>{t('mortgage.draftExcluded')}</Text>
+          </View>
+          <Text style={styles.draftPreviewTitle} numberOfLines={2}>{draftDeal.name}</Text>
+          <Text style={styles.draftPreviewBody}>
+            {t('mortgage.draftPreviewBody')}
+          </Text>
+          <View style={styles.contextMetricGrid}>
+            <ContextMetric label={t('mortgage.dealStartDate')} value={formatFriendlyDate(draftDeal.startDate, i18n.language)} />
+            <ContextMetric label={t('calculator.interestRate')} value={`${draftDeal.interestRate}%`} />
+            <ContextMetric label={t('mortgage.openingBankBalance')} value={formatCurrency(draftDeal.openingBalance, loan.currency)} />
+            <ContextMetric label={t('results.monthlyPayment')} value={formatCurrency(draftDeal.monthlyPayment, loan.currency)} />
+          </View>
+        </View>
+      ) : null}
     </Card>
   );
 };
@@ -518,6 +850,210 @@ const styles = StyleSheet.create({
   quickActionsTrigger: {
     marginBottom: spacing.sm,
   },
+  projectionBasisCard: {
+    marginBottom: spacing.sm,
+  },
+  topCardContext: {
+    borderTopWidth: 1,
+    borderTopColor: colours.border,
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+  },
+  balanceSourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  balanceSourceLabel: {
+    ...fontFaces.body.medium,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    textTransform: 'uppercase',
+  },
+  balanceSourceValue: {
+    flex: 1,
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.sm,
+    color: colours.primary,
+    textAlign: 'right',
+  },
+  topDealContext: {
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: radii.input,
+    backgroundColor: colours.surface,
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  topDealCopy: {
+    gap: spacing.xxxs,
+  },
+  topDealLabel: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    textTransform: 'uppercase',
+  },
+  topDealTitle: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.sm,
+    color: colours.textPrimary,
+  },
+  topDealFacts: {
+    gap: spacing.xxxs,
+  },
+  topDealFact: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+  },
+  contextHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  contextHeaderCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  contextKicker: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    textTransform: 'uppercase',
+  },
+  contextTitle: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.md,
+    color: colours.textPrimary,
+    marginTop: spacing.xxs,
+  },
+  contextBadge: {
+    maxWidth: 132,
+    borderRadius: radii.chip,
+    backgroundColor: colours.surfaceAccent,
+    borderWidth: 1,
+    borderColor: colours.border,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  contextBadgeText: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.primary,
+    textAlign: 'center',
+  },
+  projectionAssumptionText: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.sm,
+    lineHeight: 20,
+    color: colours.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  contextMetricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  contextMetric: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    minWidth: 0,
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: radii.input,
+    backgroundColor: colours.surface,
+    padding: spacing.sm,
+  },
+  contextMetricLabel: {
+    ...fontFaces.body.medium,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    marginBottom: spacing.xxs,
+  },
+  contextMetricValue: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.sm,
+    color: colours.textPrimary,
+  },
+  segmentStrip: {
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  segmentItem: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: radii.input,
+    backgroundColor: colours.surface,
+    padding: spacing.sm,
+  },
+  segmentItemCurrent: {
+    borderColor: colours.teal,
+    backgroundColor: colours.successSurface,
+  },
+  segmentDot: {
+    width: 12,
+    height: 12,
+    borderRadius: radii.full,
+    backgroundColor: colours.borderStrong,
+  },
+  segmentDotCompleted: {
+    backgroundColor: colours.primary,
+  },
+  segmentDotCurrent: {
+    backgroundColor: colours.teal,
+  },
+  segmentCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  segmentTitle: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.sm,
+    color: colours.textPrimary,
+  },
+  segmentMeta: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    marginTop: spacing.xxxs,
+  },
+  draftPreview: {
+    borderTopWidth: 1,
+    borderTopColor: colours.border,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+  },
+  draftPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  draftPreviewBadge: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.warning,
+    textTransform: 'uppercase',
+  },
+  draftPreviewTitle: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.md,
+    color: colours.textPrimary,
+  },
+  draftPreviewBody: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.sm,
+    lineHeight: 19,
+    color: colours.textSecondary,
+  },
   timelinePreviewCard: {
     marginBottom: spacing.sm,
   },
@@ -531,6 +1067,13 @@ const styles = StyleSheet.create({
   timelinePreviewAction: {
     minHeight: 40,
     paddingHorizontal: 14,
+  },
+  timelinePreviewHelp: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.sm,
+    lineHeight: 20,
+    color: colours.textSecondary,
+    marginBottom: spacing.sm,
   },
   timelinePreviewList: {
     position: 'relative',
@@ -592,6 +1135,27 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     marginTop: spacing.xxxs,
+  },
+  draftExcludedNote: {
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: radii.input,
+    backgroundColor: colours.warningSurface,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  draftExcludedTitle: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.warning,
+    textTransform: 'uppercase',
+  },
+  draftExcludedText: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.sm,
+    lineHeight: 20,
+    color: colours.textPrimary,
+    marginTop: spacing.xxs,
   },
   viewTimelineLink: {
     minHeight: 44,
@@ -699,13 +1263,107 @@ const styles = StyleSheet.create({
     borderColor: colours.border,
   },
   chartHeader: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: colours.border,
     paddingBottom: 10,
     marginBottom: 12,
   },
+  previewPressed: {
+    opacity: 0.84,
+  },
   scheduleCard: {
     paddingBottom: 8,
+  },
+  previewTitle: {
+    flex: 1,
+  },
+  fullscreenButton: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    borderRadius: radii.button,
+    backgroundColor: colours.white,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  actionButtonText: {
+    textTransform: 'uppercase',
+  },
+  fullscreenSafe: {
+    flex: 1,
+    backgroundColor: colours.background,
+  },
+  fullscreenHeader: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: layout.screenPadding,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colours.border,
+    backgroundColor: colours.background,
+  },
+  closeButton: {
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radii.button,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  fullscreenBody: {
+    flex: 1,
+  },
+  fullscreenContent: {
+    padding: layout.screenPadding,
+    paddingBottom: spacing['2xl'],
+  },
+  fullscreenIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: radii.full,
+    backgroundColor: colours.surface,
+  },
+  fullscreenCorner: {
+    position: 'absolute',
+    width: 7,
+    height: 7,
+    borderColor: colours.primary,
+  },
+  fullscreenCornerTopLeft: {
+    top: 6,
+    left: 6,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+  },
+  fullscreenCornerTopRight: {
+    top: 6,
+    right: 6,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+  },
+  fullscreenCornerBottomLeft: {
+    bottom: 6,
+    left: 6,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+  },
+  fullscreenCornerBottomRight: {
+    right: 6,
+    bottom: 6,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
   },
   timelineSection: {
     marginBottom: spacing.md,

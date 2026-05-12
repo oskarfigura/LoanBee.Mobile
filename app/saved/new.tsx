@@ -26,12 +26,23 @@ import { colours, layout, spacing } from '@/theme';
 import { useStoreReview } from '@/review';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  buildInitialDeal,
   buildResultSnapshot,
   normaliseFormSnapshot,
 } from '@/loans/loanGroupFactory';
 
 type LoanResult = ReturnType<typeof getLoanCalculations>;
+
+const getResultTermInMonths = (result: LoanResult, formValues: { termInYears?: number; termInMonths?: number }) => {
+  const formYears = Number(formValues.termInYears) || 0;
+  const formMonths = Number(formValues.termInMonths) || 0;
+
+  return (
+    result.tableItems.length
+    || (result.termInYears * 12) + result.termInMonths
+    || (formYears * 12) + formMonths
+    || 12
+  );
+};
 
 export default function SaveNewLoanScreen() {
   const { t } = useTranslation();
@@ -42,6 +53,7 @@ export default function SaveNewLoanScreen() {
 
   const result = JSON.parse(params.result) as LoanResult;
   const formValues = JSON.parse(params.formValues);
+  const mortgageTermInMonths = getResultTermInMonths(result, formValues);
   const [nickname, setNickname] = useState('');
   const [lender, setLender] = useState('');
   const [category, setCategory] = useState<'mortgage' | 'loan'>('mortgage');
@@ -74,7 +86,7 @@ export default function SaveNewLoanScreen() {
       lender: lender || undefined,
       category,
       currency,
-      mortgageTermInMonths: resultSnapshot.totalTermInMonths,
+      mortgageTermInMonths,
       status: 'tracked',
       pinnedToDashboard: false,
       deals: [],
@@ -82,10 +94,6 @@ export default function SaveNewLoanScreen() {
       formSnapshot,
       resultSnapshot,
     };
-    loan.deals = [buildInitialDeal(createLocalId(), loan)];
-    if (category === 'mortgage') {
-      loan.lender = undefined;
-    }
 
     add(loan);
     recordUsefulAction()
@@ -102,7 +110,7 @@ export default function SaveNewLoanScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScreenHeader
         title={t('save.title')}
-        subtitle="Save the current result as a reusable tracked item for your dashboard and mortgage workflows."
+        subtitle={t('save.subtitle')}
         variant="editor"
         leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />
@@ -142,7 +150,7 @@ export default function SaveNewLoanScreen() {
           </View>
 
           <AppText variant="bodySm" tone="muted">
-            Saving preserves this calculation snapshot and unlocks dashboard pinning plus mortgage-specific timeline management.
+            {category === 'mortgage' ? t('save.mortgageSnapshotHelp') : t('save.loanSnapshotHelp')}
           </AppText>
         </FormSection>
 

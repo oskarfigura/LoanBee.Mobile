@@ -1,6 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  Modal,
+  Pressable,
   ScrollView,
   Share,
   StyleProp,
@@ -11,6 +13,8 @@ import {
 } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
 import { LoanBreakdownDonut } from '@/components/charts/LoanBreakdownDonut';
@@ -28,6 +32,7 @@ import { buildAmortisationCsv } from './amortisationTableUtils';
 import { LoanSummaryOverview } from './LoanSummaryOverview';
 
 type CalculationTab = 'summary' | 'charts' | 'schedule';
+type FullscreenPreview = 'repayment' | 'breakdown' | 'cumulative' | 'schedule';
 
 interface Props {
   result: LoanResult;
@@ -63,6 +68,8 @@ export const LoanCalculationView = ({
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<CalculationTab>('summary');
   const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [fullscreenPreview, setFullscreenPreview] = useState<FullscreenPreview | null>(null);
+  const isPreviewOpen = fullscreenPreview !== null;
   const principalAmount = result.amount - result.downPayment;
   const tabs: Array<{ value: CalculationTab; label: string }> = [
     { value: 'summary', label: t('results.summary') },
@@ -116,6 +123,22 @@ export const LoanCalculationView = ({
     }
   }, [i18n.language, isExportingCsv, result.tableItems, startDate, t]);
 
+  const openFullscreenPreview = useCallback((preview: FullscreenPreview) => {
+    setFullscreenPreview(preview);
+    ScreenOrientation.unlockAsync().catch(() => undefined);
+  }, []);
+
+  const closeFullscreenPreview = useCallback(() => {
+    setFullscreenPreview(null);
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
+  }, []);
+
+  useEffect(() => (
+    () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
+    }
+  ), []);
+
   const tabStrip = (
     <SegmentedControl
       value={activeTab}
@@ -126,6 +149,62 @@ export const LoanCalculationView = ({
       style={[styles.tabControl, tabStyle === 'underline' && styles.underlineTabControl]}
     />
   );
+
+  const getFullscreenTitle = () => {
+    if (fullscreenPreview === 'repayment') return t('results.repaymentBreakdown');
+    if (fullscreenPreview === 'breakdown') return t('results.loanBreakdown');
+    if (fullscreenPreview === 'cumulative') return t('results.cumulativePayments');
+    return t('results.amortisationTable');
+  };
+
+  const renderFullscreenPreview = () => {
+    if (fullscreenPreview === 'repayment') {
+      return (
+        <RepaymentBarChart
+          monthlyArray={result.loanChartMonthlyArray}
+          interestArray={result.loanChartInterestArray}
+          labelArray={result.loanChartLabelArray}
+          currency={currency}
+          height={320}
+        />
+      );
+    }
+
+    if (fullscreenPreview === 'breakdown') {
+      return (
+        <LoanBreakdownDonut
+          principal={principalAmount}
+          totalInterest={result.totalInterestPaid}
+          currency={currency}
+          radius={118}
+        />
+      );
+    }
+
+    if (fullscreenPreview === 'cumulative') {
+      return (
+        <CumulativeAreaChart
+          monthlyArray={result.loanChartMonthlyArray}
+          interestArray={result.loanChartInterestArray}
+          remainingArray={result.loanChartRemainingArray}
+          currency={currency}
+          height={320}
+        />
+      );
+    }
+
+    if (fullscreenPreview === 'schedule') {
+      return (
+        <AmortisationTable
+          items={result.tableItems}
+          startDate={startDate}
+          currency={currency}
+        />
+      );
+    }
+
+    return null;
+  };
 
   const tabBody = (
     <>
@@ -152,38 +231,62 @@ export const LoanCalculationView = ({
 
       {activeTab === 'charts' && (
         <View style={[styles.tabPanel, tabStyle === 'underline' && styles.underlineTabPanel]}>
-          <Card style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <AppText variant="title3">{t('results.repaymentBreakdown')}</AppText>
-            </View>
-            <RepaymentBarChart
-              monthlyArray={result.loanChartMonthlyArray}
-              interestArray={result.loanChartInterestArray}
-              labelArray={result.loanChartLabelArray}
-              currency={currency}
-            />
-          </Card>
-          <Card style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <AppText variant="title3">{t('results.loanBreakdown')}</AppText>
-            </View>
-            <LoanBreakdownDonut
-              principal={principalAmount}
-              totalInterest={result.totalInterestPaid}
-              currency={currency}
-            />
-          </Card>
-          <Card style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <AppText variant="title3">{t('results.cumulativePayments')}</AppText>
-            </View>
-            <CumulativeAreaChart
-              monthlyArray={result.loanChartMonthlyArray}
-              interestArray={result.loanChartInterestArray}
-              remainingArray={result.loanChartRemainingArray}
-              currency={currency}
-            />
-          </Card>
+          <Pressable
+            onPress={() => openFullscreenPreview('repayment')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('results.repaymentBreakdown')} ${t('results.fullScreen')}`}
+            style={({ pressed }) => [pressed && styles.previewPressed]}
+          >
+            <Card style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <AppText variant="title3">{t('results.repaymentBreakdown')}</AppText>
+                <FullscreenIcon />
+              </View>
+              <RepaymentBarChart
+                monthlyArray={result.loanChartMonthlyArray}
+                interestArray={result.loanChartInterestArray}
+                labelArray={result.loanChartLabelArray}
+                currency={currency}
+              />
+            </Card>
+          </Pressable>
+          <Pressable
+            onPress={() => openFullscreenPreview('breakdown')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('results.loanBreakdown')} ${t('results.fullScreen')}`}
+            style={({ pressed }) => [pressed && styles.previewPressed]}
+          >
+            <Card style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <AppText variant="title3">{t('results.loanBreakdown')}</AppText>
+                <FullscreenIcon />
+              </View>
+              <LoanBreakdownDonut
+                principal={principalAmount}
+                totalInterest={result.totalInterestPaid}
+                currency={currency}
+              />
+            </Card>
+          </Pressable>
+          <Pressable
+            onPress={() => openFullscreenPreview('cumulative')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('results.cumulativePayments')} ${t('results.fullScreen')}`}
+            style={({ pressed }) => [pressed && styles.previewPressed]}
+          >
+            <Card style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <AppText variant="title3">{t('results.cumulativePayments')}</AppText>
+                <FullscreenIcon />
+              </View>
+              <CumulativeAreaChart
+                monthlyArray={result.loanChartMonthlyArray}
+                interestArray={result.loanChartInterestArray}
+                remainingArray={result.loanChartRemainingArray}
+                currency={currency}
+              />
+            </Card>
+          </Pressable>
         </View>
       )}
 
@@ -192,13 +295,24 @@ export const LoanCalculationView = ({
           <View style={[styles.chartHeader, styles.scheduleHeader]}>
             <AppText variant="title3" style={styles.scheduleTitle}>{t('results.amortisationTable')}</AppText>
             <TouchableOpacity
+              style={styles.fullscreenButton}
+              onPress={() => openFullscreenPreview('schedule')}
+              accessibilityRole="button"
+              activeOpacity={0.8}
+            >
+              <FullscreenIcon />
+              <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
+                {t('results.fullScreen')}
+              </AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.exportButton, isExportingCsv && styles.exportButtonDisabled]}
               onPress={handleExportCsv}
               disabled={isExportingCsv}
               accessibilityRole="button"
               activeOpacity={0.8}
             >
-              <AppText variant="labelSm" tone="accent" style={styles.exportButtonText}>
+              <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
                 {isExportingCsv ? t('results.exportingCsv') : t('results.exportCsv')}
               </AppText>
             </TouchableOpacity>
@@ -210,6 +324,37 @@ export const LoanCalculationView = ({
           />
         </Card>
       )}
+
+      <Modal
+        visible={isPreviewOpen}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+        onRequestClose={closeFullscreenPreview}
+      >
+        <SafeAreaView style={styles.fullscreenSafe} edges={['top', 'bottom']}>
+          <View style={styles.fullscreenHeader}>
+            <AppText variant="title3" style={styles.scheduleTitle}>{getFullscreenTitle()}</AppText>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeFullscreenPreview}
+              accessibilityRole="button"
+              activeOpacity={0.8}
+            >
+              <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
+                {t('common.close')}
+              </AppText>
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            style={styles.fullscreenBody}
+            contentContainerStyle={styles.fullscreenContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderFullscreenPreview()}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </>
   );
 
@@ -235,6 +380,15 @@ export const LoanCalculationView = ({
     </View>
   );
 };
+
+const FullscreenIcon = () => (
+  <View style={styles.fullscreenIcon} pointerEvents="none">
+    <View style={[styles.fullscreenCorner, styles.fullscreenCornerTopLeft]} />
+    <View style={[styles.fullscreenCorner, styles.fullscreenCornerTopRight]} />
+    <View style={[styles.fullscreenCorner, styles.fullscreenCornerBottomLeft]} />
+    <View style={[styles.fullscreenCorner, styles.fullscreenCornerBottomRight]} />
+  </View>
+);
 
 const styles = StyleSheet.create({
   root: {},
@@ -271,16 +425,25 @@ const styles = StyleSheet.create({
     borderColor: colours.border,
   },
   chartHeader: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: colours.border,
     paddingBottom: 10,
     marginBottom: 12,
+  },
+  previewPressed: {
+    opacity: 0.84,
   },
   scheduleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
+    flexWrap: 'wrap',
   },
   scheduleTitle: {
     flex: 1,
@@ -298,10 +461,90 @@ const styles = StyleSheet.create({
   exportButtonDisabled: {
     opacity: 0.6,
   },
-  exportButtonText: {
+  fullscreenButton: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    borderRadius: radii.button,
+    backgroundColor: colours.white,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  actionButtonText: {
     textTransform: 'uppercase',
   },
   scheduleCard: {
     paddingBottom: 8,
+  },
+  fullscreenSafe: {
+    flex: 1,
+    backgroundColor: colours.background,
+  },
+  fullscreenHeader: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: layout.screenPadding,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colours.border,
+    backgroundColor: colours.background,
+  },
+  closeButton: {
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: radii.button,
+    backgroundColor: colours.surface,
+    borderWidth: 1,
+    borderColor: colours.border,
+  },
+  fullscreenBody: {
+    flex: 1,
+  },
+  fullscreenContent: {
+    padding: layout.screenPadding,
+    paddingBottom: spacing['2xl'],
+  },
+  fullscreenIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: radii.full,
+    backgroundColor: colours.surface,
+  },
+  fullscreenCorner: {
+    position: 'absolute',
+    width: 7,
+    height: 7,
+    borderColor: colours.primary,
+  },
+  fullscreenCornerTopLeft: {
+    top: 6,
+    left: 6,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+  },
+  fullscreenCornerTopRight: {
+    top: 6,
+    right: 6,
+    borderTopWidth: 2,
+    borderRightWidth: 2,
+  },
+  fullscreenCornerBottomLeft: {
+    bottom: 6,
+    left: 6,
+    borderBottomWidth: 2,
+    borderLeftWidth: 2,
+  },
+  fullscreenCornerBottomRight: {
+    right: 6,
+    bottom: 6,
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
   },
 });

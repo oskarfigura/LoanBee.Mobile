@@ -13,7 +13,7 @@ import {
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { DownPaymentType } from '@/core/DownPaymentType';
 import { CURRENCIES } from '@/currency/currencies';
-import { colours, layout, spacing } from '@/theme';
+import { layout, spacing } from '@/theme';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
 import {
@@ -304,15 +304,15 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
               <FieldError message={errors.desiredMonthlyPayment?.message} />
             </View>
           )}
+
+          <Button
+            label={t('calculator.generate')}
+            onPress={handleSubmit(onSubmit)}
+            style={styles.submitButton}
+          />
         </FormSection>
 
       </ScrollView>
-      <View style={styles.stickyFooter}>
-        <Button
-          label={t('calculator.generate')}
-          onPress={handleSubmit(onSubmit)}
-        />
-      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: layout.screenPadding,
-    paddingBottom: 124,
+    paddingBottom: spacing.xl,
   },
   section: {
     gap: spacing.md,
@@ -348,12 +348,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   termField: { flex: 1 },
-  stickyFooter: {
-    borderTopWidth: 1,
-    borderTopColor: colours.borderSoft,
-    backgroundColor: colours.surfaceRaised,
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+  submitButton: {
+    marginTop: spacing.sm,
   },
 });

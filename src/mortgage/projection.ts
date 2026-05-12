@@ -1,4 +1,10 @@
-import { getCurrentDeal, getDraftDeals, getPublishedDeals } from '@/mortgage/tracker';
+import {
+  CURRENT_STATE_PROJECTION_DEAL_ID,
+  getCurrentDeal,
+  getDraftDeals,
+  getProjectionDeals,
+  getPublishedDeals,
+} from '@/mortgage/tracker';
 import { LoanDeal, LoanGroup, MortgageEvent } from '@/types/SavedLoan';
 
 export interface MortgageProjectionPoint {
@@ -17,10 +23,30 @@ export interface MortgageProjectionPoint {
   isProjected: boolean;
 }
 
+export interface MortgageProjectionDealSegment {
+  dealId: string;
+  dealName: string;
+  status: LoanDeal['status'];
+  startDate: string;
+  endDate: string;
+  pointStart: number;
+  pointEnd: number;
+  pointCount: number;
+  projectedPointCount: number;
+  openingBalance: number;
+  closingBalance: number;
+  isCurrent: boolean;
+}
+
 export interface MortgageProjection {
   points: MortgageProjectionPoint[];
   tableItems: Array<{
     itemNo: number;
+    date: string;
+    dealId: string;
+    dealName: string;
+    dealStatus: LoanDeal['status'];
+    isProjected: boolean;
     remaining: string;
     principal: string;
     interest: string;
@@ -42,6 +68,7 @@ export interface MortgageProjection {
   currentDealEndDate?: string;
   publishedDealCount: number;
   draftDealCount: number;
+  dealSegments: MortgageProjectionDealSegment[];
 }
 
 const toMoney = (value: number): number => +Math.max(0, value).toFixed(2);
@@ -112,6 +139,7 @@ const buildEmptyProjection = (loan: LoanGroup): MortgageProjection => {
     currentDealEndDate: getCurrentDeal(loan)?.endDate,
     publishedDealCount: 0,
     draftDealCount: getDraftDeals(loan).length,
+    dealSegments: [],
   };
 };
 
@@ -120,7 +148,8 @@ const buildProjection = (
   asOf: Date,
   includeOverpayments: boolean,
 ): Omit<MortgageProjection, 'overpaymentSavingsEstimate'> => {
-  const deals = getPublishedDeals(loan);
+  const publishedDeals = getPublishedDeals(loan);
+  const deals = getProjectionDeals(loan);
   if (deals.length === 0) return buildEmptyProjection(loan);
 
   const openingBalance = deals[0].openingBalance;
@@ -268,13 +297,43 @@ const buildProjection = (
 
   if (!currentBalanceCaptured) currentBalance = openingBalance;
 
-  const tableItems = points.map(point => ({
-    itemNo: point.itemNo,
-    remaining: point.openingBalance.toFixed(2),
-    principal: point.principal.toFixed(2),
-    interest: point.interest.toFixed(2),
-    ending: point.closingBalance.toFixed(2),
-  }));
+  const tableItems = points.map(point => {
+    const deal = deals.find(item => item.id === point.dealId);
+
+    return {
+      itemNo: point.itemNo,
+      date: point.date,
+      dealId: point.dealId,
+      dealName: point.dealName,
+      dealStatus: deal?.status ?? 'active',
+      isProjected: point.isProjected,
+      remaining: point.openingBalance.toFixed(2),
+      principal: point.principal.toFixed(2),
+      interest: point.interest.toFixed(2),
+      ending: point.closingBalance.toFixed(2),
+    };
+  });
+  const currentDeal = getCurrentDeal(loan, asOf);
+  const dealSegments: MortgageProjectionDealSegment[] = deals.map(deal => {
+    const dealPoints = points.filter(point => point.dealId === deal.id);
+    const firstPoint = dealPoints[0];
+    const lastPoint = dealPoints[dealPoints.length - 1];
+
+    return {
+      dealId: deal.id,
+      dealName: deal.name,
+      status: deal.status,
+      startDate: deal.startDate,
+      endDate: deal.completion?.completedAt ?? deal.endDate,
+      pointStart: firstPoint?.itemNo ?? 0,
+      pointEnd: lastPoint?.itemNo ?? 0,
+      pointCount: dealPoints.length,
+      projectedPointCount: dealPoints.filter(point => point.isProjected).length,
+      openingBalance: toMoney(firstPoint?.openingBalance ?? deal.openingBalance),
+      closingBalance: toMoney(lastPoint?.closingBalance ?? deal.completion?.closingBalance ?? deal.openingBalance),
+      isCurrent: currentDeal?.id === deal.id || (!currentDeal && deal.id === CURRENT_STATE_PROJECTION_DEAL_ID),
+    };
+  });
 
   return {
     points,
@@ -291,9 +350,10 @@ const buildProjection = (
     totalPrincipalPaid: toMoney(Math.max(0, openingBalance + additionalBorrowingTotal - currentBalance)),
     additionalBorrowingTotal,
     projectedEndDate,
-    currentDealEndDate: getCurrentDeal(loan, asOf)?.endDate,
-    publishedDealCount: deals.length,
+    currentDealEndDate: currentDeal?.endDate,
+    publishedDealCount: publishedDeals.length,
     draftDealCount: getDraftDeals(loan).length,
+    dealSegments,
   };
 };
 

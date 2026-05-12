@@ -21,14 +21,33 @@ export default function CompleteCurrentDealScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const loan = savedLoansStorage.getById(id);
   const currentDeal = loan ? getCurrentDeal(loan) : undefined;
-  const projected = currentDeal && loan ? projectDeal(currentDeal, loan.events) : null;
   const currencySymbol = CURRENCIES.find(c => c.code === loan?.currency)?.symbol ?? '£';
+  const defaultCompletedAt = currentDeal?.endDate ?? formatIsoDate(new Date());
+  const getExpectedClosingBalance = (completionDate: string): number => {
+    const projectionDate = parseDateLabelValue(completionDate) ?? new Date();
+    return currentDeal && loan
+      ? projectDeal(currentDeal, loan.events, projectionDate).balance
+      : currentDeal?.openingBalance ?? 0;
+  };
 
-  const [completedAt, setCompletedAt] = useState(currentDeal?.endDate ?? formatIsoDate(new Date()));
-  const [closingBalance, setClosingBalance] = useState(String(projected?.balance ?? currentDeal?.openingBalance ?? 0));
+  const [completedAt, setCompletedAt] = useState(defaultCompletedAt);
+  const [closingBalance, setClosingBalance] = useState(() => String(getExpectedClosingBalance(defaultCompletedAt)));
+  const [closingBalanceEdited, setClosingBalanceEdited] = useState(false);
   const [feesAdded, setFeesAdded] = useState('0');
   const [notes, setNotes] = useState('');
   const minimumCompletionDate = currentDeal ? parseDateLabelValue(currentDeal.startDate) ?? undefined : undefined;
+
+  const handleCompletedAtChange = (value: string) => {
+    setCompletedAt(value);
+    if (!closingBalanceEdited) {
+      setClosingBalance(String(getExpectedClosingBalance(value)));
+    }
+  };
+
+  const handleClosingBalanceChange = (value: string) => {
+    setClosingBalanceEdited(true);
+    setClosingBalance(value);
+  };
 
   if (!loan || !currentDeal) {
     return (
@@ -59,7 +78,7 @@ export default function CompleteCurrentDealScreen() {
           <DatePickerField
             label={t('mortgage.completionDate')}
             value={completedAt}
-            onChange={setCompletedAt}
+            onChange={handleCompletedAtChange}
             hint={t('mortgage.dateFormatHint')}
             minimumDate={minimumCompletionDate}
           />
@@ -71,7 +90,7 @@ export default function CompleteCurrentDealScreen() {
             <InputAffix>{currencySymbol}</InputAffix>
             <AppTextInput
               value={closingBalance}
-              onChangeText={setClosingBalance}
+              onChangeText={handleClosingBalanceChange}
               keyboardType="decimal-pad"
               placeholder="238420"
             />

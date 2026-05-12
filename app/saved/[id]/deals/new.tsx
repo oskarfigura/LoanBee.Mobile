@@ -65,6 +65,7 @@ export default function NewDealScreen() {
   const previous = deals[deals.length - 1];
   const canPublish = !previous || previous.status === 'completed';
   const fixedStartDate = previous ? getNextDealStartDate(previous, loan.formSnapshot.startDate) : undefined;
+  const isInitialDeal = !previous;
 
   const banner = !canPublish && previous ? (
     <DismissibleBanner
@@ -81,7 +82,7 @@ export default function NewDealScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScreenHeader
-        title={t('mortgage.addNextDeal')}
+        title={isInitialDeal ? t('mortgage.addFirstDeal') : t('mortgage.addNextDeal')}
         variant="editor"
         leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />
@@ -92,7 +93,7 @@ export default function NewDealScreen() {
         fixedStartDate={fixedStartDate}
         mortgageStartDate={loan.formSnapshot.startDate}
         mortgageTermInMonths={getMortgageTermInMonths(loan)}
-        isInitialDeal={false}
+        isInitialDeal={isInitialDeal}
         canEditMortgageTerm
         onCancel={() => router.back()}
         banner={banner}

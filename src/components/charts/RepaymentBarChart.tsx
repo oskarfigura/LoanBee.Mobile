@@ -12,11 +12,12 @@ interface Props {
   interestArray: number[];
   labelArray: string[];
   currency: CurrencyCode;
+  height?: number;
 }
 
 const SAMPLE_STEP = 12;
 
-export const RepaymentBarChart = ({ monthlyArray, interestArray, labelArray, currency }: Props) => {
+export const RepaymentBarChart = ({ monthlyArray, interestArray, labelArray, currency, height = 196 }: Props) => {
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
   const width = getProjectionChartWidth(containerWidth);
@@ -62,7 +63,7 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, labelArray, cur
         <BarChart
           stackData={yearlyData}
           width={width}
-          height={196}
+          height={height}
           barWidth={Math.max(8, Math.min(24, width / yearlyData.length - 4))}
           spacing={Math.max(8, Math.min(18, width / yearlyData.length / 2))}
           initialSpacing={8}

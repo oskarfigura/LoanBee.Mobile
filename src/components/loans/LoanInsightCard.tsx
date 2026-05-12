@@ -35,8 +35,19 @@ export const LoanInsightCard = ({
 }: Props) => {
   const { t } = useTranslation();
   const isCompact = density === 'compact';
-  const showHeader = title || subtitle || eyebrowContent || headerAction;
+  const isCalculationSummary = summary.context === 'calculation' && !isCompact;
+  const headerActionInHero = isCalculationSummary && !title && !subtitle && !eyebrowContent
+    ? headerAction
+    : null;
+  const showHeader = title || subtitle || eyebrowContent || (headerAction && !headerActionInHero);
   const isOddMetricCount = summary.metrics.length % 2 === 1;
+  const [
+    loanAmountMetric,
+    payoffDateMetric,
+    interestRateMetric,
+    totalInterestMetric,
+    totalCostMetric,
+  ] = isCalculationSummary ? summary.metrics : [];
 
   return (
     <Card
@@ -48,7 +59,7 @@ export const LoanInsightCard = ({
         style,
       ]}
     >
-      <View style={[styles.inner, isCompact && styles.compactInner]}>
+      <View style={[styles.inner, isCompact && styles.compactInner, isCalculationSummary && styles.calculationInner]}>
         {showHeader ? (
           <View style={styles.header}>
             <View style={styles.headerCopy}>
@@ -77,36 +88,117 @@ export const LoanInsightCard = ({
           </View>
         ) : null}
 
-        <View style={[styles.hero, isCompact && styles.compactHero]}>
-          <Text style={styles.heroLabel} numberOfLines={1}>
-            {t(summary.hero.labelKey)}
-          </Text>
-          <Text style={[styles.heroValue, isCompact && styles.compactHeroValue]} numberOfLines={1} adjustsFontSizeToFit>
-            {summary.hero.value}
-          </Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={[styles.metricGrid, isCompact && styles.compactMetricGrid]}>
-          {summary.metrics.map((metric, index) => (
-            <View
-              key={`${metric.labelKey}-${index}`}
-              style={[
-                styles.metric,
-                isCompact && styles.compactMetric,
-                isOddMetricCount && index === summary.metrics.length - 1 && styles.metricWide,
-              ]}
-            >
-              <Text style={styles.metricLabel} numberOfLines={1}>
-                {t(metric.labelKey)}
-              </Text>
-              <Text style={[styles.metricValue, isCompact && styles.compactMetricValue]} numberOfLines={1} adjustsFontSizeToFit>
-                {metric.value}
+        {isCalculationSummary ? (
+          <>
+            <View style={styles.calculationHero}>
+              <View style={styles.calculationHeroHeader}>
+                <Text style={styles.calculationHeroLabel} numberOfLines={1}>
+                  {t(summary.hero.labelKey)}
+                </Text>
+                {headerActionInHero ? (
+                  <View style={styles.heroAction}>
+                    {headerActionInHero}
+                  </View>
+                ) : null}
+              </View>
+              <Text style={styles.calculationHeroValue} numberOfLines={1} adjustsFontSizeToFit>
+                {summary.hero.value}
               </Text>
             </View>
-          ))}
-        </View>
+
+            <View style={styles.calculationDetails}>
+              <View style={styles.calculationPrimaryRow}>
+                {loanAmountMetric ? (
+                  <View style={styles.calculationPrimaryMetric}>
+                    <Text style={styles.calculationMetricLabel} numberOfLines={1}>
+                      {t(loanAmountMetric.labelKey)}
+                    </Text>
+                    <Text style={styles.calculationPrimaryValue} numberOfLines={1} adjustsFontSizeToFit>
+                      {loanAmountMetric.value}
+                    </Text>
+                  </View>
+                ) : null}
+                {payoffDateMetric ? (
+                  <View style={styles.calculationPrimaryMetric}>
+                    <Text style={styles.calculationMetricLabel} numberOfLines={1}>
+                      {t(payoffDateMetric.labelKey)}
+                    </Text>
+                    <Text style={styles.calculationPrimaryValue} numberOfLines={1} adjustsFontSizeToFit>
+                      {payoffDateMetric.value}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.calculationSecondaryRow}>
+                {interestRateMetric ? (
+                  <View style={styles.calculationSecondaryMetric}>
+                    <Text style={styles.calculationMetricLabel} numberOfLines={1}>
+                      {t(interestRateMetric.labelKey)}
+                    </Text>
+                    <Text style={styles.calculationSecondaryValue} numberOfLines={1} adjustsFontSizeToFit>
+                      {interestRateMetric.value}
+                    </Text>
+                  </View>
+                ) : null}
+                {totalInterestMetric ? (
+                  <View style={styles.calculationSecondaryMetric}>
+                    <Text style={styles.calculationMetricLabel} numberOfLines={1}>
+                      {t(totalInterestMetric.labelKey)}
+                    </Text>
+                    <Text style={styles.calculationSecondaryValue} numberOfLines={1} adjustsFontSizeToFit>
+                      {totalInterestMetric.value}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {totalCostMetric ? (
+                <View style={styles.calculationTotalRow}>
+                  <Text style={styles.calculationMetricLabel} numberOfLines={1}>
+                    {t(totalCostMetric.labelKey)}
+                  </Text>
+                  <Text style={styles.calculationTotalValue} numberOfLines={1} adjustsFontSizeToFit>
+                    {totalCostMetric.value}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={[styles.hero, isCompact && styles.compactHero]}>
+              <Text style={styles.heroLabel} numberOfLines={1}>
+                {t(summary.hero.labelKey)}
+              </Text>
+              <Text style={[styles.heroValue, isCompact && styles.compactHeroValue]} numberOfLines={1} adjustsFontSizeToFit>
+                {summary.hero.value}
+              </Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={[styles.metricGrid, isCompact && styles.compactMetricGrid]}>
+              {summary.metrics.map((metric, index) => (
+                <View
+                  key={`${metric.labelKey}-${index}`}
+                  style={[
+                    styles.metric,
+                    isCompact && styles.compactMetric,
+                    isOddMetricCount && index === summary.metrics.length - 1 && styles.metricWide,
+                  ]}
+                >
+                  <Text style={styles.metricLabel} numberOfLines={1}>
+                    {t(metric.labelKey)}
+                  </Text>
+                  <Text style={[styles.metricValue, isCompact && styles.compactMetricValue]} numberOfLines={1} adjustsFontSizeToFit>
+                    {metric.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
 
         {showProgress && summary.progress ? (
           <View style={styles.progressSection}>
@@ -180,7 +272,7 @@ const styles = StyleSheet.create({
     borderColor: colours.borderSoft,
   },
   calculationCard: {
-    borderColor: colours.borderSoft,
+    borderColor: 'transparent',
   },
   compactCard: {
     marginBottom: spacing.sm,
@@ -192,6 +284,10 @@ const styles = StyleSheet.create({
   compactInner: {
     padding: spacing.sm,
     gap: spacing.sm,
+  },
+  calculationInner: {
+    padding: 0,
+    gap: 0,
   },
   header: {
     flexDirection: 'row',
@@ -233,12 +329,37 @@ const styles = StyleSheet.create({
   compactHero: {
     paddingTop: 0,
   },
+  calculationHero: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    backgroundColor: colours.surfaceRaised,
+  },
+  calculationHeroHeader: {
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  heroAction: {
+    flexShrink: 0,
+  },
   heroLabel: {
     ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
     color: colours.textPrimary,
     textTransform: 'uppercase',
     marginBottom: spacing.sm,
+  },
+  calculationHeroLabel: {
+    ...fontFaces.heading.semibold,
+    flex: 1,
+    fontSize: fontSizes.xs,
+    color: colours.textMuted,
+    textTransform: 'uppercase',
+    marginBottom: 0,
   },
   heroValue: {
     ...fontFaces.heading.extrabold,
@@ -247,6 +368,11 @@ const styles = StyleSheet.create({
   },
   compactHeroValue: {
     fontSize: fontSizes.xl,
+  },
+  calculationHeroValue: {
+    ...fontFaces.heading.extrabold,
+    fontSize: fontSizes['3xl'],
+    color: colours.primary,
   },
   divider: {
     height: 1,
@@ -262,6 +388,11 @@ const styles = StyleSheet.create({
     rowGap: spacing.sm,
     columnGap: spacing.sm,
   },
+  calculationDetails: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
   metric: {
     flexBasis: '47%',
     flexGrow: 1,
@@ -269,6 +400,29 @@ const styles = StyleSheet.create({
   },
   compactMetric: {
     flexBasis: '47%',
+  },
+  calculationPrimaryRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  calculationPrimaryMetric: {
+    flex: 1,
+    minWidth: 0,
+  },
+  calculationSecondaryRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  calculationSecondaryMetric: {
+    flex: 1,
+    minWidth: 0,
+  },
+  calculationTotalRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginTop: spacing.xxs,
   },
   metricWide: {
     flexBasis: '100%',
@@ -286,6 +440,29 @@ const styles = StyleSheet.create({
   },
   compactMetricValue: {
     fontSize: fontSizes.md,
+  },
+  calculationMetricLabel: {
+    ...fontFaces.body.medium,
+    fontSize: fontSizes.xs,
+    color: colours.textMuted,
+    marginBottom: spacing.xxxs,
+  },
+  calculationPrimaryValue: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.md,
+    color: colours.textPrimary,
+  },
+  calculationSecondaryValue: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.base,
+    color: colours.textPrimary,
+  },
+  calculationTotalValue: {
+    ...fontFaces.heading.bold,
+    flexShrink: 1,
+    fontSize: fontSizes.lg,
+    textAlign: 'right',
+    color: colours.primary,
   },
   progressSection: {
     borderTopWidth: 1,

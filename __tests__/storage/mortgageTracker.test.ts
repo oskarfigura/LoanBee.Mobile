@@ -3,7 +3,9 @@ import {
   buildNextDealDraft,
   canDeleteDeal,
   canActivateDeal,
+  canEditDeal,
   canEditInitialDeal,
+  CURRENT_STATE_PROJECTION_DEAL_ID,
   formatDealDuration,
   getMortgageTermInMonths,
   getMortgageTrackerSummary,
@@ -98,6 +100,29 @@ describe('mortgage tracker', () => {
     expect(summary.nextDraftDeal?.id).toBe('draft');
     expect(summary.currentDeal?.id).toBe('deal-current');
     expect(summary.originalBalance).toBe(240000);
+  });
+
+  it('projects a saved mortgage without deal history from the current-state snapshot', () => {
+    const loan = makeMortgage({
+      deals: [],
+      formSnapshot: {
+        ...makeMortgage().formSnapshot,
+        loanAmount: 300000,
+        downPayment: 60000,
+        downPaymentType: 'CASH',
+      },
+    });
+
+    const summary = getMortgageTrackerSummary(loan, new Date('2026-07-15T12:00:00Z'));
+    const projection = buildMortgageProjection(loan, new Date('2026-07-15T12:00:00Z'));
+
+    expect(summary.currentDeal).toBeUndefined();
+    expect(summary.originalBalance).toBe(240000);
+    expect(summary.currentBalance).toBeLessThan(240000);
+    expect(projection.publishedDealCount).toBe(0);
+    expect(projection.dealSegments[0]?.dealId).toBe(CURRENT_STATE_PROJECTION_DEAL_ID);
+    expect(projection.dealSegments[0]?.isCurrent).toBe(true);
+    expect(projection.points.length).toBeGreaterThan(0);
   });
 
   it('applies lump overpayments and missed payments to active deal projections', () => {
@@ -596,6 +621,9 @@ describe('mortgage tracker', () => {
     expect(projection.currentBalance).toBeLessThan(202000);
     expect(projection.loanChartMonthlyArray.length).toBe(projection.tableItems.length + 1);
     expect(projection.overpaymentSavingsEstimate).toBeGreaterThan(0);
+    expect(projection.dealSegments.map(segment => segment.dealId)).toEqual(['completed', 'active']);
+    expect(projection.dealSegments.find(segment => segment.dealId === 'active')?.isCurrent).toBe(true);
+    expect(projection.tableItems.some(item => item.dealName === '5-year Fixed')).toBe(true);
   });
 
   it('excludes draft deals from mortgage projection totals and chart points', () => {
@@ -735,6 +763,40 @@ describe('mortgage tracker', () => {
       ],
     });
     expect(canEditInitialDeal(twoDealLoan)).toBe(false);
+  });
+
+  it('allows editing only the latest chronological deal', () => {
+    const initial = {
+      ...makeMortgage().deals[0],
+      id: 'initial',
+      status: 'completed' as const,
+      completion: {
+        completedAt: '2031-06-01',
+        closingBalance: 205000,
+        feesAdded: 0,
+      },
+    };
+    const active = {
+      ...makeMortgage().deals[0],
+      id: 'active',
+      status: 'active' as const,
+      startDate: '2031-06-02',
+      endDate: '2036-06-02',
+      openingBalance: 205000,
+      completion: undefined,
+    };
+    const draft = {
+      ...active,
+      id: 'draft',
+      status: 'draft' as const,
+      startDate: '2036-06-03',
+      endDate: '2041-06-03',
+    };
+    const loan = makeMortgage({ deals: [initial, active, draft] });
+
+    expect(canEditDeal(loan, 'initial')).toBe(false);
+    expect(canEditDeal(loan, 'active')).toBe(false);
+    expect(canEditDeal(loan, 'draft')).toBe(true);
   });
 
   it('updates the total mortgage term and recomputes remaining term', () => {

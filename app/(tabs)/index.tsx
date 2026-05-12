@@ -15,8 +15,7 @@ import { LoanForm } from '@/components/calculator/LoanForm';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppText } from '@/components/ui/AppText';
-import { Button } from '@/components/ui/Button';
-import { colours, layout, spacing } from '@/theme';
+import { colours, spacing } from '@/theme';
 import { buildDraftResultParams } from '@/results/loanResultRoute';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSavedLoans } from '@/hooks/useSavedLoans';
@@ -95,19 +94,6 @@ export default function CalculatorScreen() {
             <AppText variant="bodyLg" tone="muted" style={styles.pageSubtitle}>
               {t('calculator.subtitle')}
             </AppText>
-            <View style={styles.helperRow}>
-              <AppText variant="bodySm" tone="muted" style={styles.helperText}>
-                {t('mortgage.dashboardHint')}
-              </AppText>
-              {pinnedLoans.length > 0 ? (
-                <Button
-                  label={t('saved.title')}
-                  onPress={() => router.push('/saved')}
-                  variant="secondary"
-                  style={styles.helperAction}
-                />
-              ) : null}
-            </View>
           </View>
         )}
       />
@@ -122,16 +108,5 @@ const styles = StyleSheet.create({
   },
   pageSubtitle: {
     maxWidth: '96%',
-  },
-  helperRow: {
-    marginTop: spacing.lg,
-    gap: spacing.md,
-  },
-  helperText: {
-    maxWidth: '92%',
-  },
-  helperAction: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: layout.cardPadding,
   },
 });

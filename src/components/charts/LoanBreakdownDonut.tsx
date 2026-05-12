@@ -10,9 +10,10 @@ interface Props {
   principal: number;
   totalInterest: number;
   currency: CurrencyCode;
+  radius?: number;
 }
 
-export const LoanBreakdownDonut = ({ principal, totalInterest, currency }: Props) => {
+export const LoanBreakdownDonut = ({ principal, totalInterest, currency, radius = 88 }: Props) => {
   const { t } = useTranslation();
   const total = principal + totalInterest;
   const formatPct = (value: number) => {
@@ -32,8 +33,8 @@ export const LoanBreakdownDonut = ({ principal, totalInterest, currency }: Props
       <PieChart
         data={data}
         donut
-        radius={88}
-        innerRadius={58}
+        radius={radius}
+        innerRadius={Math.max(44, radius - 30)}
         innerCircleColor={colours.white}
         innerCircleBorderWidth={1}
         innerCircleBorderColor={colours.border}

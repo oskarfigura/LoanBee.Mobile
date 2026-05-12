@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TouchableOpacity, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText } from './AppText';
-import { colours, radii, spacing } from '@/theme';
+import { colours, elevation, radii, spacing } from '@/theme';
 
 interface Props {
   dismissible?: boolean;
@@ -18,7 +18,8 @@ export const FinancialDisclaimer = ({ dismissible = false, style }: Props) => {
 
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.summaryRow}>
+      <View style={styles.accentRail} />
+      <View style={styles.contentRow}>
         <TouchableOpacity
           style={styles.summaryButton}
           activeOpacity={0.8}
@@ -28,7 +29,10 @@ export const FinancialDisclaimer = ({ dismissible = false, style }: Props) => {
         >
           <AppText variant="bodySm" tone="muted" style={styles.text}>
             <AppText variant="labelSm" tone="accent" style={styles.label}>{t('disclaimer.label')} </AppText>
-            {t('disclaimer.shortText')} <AppText variant="labelMd" tone="accent" style={styles.link}>{expanded ? t('disclaimer.less') : t('disclaimer.more')}</AppText>
+            {t('disclaimer.shortText')}{' '}
+            <AppText variant="labelMd" tone="accent" style={styles.expandText}>
+              {expanded ? t('disclaimer.less') : t('disclaimer.more')}
+            </AppText>
           </AppText>
         </TouchableOpacity>
         {dismissible ? (
@@ -39,14 +43,17 @@ export const FinancialDisclaimer = ({ dismissible = false, style }: Props) => {
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel={t('disclaimer.dismiss')}
+              hitSlop={8}
             >
-              <AppText variant="labelMd" tone="accent" style={styles.dismissText}>X</AppText>
+              <AppText variant="labelMd" tone="accent" style={styles.dismissText}>×</AppText>
             </TouchableOpacity>
           </View>
         ) : null}
       </View>
       {expanded && (
-        <AppText variant="bodySm" tone="muted" style={styles.fullText}>{t('disclaimer.fullText')}</AppText>
+        <View style={styles.expandedPanel}>
+          <AppText variant="bodySm" tone="muted" style={styles.fullText}>{t('disclaimer.fullText')}</AppText>
+        </View>
       )}
     </View>
   );
@@ -57,47 +64,69 @@ const styles = StyleSheet.create({
     backgroundColor: colours.surfaceMuted,
     borderRadius: radii.input,
     borderWidth: 1,
-    borderColor: colours.borderSoft,
-    paddingHorizontal: spacing.md,
+    borderColor: colours.surfaceStrong,
     paddingVertical: spacing.sm,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.xs,
     marginBottom: spacing.md,
+    ...elevation.level1,
   },
-  summaryRow: {
+  accentRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: radii.card,
+    borderBottomLeftRadius: radii.card,
+    backgroundColor: colours.accent,
+  },
+  contentRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   summaryButton: {
     flex: 1,
+    paddingVertical: spacing.xxs,
   },
-  text: {},
+  text: {
+    color: colours.textMuted,
+  },
   label: {
     textTransform: 'uppercase',
   },
-  link: {
-    textDecorationLine: 'underline',
+  expandText: {
+    lineHeight: 15,
+  },
+  expandedPanel: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colours.border,
   },
   fullText: {
-    marginTop: spacing.xs,
+    color: colours.textMuted,
   },
   dismissButton: {
-    width: 26,
-    height: 26,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: radii.full,
     backgroundColor: colours.surfaceRaised,
     borderWidth: 1,
     borderColor: colours.border,
   },
   dismissSlot: {
-    width: 26,
-    height: 26,
+    width: 32,
+    height: 32,
     flexGrow: 0,
     flexShrink: 0,
   },
   dismissText: {
-    lineHeight: 15,
+    fontSize: 18,
+    lineHeight: 20,
     textAlign: 'center',
   },
 });

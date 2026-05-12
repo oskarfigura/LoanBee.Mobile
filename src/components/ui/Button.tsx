@@ -63,12 +63,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    maxWidth: '100%',
   },
   icon: {
     marginRight: spacing.xs,
@@ -79,6 +81,8 @@ const styles = StyleSheet.create({
   },
   label: {
     textAlign: 'center',
+    lineHeight: 18,
+    flexShrink: 1,
   },
   disabled: {
     opacity: 0.5,

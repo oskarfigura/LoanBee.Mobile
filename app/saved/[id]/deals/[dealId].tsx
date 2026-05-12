@@ -13,10 +13,9 @@ import { formatCurrency } from '@/currency/format';
 import {
   canActivateDeal,
   canDeleteDeal,
-  canEditInitialDeal,
+  canEditDeal,
   formatDealDuration,
   getChronologicalDeals,
-  getLaterDeals,
   getMortgageTermInMonths,
   getNextDealStartDate,
   normaliseDealChain,
@@ -57,8 +56,8 @@ export default function EditDealScreen() {
   const previousDeal = dealIndex > 0 ? chronologicalDeals[dealIndex - 1] : undefined;
   const fixedStartDate = previousDeal ? getNextDealStartDate(previousDeal, loan.formSnapshot.startDate) : undefined;
   const isInitialDeal = chronologicalDeals[0]?.id === deal.id;
-  const initialDealLocked = isInitialDeal && !canEditInitialDeal(loan);
-  const canEditMortgageTerm = isInitialDeal && canEditInitialDeal(loan);
+  const dealIsEditable = canEditDeal(loan, deal.id);
+  const canEditMortgageTerm = isInitialDeal && dealIsEditable;
 
   const deleteLatestDeal = () => {
     if (!canDeleteDeal(loan, deal.id)) return;
@@ -81,6 +80,11 @@ export default function EditDealScreen() {
   };
 
   const saveDeal = (updatedDeal: LoanDeal, updatedMortgageTermInMonths?: number) => {
+    if (!canEditDeal(loan, updatedDeal.id)) {
+      Alert.alert(t('mortgage.dealLockedByLaterTitle'), t('mortgage.dealLockedByLaterBody'));
+      return;
+    }
+
     const loanWithTerm = updatedMortgageTermInMonths
       ? withMortgageTermInMonths(loan, updatedMortgageTermInMonths)
       : loan;
@@ -88,28 +92,12 @@ export default function EditDealScreen() {
       ...loanWithTerm,
       deals: loanWithTerm.deals.map(item => item.id === updatedDeal.id ? updatedDeal : item),
     };
-    const laterDeals = getLaterDeals(nextLoan, updatedDeal.id);
-    const commit = () => {
-      savedLoansStorage.update(normaliseDealChain(nextLoan, updatedDeal.id));
-      router.back();
-    };
 
-    if (laterDeals.length > 0) {
-      Alert.alert(
-        t('mortgage.recalculateLaterDealsTitle'),
-        t('mortgage.recalculateLaterDealsMessage', { count: laterDeals.length }),
-        [
-          { text: t('results.cancelLeave'), style: 'cancel' },
-          { text: t('mortgage.recalculateLaterDealsAction'), onPress: commit },
-        ],
-      );
-      return;
-    }
-
-    commit();
+    savedLoansStorage.update(normaliseDealChain(nextLoan, updatedDeal.id));
+    router.back();
   };
 
-  if (initialDealLocked) {
+  if (!dealIsEditable) {
     return (
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <ScreenHeader
@@ -121,7 +109,7 @@ export default function EditDealScreen() {
         />
         <ScrollView contentContainerStyle={styles.container}>
           <Card style={styles.readOnlyCard}>
-            <AppText variant="labelMd" tone="muted" style={styles.readOnlyKicker}>{t('mortgage.initialDealLockedTitle')}</AppText>
+            <AppText variant="labelMd" tone="muted" style={styles.readOnlyKicker}>{t('mortgage.dealLockedByLaterTitle')}</AppText>
             <AppText variant="title1" tone="accent" style={styles.readOnlyTitle}>{deal.name}</AppText>
             <AppText variant="bodySm" tone="muted" style={styles.readOnlyMeta}>
               {formatFriendlyDateRange(deal.startDate, deal.endDate, i18n.language)}
@@ -133,7 +121,7 @@ export default function EditDealScreen() {
               <ReadOnlyMetric label={t('mortgage.openingBankBalance')} value={formatCurrency(deal.openingBalance, loan.currency)} />
             </View>
             <AppText variant="bodySm" tone="muted" style={styles.readOnlyNotes}>
-              {t('mortgage.initialDealLockedBody')}
+              {t('mortgage.dealLockedByLaterBody')}
             </AppText>
           </Card>
         </ScrollView>
@@ -173,7 +161,7 @@ export default function EditDealScreen() {
             ) : null}
           </Card>
           <Button
-            label={t('mortgage.correctDeal')}
+            label={t('mortgage.editDeal')}
             onPress={() => router.replace(`/saved/${loan.id}/deals/${deal.id}?correct=1`)}
             variant="secondary"
             style={styles.correctAction}
@@ -194,7 +182,7 @@ export default function EditDealScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScreenHeader
-        title={isCorrectionMode ? t('mortgage.correctDeal') : undefined}
+        title={isCorrectionMode ? t('mortgage.editDeal') : undefined}
         variant="editor"
         leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />
@@ -207,6 +195,7 @@ export default function EditDealScreen() {
         mortgageTermInMonths={getMortgageTermInMonths(loan)}
         isInitialDeal={isInitialDeal}
         canEditMortgageTerm={canEditMortgageTerm}
+        showSectionTabs={!isCorrectionMode}
         onCancel={() => router.back()}
         onSave={saveDeal}
         onDeleteDraft={deal.status === 'draft' && canDeleteDeal(loan, deal.id) ? () => {

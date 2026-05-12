@@ -174,7 +174,9 @@ export default function EditLoanScreen() {
             <AppText variant="title2">{t('edit.specifics')}</AppText>
 
             <Card style={styles.specificsCard}>
-              <AppText variant="title3">{t('mortgage.currentDeal')}</AppText>
+              <AppText variant="title3">
+                {currentDeal ? t('mortgage.currentDeal') : t('mortgage.savedMortgageEstimate')}
+              </AppText>
               {currentDeal ? (
                 <>
                   <AppText variant="title2" tone="accent" style={styles.dealTitle}>{currentDeal.name}</AppText>
@@ -186,7 +188,7 @@ export default function EditLoanScreen() {
                   </AppText>
                 </>
               ) : (
-                <AppText variant="bodyMd" tone="muted" style={styles.bodyText}>{t('mortgage.noCurrentDeal')}</AppText>
+                <AppText variant="bodyMd" tone="muted" style={styles.bodyText}>{t('mortgage.noDealChangesBody')}</AppText>
               )}
             </Card>
 
@@ -218,17 +220,21 @@ export default function EditLoanScreen() {
                 icon={<TimelineIcon color={colours.primary} />}
                 onPress={() => router.push(`/saved/${loan.id}/timeline`)}
               />
-              <TrackingActionTile
-                label={t('mortgage.addNextDeal')}
-                icon={<PlusIcon color={colours.primary} />}
-                onPress={() => router.push(`/saved/${loan.id}/deals/new`)}
-              />
-              <TrackingActionTile
-                label={t('mortgage.completeCurrentDeal')}
-                icon={<SwitchIcon color={colours.white} />}
-                onPress={() => router.push(`/saved/${loan.id}/complete-current`)}
-                emphasis
-              />
+              {currentDeal ? (
+                <>
+                  <TrackingActionTile
+                    label={t('mortgage.addNextDeal')}
+                    icon={<PlusIcon color={colours.primary} />}
+                    onPress={() => router.push(`/saved/${loan.id}/deals/new`)}
+                  />
+                  <TrackingActionTile
+                    label={t('mortgage.completeCurrentDeal')}
+                    icon={<SwitchIcon color={colours.white} />}
+                    onPress={() => router.push(`/saved/${loan.id}/complete-current`)}
+                    emphasis
+                  />
+                </>
+              ) : null}
             </View>
           </View>
         )}

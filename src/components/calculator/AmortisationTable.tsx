@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, LayoutChangeEvent } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
 import { formatCurrency } from '@/currency/format';
@@ -9,6 +9,7 @@ import {
   AmortisationTableItem,
   formatAmortisationPeriodLabel,
 } from './amortisationTableUtils';
+import { formatFriendlyMonthYear } from '@/utils/date';
 
 interface Props {
   items: AmortisationTableItem[];
@@ -17,52 +18,107 @@ interface Props {
   pageSize?: number;
 }
 
+const TABLE_WIDTH = 452;
+const PERIOD_COLUMN_WIDTH = 96;
+const BALANCE_COLUMN_WIDTH = 116;
+const PAYMENT_COLUMN_WIDTH = 124;
+
 export const AmortisationTable = ({ items, startDate, currency, pageSize = 12 }: Props) => {
   const { t, i18n } = useTranslation();
   const [page, setPage] = useState(0);
   const [isPagePickerOpen, setIsPagePickerOpen] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(0);
   const totalPages = Math.ceil(items.length / pageSize);
   const safePage = clampPage(page, totalPages);
   const pageItems = items.slice(safePage * pageSize, (safePage + 1) * pageSize);
   const visiblePages = getPaginationWindow(safePage, totalPages, 5);
+  const tableWidth = Math.max(TABLE_WIDTH, containerWidth);
+  const periodColumnWidth = Math.round(tableWidth * 0.21);
+  const balanceColumnWidth = Math.round(tableWidth * 0.255);
+  const paymentColumnWidth = tableWidth - periodColumnWidth - (balanceColumnWidth * 2);
+  const periodColumnStyle = { width: periodColumnWidth };
+  const balanceColumnStyle = { width: balanceColumnWidth };
+  const paymentColumnStyle = { width: paymentColumnWidth };
+  const handleTableLayout = (event: LayoutChangeEvent) => {
+    setContainerWidth(Math.floor(event.nativeEvent.layout.width));
+  };
   const goToPage = (nextPage: number) => {
     setPage(clampPage(nextPage, totalPages));
     setIsPagePickerOpen(false);
   };
   const pageLabel = `${safePage + 1} / ${totalPages}`;
+  const getStatusLabel = (item: AmortisationTableItem) => {
+    if (item.dealStatus === 'completed') return t('saved.completed');
+    if (item.dealStatus === 'active' && item.isProjected) return t('mortgage.currentProjection');
+    if (item.dealStatus === 'active') return t('mortgage.currentDeal');
+    return t('mortgage.future');
+  };
 
   return (
-    <View>
+    <View onLayout={handleTableLayout}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tableScrollContent}
       >
-        <View style={styles.table}>
+        <View style={[styles.table, { width: tableWidth }]}>
           <View style={styles.headerRow}>
-            {[t('results.period'), t('results.openingBalance'), t('results.principal'), t('results.interest'), t('results.closingBalance')].map((h, i) => (
-              <Text
-                key={i}
-                style={[
-                  styles.headerCell,
-                  i === 0 ? styles.indexCell : styles.headerNumericCell,
-                ]}
-              >
-                {h}
+            <Text style={[styles.headerCell, styles.periodCell, periodColumnStyle]}>
+              {t('results.period')}
+            </Text>
+            <Text style={[styles.headerCell, styles.balanceCell, balanceColumnStyle, styles.headerNumericCell]}>
+              {t('results.openingBalance')}
+            </Text>
+            <View style={[styles.paymentHeaderCell, styles.paymentCell, paymentColumnStyle]}>
+              <Text style={[styles.paymentHeaderText, styles.principalHeaderText]}>
+                {t('results.principal')}
               </Text>
-            ))}
-          </View>
-          {pageItems.map((item, i) => (
-            <View key={item.itemNo} style={[styles.dataRow, i % 2 === 0 && styles.evenRow]}>
-              <Text style={[styles.cell, styles.indexCell]}>
-                {formatAmortisationPeriodLabel(startDate, item.itemNo, i18n.language)}
+              <Text style={[styles.paymentHeaderText, styles.interestHeaderText]}>
+                {t('results.interest')}
               </Text>
-              <Text style={styles.cell}>{formatCurrency(+item.remaining, currency)}</Text>
-              <Text style={styles.cell}>{formatCurrency(+item.principal, currency)}</Text>
-              <Text style={styles.cell}>{formatCurrency(+item.interest, currency)}</Text>
-              <Text style={[styles.cell, styles.closingCell]}>{formatCurrency(+item.ending, currency)}</Text>
             </View>
-          ))}
+            <Text style={[styles.headerCell, styles.balanceCell, balanceColumnStyle, styles.headerNumericCell]}>
+              {t('results.closingBalance')}
+            </Text>
+          </View>
+          {pageItems.map((item, i) => {
+            const globalIndex = safePage * pageSize + i;
+            const previousItem = items[globalIndex - 1];
+            const showDealGroup = Boolean(item.dealId && item.dealId !== previousItem?.dealId);
+            const periodLabel = item.date
+              ? formatFriendlyMonthYear(item.date, i18n.language)
+              : formatAmortisationPeriodLabel(startDate, item.itemNo, i18n.language);
+
+            return (
+              <React.Fragment key={item.itemNo}>
+                {showDealGroup ? (
+                  <View style={[styles.dealGroupRow, { width: tableWidth }]}>
+                    <Text style={styles.dealGroupTitle} numberOfLines={1}>
+                      {item.dealName}
+                    </Text>
+                    <Text style={styles.dealGroupMeta} numberOfLines={1}>
+                      {getStatusLabel(item)}
+                    </Text>
+                  </View>
+                ) : null}
+                <View style={[styles.dataRow, i % 2 === 0 && styles.evenRow]}>
+                  <Text style={[styles.cell, styles.periodCell, periodColumnStyle]}>
+                    {periodLabel}
+                  </Text>
+                  <Text style={[styles.cell, styles.balanceCell, balanceColumnStyle]}>{formatCurrency(+item.remaining, currency)}</Text>
+                  <View style={[styles.paymentCell, paymentColumnStyle]}>
+                    <Text style={[styles.splitAmount, styles.principalAmount]} numberOfLines={1} adjustsFontSizeToFit>
+                      {formatCurrency(+item.principal, currency)}
+                    </Text>
+                    <Text style={[styles.splitAmount, styles.interestAmount]} numberOfLines={1} adjustsFontSizeToFit>
+                      {formatCurrency(+item.interest, currency)}
+                    </Text>
+                  </View>
+                  <Text style={[styles.cell, styles.balanceCell, balanceColumnStyle, styles.closingCell]}>{formatCurrency(+item.ending, currency)}</Text>
+                </View>
+              </React.Fragment>
+            );
+          })}
         </View>
       </ScrollView>
 
@@ -144,6 +200,7 @@ export const AmortisationTable = ({ items, startDate, currency, pageSize = 12 }:
 
 const styles = StyleSheet.create({
   tableScrollContent: {
+    flexGrow: 1,
     paddingBottom: 4,
   },
   table: {
@@ -152,19 +209,48 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
   },
+  dealGroupRow: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colours.surfaceAccent,
+    borderBottomWidth: 1,
+    borderBottomColor: colours.border,
+  },
+  dealGroupTitle: {
+    flex: 1,
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.sm,
+    color: colours.primary,
+  },
+  dealGroupMeta: {
+    ...fontFaces.body.medium,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    textTransform: 'uppercase',
+  },
   headerRow: {
     flexDirection: 'row',
     backgroundColor: colours.primary,
   },
   headerCell: {
-    width: 116,
     minHeight: 48,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 12,
     ...fontFaces.heading.bold,
     fontSize: fontSizes.sm,
     color: colours.white,
     textAlignVertical: 'center',
+  },
+  paymentHeaderCell: {
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   headerNumericCell: {
     textAlign: 'center',
@@ -179,17 +265,48 @@ const styles = StyleSheet.create({
     backgroundColor: colours.surface,
   },
   cell: {
-    width: 116,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 12,
     ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textPrimary,
     textAlign: 'center',
   },
-  indexCell: {
-    width: 108,
+  periodCell: {
+    width: PERIOD_COLUMN_WIDTH,
     textAlign: 'left',
+  },
+  balanceCell: {
+    width: BALANCE_COLUMN_WIDTH,
+  },
+  paymentCell: {
+    width: PAYMENT_COLUMN_WIDTH,
+  },
+  paymentHeaderText: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.sm,
+    textAlign: 'center',
+  },
+  principalHeaderText: {
+    color: colours.primaryMuted,
+  },
+  interestHeaderText: {
+    color: colours.tealSoft,
+  },
+  splitAmount: {
+    minHeight: 27,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.sm,
+    color: colours.primaryInk,
+    textAlign: 'center',
+  },
+  principalAmount: {
+    backgroundColor: colours.surfaceStrong,
+  },
+  interestAmount: {
+    backgroundColor: colours.successBorder,
   },
   closingCell: {
     ...fontFaces.body.bold,

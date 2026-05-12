@@ -21,12 +21,19 @@ interface Props {
   footer?: React.ReactNode;
   banner?: React.ReactNode;
   contentPadding?: number;
+  showTabs?: boolean;
 }
 
 const TAB_SCROLL_OFFSET = 12;
 const BOTTOM_ACTIVATION_DISTANCE = 24;
 
-export const FormStepper = ({ sections, footer, banner, contentPadding = layout.screenPadding }: Props) => {
+export const FormStepper = ({
+  sections,
+  footer,
+  banner,
+  contentPadding = layout.screenPadding,
+  showTabs = true,
+}: Props) => {
   const scrollRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef<Record<string, number>>({});
   const [activeKey, setActiveKey] = useState<string>(sections[0]?.key ?? '');
@@ -78,15 +85,17 @@ export const FormStepper = ({ sections, footer, banner, contentPadding = layout.
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabBar}>
-        <SegmentedControl
-          value={activeKey}
-          onChange={scrollToSection}
-          options={tabOptions}
-          variant="underline"
-          textVariant="labelMd"
-        />
-      </View>
+      {showTabs ? (
+        <View style={styles.tabBar}>
+          <SegmentedControl
+            value={activeKey}
+            onChange={scrollToSection}
+            options={tabOptions}
+            variant="underline"
+            textVariant="labelMd"
+          />
+        </View>
+      ) : null}
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}

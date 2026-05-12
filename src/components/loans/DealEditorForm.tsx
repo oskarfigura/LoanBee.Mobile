@@ -35,6 +35,7 @@ interface Props {
   isInitialDeal: boolean;
   canEditMortgageTerm: boolean;
   banner?: React.ReactNode;
+  showSectionTabs?: boolean;
 }
 
 const numberText = (value: number) => (Number.isFinite(value) ? String(value) : '0');
@@ -72,6 +73,7 @@ export const DealEditorForm = ({
   isInitialDeal,
   canEditMortgageTerm,
   banner,
+  showSectionTabs = true,
 }: Props) => {
   const { t } = useTranslation();
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
@@ -205,7 +207,8 @@ export const DealEditorForm = ({
 
   const saveWithStatus = (status: LoanDeal['status']) => {
     if (!validate()) return;
-    if (status === 'active' && !canPublish) {
+    const isPublishingDraft = initialDeal.status === 'draft' && status === 'active';
+    if (isPublishingDraft && !canPublish) {
       Alert.alert(t('mortgage.cannotPublishTitle'), t('mortgage.cannotPublishMessage'));
       return;
     }
@@ -524,6 +527,7 @@ export const DealEditorForm = ({
       sections={sections}
       footer={footer}
       banner={banner}
+      showTabs={showSectionTabs}
     />
   );
 };

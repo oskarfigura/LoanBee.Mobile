@@ -10,6 +10,7 @@ import { formatCurrency } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 import {
   canDeleteDeal,
+  canEditDeal,
   formatDealDuration,
   getCurrentDeal,
   getDraftDeals,
@@ -113,9 +114,10 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
     };
   }, [loan]);
   const hasDeals = loan.deals.length > 0;
+  const hasPublishedDeals = Boolean(timeline.initialDealId);
   const addDealButton = (
     <Button
-      label={hasDeals ? t('mortgage.addNextDeal') : t('mortgage.addFirstDeal')}
+      label={hasPublishedDeals ? t('mortgage.addNextDeal') : t('mortgage.addFirstDeal')}
       leftIcon={<PlusIcon color={colours.primaryInk} size={18} />}
       onPress={() => router.push(`/saved/${loan.id}/deals/new`)}
       variant="secondary"
@@ -145,12 +147,20 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
 
   return (
     <View>
-      {showFooterAction ? (
+      {showFooterAction && hasPublishedDeals ? (
         <View style={styles.topAction}>
           {addDealButton}
         </View>
       ) : null}
 
+      {!hasDeals ? (
+        <Card style={styles.noDealsCard}>
+          <Text style={styles.noDealsTitle}>{t('mortgage.noDealChangesTitle')}</Text>
+          <Text style={styles.noDealsText}>{t('mortgage.noDealChangesBody')}</Text>
+        </Card>
+      ) : null}
+
+      {hasDeals ? (
       <View style={styles.timelineShell}>
         <View style={styles.rail} />
 
@@ -169,9 +179,10 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
                 {t('mortgage.startsOn', { date: formatFriendlyDate(deal.startDate, i18n.language) })}
               </Text>
               <Text style={styles.meta}>{formatDealDuration(deal, i18n.language)}</Text>
+              <Text style={styles.draftHelp}>{t('mortgage.draftPreviewBody')}</Text>
               <View style={styles.futureActions}>
                 <TimelineAction
-                  label={t('mortgage.editDraftDeal')}
+                  label={canEditDeal(loan, deal.id) ? t('mortgage.editDraftDeal') : t('saved.view')}
                   onPress={() => router.push(`/saved/${loan.id}/deals/${deal.id}`)}
                 />
                 {canDeleteDeal(loan, deal.id) ? (
@@ -207,11 +218,19 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
                   style={styles.currentPrimaryAction}
                 />
                 <View style={styles.timelineActionRow}>
-                  <TimelineAction
-                    label={t('mortgage.editDeal')}
-                    onPress={() => router.push(`/saved/${loan.id}/deals/${timeline.current?.id}`)}
-                    style={styles.timelineActionFill}
-                  />
+                  {canEditDeal(loan, timeline.current.id) ? (
+                    <TimelineAction
+                      label={t('mortgage.editDeal')}
+                      onPress={() => router.push(`/saved/${loan.id}/deals/${timeline.current?.id}`)}
+                      style={styles.timelineActionFill}
+                    />
+                  ) : (
+                    <TimelineAction
+                      label={t('saved.view')}
+                      onPress={() => router.push(`/saved/${loan.id}/deals/${timeline.current?.id}`)}
+                      style={styles.timelineActionFill}
+                    />
+                  )}
                   {canDeleteDeal(loan, timeline.current.id) ? (
                     <TimelineAction
                       label={t('mortgage.deleteDeal')}
@@ -250,12 +269,14 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
                   onPress={() => router.push(`/saved/${loan.id}/deals/${deal.id}`)}
                   style={styles.completedAction}
                 />
-                <TimelineAction
-                  label={t('mortgage.correctDeal')}
-                  onPress={() => router.push(`/saved/${loan.id}/deals/${deal.id}?correct=1`)}
-                  variant="ghost"
-                  style={styles.completedAction}
-                />
+                {canEditDeal(loan, deal.id) ? (
+                  <TimelineAction
+                    label={t('mortgage.editDeal')}
+                    onPress={() => router.push(`/saved/${loan.id}/deals/${deal.id}?correct=1`)}
+                    variant="ghost"
+                    style={styles.completedAction}
+                  />
+                ) : null}
                 {canDeleteDeal(loan, deal.id) ? (
                   <TimelineAction
                     label={t('mortgage.deleteDeal')}
@@ -269,13 +290,14 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
           </View>
         ))}
 
-        {!timeline.initialDealId ? (
+        {!timeline.initialDealId && hasDeals ? (
           <View style={styles.timelineItem}>
             <View style={styles.nodeStart} />
-            <Text style={styles.startText}>{t('mortgage.mortgageStart')}</Text>
+            <Text style={styles.startText}>{t('mortgage.noActiveDealYet')}</Text>
           </View>
         ) : null}
       </View>
+      ) : null}
     </View>
   );
 };
@@ -353,6 +375,21 @@ const styles = StyleSheet.create({
     borderTopColor: colours.teal,
   },
   pastCard: {},
+  noDealsCard: {
+    marginBottom: spacing.md,
+  },
+  noDealsTitle: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.md,
+    color: colours.textPrimary,
+  },
+  noDealsText: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.sm,
+    color: colours.textSecondary,
+    lineHeight: 20,
+    marginTop: spacing.xs,
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -402,6 +439,13 @@ const styles = StyleSheet.create({
     color: colours.textSecondary,
     lineHeight: 19,
     marginTop: spacing.xs,
+  },
+  draftHelp: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.sm,
+    color: colours.textSecondary,
+    lineHeight: 19,
+    marginTop: spacing.sm,
   },
   futureActions: {
     flexDirection: 'row',

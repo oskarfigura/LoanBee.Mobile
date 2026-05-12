@@ -85,11 +85,7 @@ const styles = StyleSheet.create({
     maxWidth: 132,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colours.border,
-    backgroundColor: colours.surface,
-    paddingHorizontal: 10,
+    paddingHorizontal: spacing.xs,
   },
   shareIcon: {
     marginRight: 5,

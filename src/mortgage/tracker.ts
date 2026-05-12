@@ -40,6 +40,8 @@ export interface TimelineWarning {
   dealId?: string;
 }
 
+export const CURRENT_STATE_PROJECTION_DEAL_ID = 'current-state-projection';
+
 const toMoney = (value: number): number => +Math.max(0, value).toFixed(2);
 
 const parseDate = (dateString: string): Date => {
@@ -191,6 +193,10 @@ export const getLatestDeal = (loan: LoanGroup): LoanDeal | undefined => {
   return deals[deals.length - 1];
 };
 
+export const canEditDeal = (loan: LoanGroup, dealId: string): boolean => (
+  getLatestDeal(loan)?.id === dealId
+);
+
 export const canDeleteDeal = (loan: LoanGroup, dealId: string): boolean => {
   const deals = getChronologicalDeals(loan);
   if (deals.length <= 1) return false;
@@ -206,6 +212,34 @@ const getEffectiveOpeningBalance = (loan: LoanGroup): number => {
     : form.downPayment;
 
   return Math.max(0, form.loanAmount - downPayment);
+};
+
+export const buildCurrentStateProjectionDeal = (loan: LoanGroup): LoanDeal => {
+  const totalMonths = getOverallTermInMonths(loan);
+  const { years, months } = splitMonths(totalMonths);
+
+  return {
+    id: CURRENT_STATE_PROJECTION_DEAL_ID,
+    createdAt: loan.createdAt,
+    updatedAt: loan.updatedAt,
+    name: loan.nickname,
+    lender: loan.lender,
+    status: 'active',
+    startDate: loan.formSnapshot.startDate,
+    endDate: addMonthsIso(loan.formSnapshot.startDate, totalMonths),
+    openingBalance: getEffectiveOpeningBalance(loan),
+    interestRate: loan.formSnapshot.interest,
+    repaymentType: 'repayment',
+    monthlyPayment: loan.resultSnapshot.monthlyPayments,
+    regularOverpayment: loan.formSnapshot.additionalMonthlyPayment ?? 0,
+    remainingTermInYears: years,
+    remainingTermInMonths: months,
+  };
+};
+
+export const getProjectionDeals = (loan: LoanGroup): LoanDeal[] => {
+  const publishedDeals = getPublishedDeals(loan);
+  return publishedDeals.length > 0 ? publishedDeals : [buildCurrentStateProjectionDeal(loan)];
 };
 
 export const calculateDealMonthlyPayment = (
@@ -494,29 +528,31 @@ export const getMortgageTrackerSummary = (
   asOf = new Date(),
 ): MortgageTrackerSummary => {
   const publishedDeals = getPublishedDeals(loan);
-  const originalBalance = publishedDeals[0]?.openingBalance ?? loan.formSnapshot.loanAmount;
+  const projectionDeals = publishedDeals.length > 0 ? publishedDeals : [buildCurrentStateProjectionDeal(loan)];
+  const originalBalance = projectionDeals[0]?.openingBalance ?? getEffectiveOpeningBalance(loan);
   const additionalBorrowingTotal = publishedDeals
     .slice(1)
     .reduce((sum, deal) => sum + Math.max(0, deal.additionalBorrowing ?? 0), 0);
-  const projections = publishedDeals.map(deal => projectDeal(deal, loan.events, asOf, true));
-  const baselineProjections = publishedDeals.map(deal => projectDeal(deal, loan.events, asOf, false));
+  const projections = projectionDeals.map(deal => projectDeal(deal, loan.events, asOf, true));
+  const baselineProjections = projectionDeals.map(deal => projectDeal(deal, loan.events, asOf, false));
   const lastProjection = projections[projections.length - 1];
   const currentBalance = lastProjection?.balance ?? originalBalance;
   const interestPaidEstimate = projections.reduce((sum, projection) => sum + projection.interestPaid, 0);
   const baselineInterestEstimate = baselineProjections.reduce((sum, projection) => sum + projection.interestPaid, 0);
   const currentDeal = getCurrentDeal(loan, asOf) ?? publishedDeals[publishedDeals.length - 1];
-  const interestRemainingEstimate = currentDeal
+  const currentProjectionDeal = currentDeal ?? projectionDeals[projectionDeals.length - 1];
+  const interestRemainingEstimate = currentProjectionDeal
     ? projectDeal(
       {
-        ...currentDeal,
-        id: `${currentDeal.id}-remaining`,
+        ...currentProjectionDeal,
+        id: `${currentProjectionDeal.id}-remaining`,
         startDate: dateToIso(asOf),
         openingBalance: currentBalance,
         status: 'active',
         completion: undefined,
       },
       [],
-      parseDate(currentDeal.endDate),
+      parseDate(currentProjectionDeal.endDate),
       true,
     ).interestPaid
     : 0;

@@ -11,11 +11,12 @@ interface Props {
   interestArray: number[];
   remainingArray: number[];
   currency: CurrencyCode;
+  height?: number;
 }
 
 const SAMPLE_STEP = 12;
 
-export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArray, currency }: Props) => {
+export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArray, currency, height = 196 }: Props) => {
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
   const width = getProjectionChartWidth(containerWidth);
@@ -94,7 +95,7 @@ export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArra
           data2={totalData}
           data3={interestData}
           width={width}
-          height={196}
+          height={height}
           areaChart
           areaChart2
           areaChart3

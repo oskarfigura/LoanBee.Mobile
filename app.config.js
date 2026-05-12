@@ -3,7 +3,7 @@ export default () => ({
     name: 'LoanBee',
     slug: 'loanbee',
     version: '1.0.0',
-    orientation: 'portrait',
+    orientation: 'default',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     scheme: 'loanbee',
@@ -18,6 +18,7 @@ export default () => ({
     },
     ios: {
       supportsTablet: true,
+      requireFullScreen: true,
       bundleIdentifier: 'com.thetechnarrative.loanbee',
       buildNumber: '1',
     },
@@ -37,6 +38,12 @@ export default () => ({
       'expo-router',
       'expo-font',
       'expo-localization',
+      [
+        'expo-screen-orientation',
+        {
+          initialOrientation: 'PORTRAIT_UP',
+        },
+      ],
       'expo-system-ui',
       [
         'expo-splash-screen',

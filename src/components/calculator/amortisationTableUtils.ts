@@ -1,7 +1,12 @@
-import { formatFriendlyDate, parseDateLabelValue } from '@/utils/date';
+import { formatFriendlyMonthYear, parseDateLabelValue } from '@/utils/date';
 
 export interface AmortisationTableItem {
   itemNo: number;
+  date?: string;
+  dealId?: string;
+  dealName?: string;
+  dealStatus?: 'draft' | 'active' | 'completed';
+  isProjected?: boolean;
   remaining: string;
   principal: string;
   interest: string;
@@ -18,7 +23,7 @@ export const formatAmortisationPeriodLabel = (
 
   date.setMonth(date.getMonth() + periodNumber - 1);
 
-  return formatFriendlyDate(date.toISOString().split('T')[0], language);
+  return formatFriendlyMonthYear(date.toISOString().split('T')[0], language);
 };
 
 const formatCsvNumber = (value: string) => {
@@ -57,7 +62,7 @@ export const buildAmortisationCsv = ({
       headers.closingBalance,
     ],
     ...items.map(item => [
-      formatAmortisationPeriodLabel(startDate, item.itemNo, language),
+      item.date ? formatFriendlyMonthYear(item.date, language) : formatAmortisationPeriodLabel(startDate, item.itemNo, language),
       formatCsvNumber(item.remaining),
       formatCsvNumber(item.principal),
       formatCsvNumber(item.interest),

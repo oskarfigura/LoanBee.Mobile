@@ -5,6 +5,7 @@ import { I18nextProvider } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import {
   useFonts,
   Manrope_400Regular,
@@ -41,6 +42,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     recordReviewAppOpen().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
   }, []);
 
   if (!fontsLoaded && !fontError) return null;

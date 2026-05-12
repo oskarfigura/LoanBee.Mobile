@@ -84,6 +84,18 @@ export const formatFriendlyDate = (dateString: string | undefined, locale?: stri
   });
 };
 
+export const formatFriendlyMonthYear = (dateString: string | undefined, locale?: string) => {
+  if (!dateString) return '';
+
+  const date = parseDateLabelValue(dateString);
+  if (!date) return dateString;
+
+  return date.toLocaleDateString(getDateLocale(locale), {
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
 export const formatFriendlyDateRange = (
   startDate: string | undefined,
   endDate: string | undefined,
