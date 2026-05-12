@@ -29,6 +29,7 @@ import {
   CURRENT_STATE_PROJECTION_DEAL_ID,
   formatDealDuration,
   getCurrentDeal,
+  getDealOverpaymentImpact,
   getMortgageTrackerSummary,
   getPublishedDeals,
 } from '@/mortgage/tracker';
@@ -190,6 +191,7 @@ export const MortgageDetailView = ({
 
       {activeTab === 'overview' ? (
         <View style={styles.tabPanel}>
+          <OpeningBalanceHint loan={loan} activeDeal={activeDeal} />
           <LoanInsightCard
             summary={overviewSummary}
             density="full"
@@ -379,6 +381,34 @@ export const MortgageDetailView = ({
   );
 };
 
+const OpeningBalanceHint = ({
+  loan,
+  activeDeal,
+}: {
+  loan: SavedLoan;
+  activeDeal?: LoanDeal;
+}) => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const onlyActiveDeal = loan.deals.length === 1 && activeDeal?.status === 'active';
+  const hasNoActivityYet = loan.events.length === 0;
+
+  if (!onlyActiveDeal || !hasNoActivityYet || !activeDeal) return null;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.84}
+      style={styles.openingBalanceHint}
+      onPress={() => router.push(`/saved/${loan.id}/deals/${activeDeal.id}`)}
+      accessibilityRole="button"
+    >
+      <Text style={styles.openingBalanceHintTitle}>{t('mortgage.openingBalanceHintTitle')}</Text>
+      <Text style={styles.openingBalanceHintBody}>{t('mortgage.openingBalanceHintBody')}</Text>
+      <Text style={styles.openingBalanceHintCta}>{t('mortgage.openingBalanceHintCta')} →</Text>
+    </TouchableOpacity>
+  );
+};
+
 const FullscreenIcon = () => (
   <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
     <Path
@@ -544,6 +574,9 @@ const MortgageTopCardContext = ({
       : currentDeal
         ? t('mortgage.sourceProjectedFromCurrentDeal')
         : t('mortgage.sourceCurrentStateProjection');
+  const dealImpact = currentDeal
+    ? getDealOverpaymentImpact(currentDeal, loan.events)
+    : undefined;
 
   return (
     <View style={styles.topCardContext}>
@@ -570,6 +603,11 @@ const MortgageTopCardContext = ({
             <Text style={styles.topDealFact} numberOfLines={1}>
               {t('calculator.additionalPayment')}: {formatCurrency(currentDeal.regularOverpayment, loan.currency)}
             </Text>
+            {dealImpact?.hasOverpayments ? (
+              <Text style={styles.topDealSaved} numberOfLines={1}>
+                {t('mortgage.dealSavedSoFar')}: {formatCurrency(dealImpact.interestSaved, loan.currency)}
+              </Text>
+            ) : null}
           </View>
         </View>
       ) : null}
@@ -910,6 +948,37 @@ const styles = StyleSheet.create({
     ...fontFaces.body.regular,
     fontSize: fontSizes.xs,
     color: colours.textSecondary,
+  },
+  topDealSaved: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.success,
+  },
+  openingBalanceHint: {
+    borderWidth: 1,
+    borderColor: colours.accent,
+    backgroundColor: colours.surfaceAccent,
+    borderRadius: radii.card,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.xxs,
+  },
+  openingBalanceHintTitle: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.md,
+    color: colours.primary,
+  },
+  openingBalanceHintBody: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.sm,
+    color: colours.textPrimary,
+    lineHeight: 19,
+  },
+  openingBalanceHintCta: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.sm,
+    color: colours.primary,
+    marginTop: spacing.xs,
   },
   contextHeader: {
     flexDirection: 'row',

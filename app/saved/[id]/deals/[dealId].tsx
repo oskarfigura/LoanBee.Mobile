@@ -16,6 +16,7 @@ import {
   canEditDeal,
   formatDealDuration,
   getChronologicalDeals,
+  getDealOverpaymentImpact,
   getMortgageTermInMonths,
   getNextDealStartDate,
   normaliseDealChain,
@@ -156,6 +157,29 @@ export default function EditDealScreen() {
                 value={formatCurrency(deal.completion?.closingBalance ?? 0, loan.currency)}
               />
             </View>
+            {(() => {
+              const impact = getDealOverpaymentImpact(deal, loan.events);
+              if (!impact.hasOverpayments) return null;
+              return (
+                <View style={styles.readOnlySavings}>
+                  <ReadOnlyMetric
+                    label={t('mortgage.dealInterestSaved')}
+                    value={formatCurrency(impact.interestSaved, loan.currency)}
+                    tone="accent"
+                  />
+                  <ReadOnlyMetric
+                    label={t('mortgage.dealExtraPrincipal')}
+                    value={formatCurrency(impact.extraPrincipalRepaid, loan.currency)}
+                    tone="accent"
+                  />
+                  <ReadOnlyMetric
+                    label={t('mortgage.dealOverpaymentsApplied')}
+                    value={formatCurrency(impact.totalOverpayments, loan.currency)}
+                    tone="accent"
+                  />
+                </View>
+              );
+            })()}
             {deal.completion?.notes ? (
               <AppText variant="bodySm" style={styles.readOnlyNotes}>{deal.completion.notes}</AppText>
             ) : null}
@@ -241,6 +265,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.md,
   },
+  readOnlySavings: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
   readOnlyMetric: {
     width: '47%',
     borderWidth: 1,
@@ -248,6 +278,10 @@ const styles = StyleSheet.create({
     borderRadius: radii.input,
     backgroundColor: colours.surfaceRaised,
     padding: spacing.sm,
+  },
+  readOnlyMetricAccent: {
+    borderColor: colours.successBorder,
+    backgroundColor: colours.successSurface,
   },
   readOnlyLabel: {
     textTransform: 'uppercase',
@@ -262,10 +296,24 @@ const styles = StyleSheet.create({
   correctAction: { marginTop: spacing.sm },
 });
 
-const ReadOnlyMetric = ({ label, value }: { label: string; value: string }) => (
-  <View style={styles.readOnlyMetric}>
+const ReadOnlyMetric = ({
+  label,
+  value,
+  tone = 'primary',
+}: {
+  label: string;
+  value: string;
+  tone?: 'primary' | 'accent';
+}) => (
+  <View style={[styles.readOnlyMetric, tone === 'accent' && styles.readOnlyMetricAccent]}>
     <AppText variant="labelSm" tone="muted" style={styles.readOnlyLabel}>{label}</AppText>
-    <AppText variant="title3" tone="accent" style={styles.readOnlyValue} numberOfLines={1} adjustsFontSizeToFit>
+    <AppText
+      variant="title3"
+      tone={tone === 'accent' ? 'success' : 'accent'}
+      style={styles.readOnlyValue}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+    >
       {value}
     </AppText>
   </View>

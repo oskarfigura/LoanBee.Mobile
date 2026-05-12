@@ -13,6 +13,7 @@ import {
   canEditDeal,
   formatDealDuration,
   getCurrentDeal,
+  getDealOverpaymentImpact,
   getDraftDeals,
   getPublishedDeals,
   getTimelineWarnings,
@@ -20,7 +21,7 @@ import {
 } from '@/mortgage/tracker';
 import { savedLoansStorage } from '@/storage/savedLoans';
 import { colours, fontFaces, fontSizes, radii, spacing } from '@/theme';
-import { LoanDeal, SavedLoan } from '@/types/SavedLoan';
+import { LoanDeal, MortgageEvent, SavedLoan } from '@/types/SavedLoan';
 import { formatFriendlyDate, formatFriendlyDateRange } from '@/utils/date';
 
 interface Props {
@@ -79,23 +80,52 @@ const TimelineAction = ({
   </TouchableOpacity>
 );
 
-const DealStats = ({ deal, currency }: { deal: LoanDeal; currency: CurrencyCode }) => {
+const DealStats = ({
+  deal,
+  currency,
+  events,
+  asOf,
+}: {
+  deal: LoanDeal;
+  currency: CurrencyCode;
+  events: MortgageEvent[];
+  asOf: Date;
+}) => {
   const { t, i18n } = useTranslation();
+  const impact = useMemo(() => getDealOverpaymentImpact(deal, events, asOf), [deal, events, asOf]);
 
   return (
-    <View style={styles.dealStats}>
-      <View style={styles.dealStat}>
-        <Text style={styles.statLabel}>{t('mortgage.duration')}</Text>
-        <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{formatDealDuration(deal, i18n.language)}</Text>
+    <View>
+      <View style={styles.dealStats}>
+        <View style={styles.dealStat}>
+          <Text style={styles.statLabel}>{t('mortgage.duration')}</Text>
+          <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{formatDealDuration(deal, i18n.language)}</Text>
+        </View>
+        <View style={styles.dealStat}>
+          <Text style={styles.statLabel}>{t('calculator.interestRate')}</Text>
+          <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{deal.interestRate}%</Text>
+        </View>
+        <View style={styles.dealStat}>
+          <Text style={styles.statLabel}>{t('results.monthlyPayment')}</Text>
+          <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(deal.monthlyPayment, currency)}</Text>
+        </View>
       </View>
-      <View style={styles.dealStat}>
-        <Text style={styles.statLabel}>{t('calculator.interestRate')}</Text>
-        <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{deal.interestRate}%</Text>
-      </View>
-      <View style={styles.dealStat}>
-        <Text style={styles.statLabel}>{t('results.monthlyPayment')}</Text>
-        <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{formatCurrency(deal.monthlyPayment, currency)}</Text>
-      </View>
+      {impact.hasOverpayments ? (
+        <View style={styles.dealSavings}>
+          <View style={styles.dealSavingsStat}>
+            <Text style={styles.statLabel}>{t('mortgage.dealInterestSaved')}</Text>
+            <Text style={styles.statValueAccent} numberOfLines={1} adjustsFontSizeToFit>
+              {formatCurrency(impact.interestSaved, currency)}
+            </Text>
+          </View>
+          <View style={styles.dealSavingsStat}>
+            <Text style={styles.statLabel}>{t('mortgage.dealExtraPrincipal')}</Text>
+            <Text style={styles.statValueAccent} numberOfLines={1} adjustsFontSizeToFit>
+              {formatCurrency(impact.extraPrincipalRepaid, currency)}
+            </Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -103,6 +133,7 @@ const DealStats = ({ deal, currency }: { deal: LoanDeal; currency: CurrencyCode 
 export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpdated }: Props) => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const asOf = useMemo(() => new Date(), [loan]);
   const timeline = useMemo(() => {
     const publishedDeals = getPublishedDeals(loan);
 
@@ -209,7 +240,7 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
               <Text style={styles.meta}>
                 {formatFriendlyDateRange(timeline.current.startDate, timeline.current.endDate, i18n.language)}
               </Text>
-              <DealStats deal={timeline.current} currency={loan.currency} />
+              <DealStats deal={timeline.current} currency={loan.currency} events={loan.events} asOf={asOf} />
               <View style={styles.currentActions}>
                 <TimelineAction
                   label={t('mortgage.completeCurrentDeal')}
@@ -257,7 +288,7 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
                 <StatusBadge label={t('saved.completed')} variant="success" />
               </View>
               <Text style={styles.meta}>{formatFriendlyDateRange(deal.startDate, deal.endDate, i18n.language)}</Text>
-              <DealStats deal={deal} currency={loan.currency} />
+              <DealStats deal={deal} currency={loan.currency} events={loan.events} asOf={asOf} />
               {deal.completion && (
                 <Text style={styles.completionText}>
                   {t('mortgage.closedAt', { amount: formatCurrency(deal.completion.closingBalance, loan.currency) })}
@@ -466,6 +497,19 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     backgroundColor: colours.white,
   },
+  dealSavings: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: colours.successBorder,
+    borderRadius: radii.input,
+    backgroundColor: colours.successSurface,
+    marginTop: spacing.xs,
+    overflow: 'hidden',
+  },
+  dealSavingsStat: {
+    flex: 1,
+    padding: spacing.sm,
+  },
   statLabel: {
     ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
@@ -476,6 +520,13 @@ const styles = StyleSheet.create({
     ...fontFaces.heading.bold,
     fontSize: fontSizes.md,
     color: colours.primary,
+    lineHeight: 22,
+    marginTop: spacing.xs,
+  },
+  statValueAccent: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.md,
+    color: colours.secondary,
     lineHeight: 22,
     marginTop: spacing.xs,
   },
