@@ -45,25 +45,28 @@ type AmountValidation = { numeric: number; errorKey?: string; isEmpty: boolean }
 
 const validateAmount = (
   raw: string,
-  options: { allowZero?: boolean; required?: boolean } = {},
+  options: { allowZero?: boolean; required?: boolean; integer?: boolean } = {},
 ): AmountValidation => {
   const trimmed = raw.trim();
   if (trimmed === '') {
     return {
       numeric: 0,
       isEmpty: true,
-      errorKey: options.required ? 'mortgage.fieldRequired' : undefined,
+      errorKey: options.required ? 'forms.required' : undefined,
     };
   }
   const numeric = Number(trimmed);
   if (!Number.isFinite(numeric)) {
-    return { numeric: 0, isEmpty: false, errorKey: 'mortgage.fieldInvalidNumber' };
+    return { numeric: 0, isEmpty: false, errorKey: 'forms.invalidNumber' };
+  }
+  if (options.integer && !Number.isInteger(numeric)) {
+    return { numeric, isEmpty: false, errorKey: 'forms.invalidNumber' };
   }
   if (numeric < 0) {
-    return { numeric, isEmpty: false, errorKey: 'mortgage.fieldRequiredPositive' };
+    return { numeric, isEmpty: false, errorKey: 'forms.requiredPositive' };
   }
   if (!options.allowZero && numeric <= 0) {
-    return { numeric, isEmpty: false, errorKey: 'mortgage.fieldRequiredPositive' };
+    return { numeric, isEmpty: false, errorKey: 'forms.requiredPositive' };
   }
   return { numeric, isEmpty: false };
 };
@@ -137,19 +140,19 @@ export const DealEditorForm = ({
     const openingBalanceField = validateAmount(openingBalance, { required: isInitialDeal });
     const additionalBorrowingField = validateAmount(additionalBorrowing, { allowZero: true });
     const interestRateField = validateAmount(interestRate, { required: true });
-    const dealDurationYearsField = validateAmount(dealDurationYears, { allowZero: true });
-    const dealDurationMonthsField = validateAmount(dealDurationMonths, { allowZero: true });
-    const totalTermYearsField = validateAmount(totalTermYears, { allowZero: true });
-    const totalTermMonthsField = validateAmount(totalTermMonths, { allowZero: true });
+    const dealDurationYearsField = validateAmount(dealDurationYears, { allowZero: true, integer: true });
+    const dealDurationMonthsField = validateAmount(dealDurationMonths, { allowZero: true, integer: true });
+    const totalTermYearsField = validateAmount(totalTermYears, { allowZero: true, integer: true });
+    const totalTermMonthsField = validateAmount(totalTermMonths, { allowZero: true, integer: true });
     const regularOverpaymentField = validateAmount(regularOverpayment, { allowZero: true });
     const closingBalanceField = validateAmount(closingBalance, { allowZero: true });
     const feesAddedField = validateAmount(feesAdded, { allowZero: true });
 
     const dealDurationMonthsTotal = (dealDurationYearsField.numeric * 12) + dealDurationMonthsField.numeric;
-    const dealDurationCombinedError = dealDurationMonthsTotal <= 0 ? 'mortgage.fieldRequiredPositive' : undefined;
+    const dealDurationCombinedError = dealDurationMonthsTotal <= 0 ? 'forms.requiredPositive' : undefined;
     const totalTermMonthsTotal = (totalTermYearsField.numeric * 12) + totalTermMonthsField.numeric;
     const totalTermCombinedError = canEditMortgageTerm && totalTermMonthsTotal <= 0
-      ? 'mortgage.fieldRequiredPositive'
+      ? 'forms.requiredPositive'
       : undefined;
 
     return {

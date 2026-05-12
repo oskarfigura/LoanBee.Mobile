@@ -207,6 +207,11 @@
     "close": "Zamknij",
     "viewAll": "Zobacz wszystko"
   },
+  "forms": {
+    "required": "Wymagane",
+    "requiredPositive": "Wprowadź wartość większą od zera",
+    "invalidNumber": "Wprowadź prawidłową liczbę"
+  },
   "navigation": {
     "openMenu": "Otwórz menu",
     "links": "Nawigacja"
@@ -279,9 +284,6 @@
     "openingBalanceHintTitle": "Zaktualizować saldo początkowe?",
     "openingBalanceHintBody": "Jeśli już spłacasz tę hipotekę, dotknij umowy, aby ustawić saldo początkowe potwierdzone przez bank.",
     "openingBalanceHintCta": "Zaktualizuj saldo początkowe",
-    "fieldInvalidNumber": "Wprowadź prawidłową liczbę",
-    "fieldRequiredPositive": "Wprowadź wartość większą od zera",
-    "fieldRequired": "Wymagane",
     "projectedEnd": "Prognozowany koniec",
     "nextBestActions": "Najważniejsze działania",
     "quickActions": "Szybkie działania",

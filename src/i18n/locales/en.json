@@ -219,6 +219,11 @@
     "close": "Close",
     "viewAll": "View all"
   },
+  "forms": {
+    "required": "Required",
+    "requiredPositive": "Enter a value greater than zero",
+    "invalidNumber": "Enter a valid number"
+  },
   "navigation": {
     "openMenu": "Open menu",
     "links": "Navigation"
@@ -291,9 +296,6 @@
     "openingBalanceHintTitle": "Update opening balance?",
     "openingBalanceHintBody": "If you've already been paying this mortgage, tap your deal to set the bank-confirmed opening balance.",
     "openingBalanceHintCta": "Update opening balance",
-    "fieldInvalidNumber": "Enter a valid number",
-    "fieldRequiredPositive": "Enter a value greater than zero",
-    "fieldRequired": "Required",
     "projectedEnd": "Projected end",
     "nextBestActions": "Next best actions",
     "quickActions": "Quick actions",

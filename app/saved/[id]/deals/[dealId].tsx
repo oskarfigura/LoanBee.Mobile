@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { DealEditorForm } from '@/components/loans/DealEditorForm';
+import { CurrencyCode } from '@/currency/currencies';
 import { formatCurrency } from '@/currency/format';
 import {
   canActivateDeal,
@@ -24,7 +25,7 @@ import {
   withMortgageTermInMonths,
 } from '@/mortgage/tracker';
 import { savedLoansStorage } from '@/storage/savedLoans';
-import { LoanDeal } from '@/types/SavedLoan';
+import { LoanDeal, MortgageEvent } from '@/types/SavedLoan';
 import { colours, radii, spacing } from '@/theme';
 import { formatFriendlyDateRange } from '@/utils/date';
 
@@ -157,29 +158,7 @@ export default function EditDealScreen() {
                 value={formatCurrency(deal.completion?.closingBalance ?? 0, loan.currency)}
               />
             </View>
-            {(() => {
-              const impact = getDealOverpaymentImpact(deal, loan.events);
-              if (!impact.hasOverpayments) return null;
-              return (
-                <View style={styles.readOnlySavings}>
-                  <ReadOnlyMetric
-                    label={t('mortgage.dealInterestSaved')}
-                    value={formatCurrency(impact.interestSaved, loan.currency)}
-                    tone="accent"
-                  />
-                  <ReadOnlyMetric
-                    label={t('mortgage.dealExtraPrincipal')}
-                    value={formatCurrency(impact.extraPrincipalRepaid, loan.currency)}
-                    tone="accent"
-                  />
-                  <ReadOnlyMetric
-                    label={t('mortgage.dealOverpaymentsApplied')}
-                    value={formatCurrency(impact.totalOverpayments, loan.currency)}
-                    tone="accent"
-                  />
-                </View>
-              );
-            })()}
+            <CompletedDealSavings deal={deal} events={loan.events} currency={loan.currency} />
             {deal.completion?.notes ? (
               <AppText variant="bodySm" style={styles.readOnlyNotes}>{deal.completion.notes}</AppText>
             ) : null}
@@ -295,6 +274,40 @@ const styles = StyleSheet.create({
   },
   correctAction: { marginTop: spacing.sm },
 });
+
+const CompletedDealSavings = ({
+  deal,
+  events,
+  currency,
+}: {
+  deal: LoanDeal;
+  events: MortgageEvent[];
+  currency: CurrencyCode;
+}) => {
+  const { t } = useTranslation();
+  const impact = useMemo(() => getDealOverpaymentImpact(deal, events), [deal, events]);
+  if (!impact.hasOverpayments) return null;
+
+  return (
+    <View style={styles.readOnlySavings}>
+      <ReadOnlyMetric
+        label={t('mortgage.dealInterestSaved')}
+        value={formatCurrency(impact.interestSaved, currency)}
+        tone="accent"
+      />
+      <ReadOnlyMetric
+        label={t('mortgage.dealExtraPrincipal')}
+        value={formatCurrency(impact.extraPrincipalRepaid, currency)}
+        tone="accent"
+      />
+      <ReadOnlyMetric
+        label={t('mortgage.dealOverpaymentsApplied')}
+        value={formatCurrency(impact.totalOverpayments, currency)}
+        tone="accent"
+      />
+    </View>
+  );
+};
 
 const ReadOnlyMetric = ({
   label,

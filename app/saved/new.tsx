@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSavedLoans } from '@/hooks/useSavedLoans';
+import { savedLoansStorage } from '@/storage/savedLoans';
 import { SavedLoan } from '@/types/SavedLoan';
 import { getLoanCalculations } from '@/core/amortisation';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
@@ -99,7 +100,7 @@ export default function SaveNewLoanScreen() {
       mortgageTermInMonths,
       status: 'tracked',
       pinnedToDashboard: true,
-      dashboardOrder: Date.now(),
+      dashboardOrder: savedLoansStorage.getMaxDashboardOrder() + 1,
       deals: [initialDeal],
       events: [],
       formSnapshot,

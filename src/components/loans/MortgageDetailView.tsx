@@ -381,6 +381,8 @@ export const MortgageDetailView = ({
   );
 };
 
+const OPENING_BALANCE_HINT_WINDOW_DAYS = 14;
+
 const OpeningBalanceHint = ({
   loan,
   activeDeal,
@@ -392,8 +394,13 @@ const OpeningBalanceHint = ({
   const router = useRouter();
   const onlyActiveDeal = loan.deals.length === 1 && activeDeal?.status === 'active';
   const hasNoActivityYet = loan.events.length === 0;
+  const createdAt = new Date(loan.createdAt).getTime();
+  const ageInDays = Number.isFinite(createdAt)
+    ? (Date.now() - createdAt) / (1000 * 60 * 60 * 24)
+    : Number.POSITIVE_INFINITY;
+  const isFreshlySaved = ageInDays <= OPENING_BALANCE_HINT_WINDOW_DAYS;
 
-  if (!onlyActiveDeal || !hasNoActivityYet || !activeDeal) return null;
+  if (!onlyActiveDeal || !hasNoActivityYet || !activeDeal || !isFreshlySaved) return null;
 
   return (
     <TouchableOpacity
@@ -574,9 +581,10 @@ const MortgageTopCardContext = ({
       : currentDeal
         ? t('mortgage.sourceProjectedFromCurrentDeal')
         : t('mortgage.sourceCurrentStateProjection');
-  const dealImpact = currentDeal
-    ? getDealOverpaymentImpact(currentDeal, loan.events)
-    : undefined;
+  const dealImpact = useMemo(
+    () => currentDeal ? getDealOverpaymentImpact(currentDeal, loan.events) : undefined,
+    [currentDeal, loan.events],
+  );
 
   return (
     <View style={styles.topCardContext}>

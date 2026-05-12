@@ -166,4 +166,8 @@ export const savedLoansStorage = {
     storage.remove(STORAGE_KEYS.SAVED_LOANS);
     storage.remove(STORAGE_KEYS.SAVED_LOANS_LEGACY);
   },
+
+  getMaxDashboardOrder(): number {
+    return loadAll().reduce((max, loan) => Math.max(max, loan.dashboardOrder ?? 0), 0);
+  },
 };

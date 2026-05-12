@@ -900,9 +900,40 @@ describe('mortgage tracker', () => {
     const impact = getDealOverpaymentImpact(completed, loan.events, new Date('2032-01-01T00:00:00'));
 
     expect(impact.hasOverpayments).toBe(true);
-    expect(impact.totalOverpayments).toBeGreaterThan(0);
-    expect(impact.extraPrincipalRepaid).toBeGreaterThan(0);
-    expect(impact.interestSaved).toBeGreaterThan(0);
+    // 5y × £150/mo = £9,000 of regular overpayments on a 240k @ 4.2% mortgage. A regression
+    // that produces near-zero savings would silently pass against `> 0`; pin a lower bound.
+    expect(impact.totalOverpayments).toBeCloseTo(9000, 0);
+    expect(impact.extraPrincipalRepaid).toBeGreaterThan(8000);
+    expect(impact.interestSaved).toBeGreaterThan(800);
+  });
+
+  it('excludes regular overpayment months when the user missed payments or had a payment holiday', () => {
+    const baseDeal = makeMortgage().deals[0];
+    const loan = makeMortgage({
+      events: [
+        {
+          id: 'missed-1',
+          createdAt: '2026-08-01T00:00:00.000Z',
+          updatedAt: '2026-08-01T00:00:00.000Z',
+          dealId: baseDeal.id,
+          type: 'missedPayment',
+          date: '2026-08-15',
+        },
+        {
+          id: 'holiday-1',
+          createdAt: '2026-09-01T00:00:00.000Z',
+          updatedAt: '2026-09-01T00:00:00.000Z',
+          dealId: baseDeal.id,
+          type: 'paymentHoliday',
+          date: '2026-09-15',
+        },
+      ],
+    });
+
+    // From 2026-06-01 to 2027-06-01 = 12 months, 2 skipped → 10 effective × £150 = £1,500.
+    const impact = getDealOverpaymentImpact(baseDeal, loan.events, new Date('2027-06-01T00:00:00'));
+
+    expect(impact.totalOverpayments).toBeCloseTo(150 * 10, 0);
   });
 
   it('omits events tied to draft deals from recent activity', () => {
