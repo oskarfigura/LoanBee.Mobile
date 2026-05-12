@@ -19,20 +19,14 @@ export const PinIcon = ({ color = colours.primary, size = 16 }: IconProps) => (
   </Svg>
 );
 
-export const EditIcon = ({ color = colours.white, size = 18 }: IconProps) => (
+export const EditIcon = ({ color = colours.primary, size = 18 }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path
-      d="M4 20h4.25L18.7 9.55a2.121 2.121 0 0 0-3-3L5.25 17H4v3z"
+      d="M18 10l-4-4M2.5 21.5l3.384-.376c.414-.046.62-.069.814-.131a2 2 0 0 0 .485-.234c.17-.111.317-.259.61-.553L21 7a2.828 2.828 0 1 0-4-4L3.794 16.206c-.294.294-.442.442-.553.611a2 2 0 0 0-.234.485c-.062.193-.085.4-.131.814L2.5 21.5z"
       stroke={color}
-      strokeWidth={1.9}
+      strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
-    />
-    <Path
-      d="M14.5 7.75l1.75 1.75"
-      stroke={color}
-      strokeWidth={1.9}
-      strokeLinecap="round"
     />
   </Svg>
 );
