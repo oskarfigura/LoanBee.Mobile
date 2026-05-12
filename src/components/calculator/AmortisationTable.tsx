@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, fontFaces, fontSizes } from '@/theme';
 import { formatCurrency } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 import { clampPage, getPaginationWindow } from './pagination';
@@ -161,9 +161,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
     color: colours.white,
     textAlignVertical: 'center',
   },
@@ -183,7 +182,7 @@ const styles = StyleSheet.create({
     width: 116,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textPrimary,
     textAlign: 'center',
@@ -193,8 +192,8 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   closingCell: {
+    ...fontFaces.body.bold,
     color: colours.primary,
-    fontWeight: fontWeights.bold,
   },
   paginationWrap: {
     marginTop: 14,
@@ -220,9 +219,8 @@ const styles = StyleSheet.create({
     backgroundColor: colours.surface,
   },
   pageBtnText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
   },
   pageBtnTextDisabled: {
@@ -244,9 +242,8 @@ const styles = StyleSheet.create({
     backgroundColor: colours.white,
   },
   pageIndicatorText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
     textAlign: 'center',
   },
@@ -274,16 +271,15 @@ const styles = StyleSheet.create({
     borderColor: colours.primary,
   },
   pageChipText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
   },
   pageChipTextActive: {
     color: colours.white,
   },
   pageEllipsis: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
   },

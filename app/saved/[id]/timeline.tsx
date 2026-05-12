@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { savedLoansStorage } from '@/storage/savedLoans';
-import { colours, fonts, fontSizes, layout, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, layout, spacing } from '@/theme';
 
 export default function MortgageTimelineScreen() {
   const { t } = useTranslation();
@@ -56,5 +56,5 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
   container: { padding: layout.screenPadding, paddingBottom: spacing['3xl'] },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
+  notFoundText: { ...fontFaces.heading.semibold, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
 });

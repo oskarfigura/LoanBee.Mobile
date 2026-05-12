@@ -2,7 +2,7 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
-import { colours, elevation, fonts, fontSizes, radii } from '@/theme';
+import { colours, elevation, fontFaces, fontSizes, radii } from '@/theme';
 import { confirmResultLeave, hasResultLeaveGuard } from '@/navigation/resultLeaveGuard';
 
 type TabIconName = 'calculator' | 'saved' | 'about' | 'settings';
@@ -98,7 +98,7 @@ export default function TabLayout() {
           ...elevation.nav,
         },
         tabBarLabelStyle: {
-          fontFamily: fonts.heading,
+          ...fontFaces.heading.bold,
           fontSize: fontSizes.xs,
           textTransform: 'uppercase',
           letterSpacing: 0.6,

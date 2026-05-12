@@ -28,7 +28,7 @@ import {
 import { getMortgageTrackerSummary } from '@/mortgage/tracker';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { SavedLoan } from '@/types/SavedLoan';
-import { colours, fonts, fontSizes, fontWeights, layout, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, layout, spacing } from '@/theme';
 
 interface Props {
   loans: SavedLoan[];
@@ -279,20 +279,18 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     flex: 1,
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
     textTransform: 'uppercase',
   },
   progressPercent: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
     color: colours.secondary,
   },
   progressCaption: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.xs,
     color: colours.textSecondary,
   },

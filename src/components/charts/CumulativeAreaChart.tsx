@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, fontFaces, fontSizes } from '@/theme';
 import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
 import { getProjectionChartWidth } from './dimensions';
 
@@ -152,7 +152,7 @@ export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArra
 const styles = StyleSheet.create({
   container: { paddingTop: 4, paddingBottom: 2 },
   axisText: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.tiny,
     color: colours.textSecondary,
   },
@@ -171,9 +171,8 @@ const styles = StyleSheet.create({
   },
   dot: { width: 11, height: 11, borderRadius: 6 },
   legendText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
     textTransform: 'uppercase',
   },

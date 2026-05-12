@@ -26,7 +26,7 @@ import {
 } from '@/mortgage/tracker';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { LoanDeal, MortgageEvent, SavedLoan } from '@/types/SavedLoan';
-import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
 import { formatFriendlyDate, formatFriendlyDateRange } from '@/utils/date';
 
 type MortgageDetailTab = 'overview' | 'projection' | 'timeline';
@@ -576,21 +576,19 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   timelinePreviewLabel: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
     textTransform: 'uppercase',
   },
   timelinePreviewTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     color: colours.textPrimary,
     marginTop: spacing.xxs,
   },
   timelinePreviewMeta: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     marginTop: spacing.xxxs,
@@ -604,9 +602,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   viewTimelineLinkText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
   },
   modalScrim: {
@@ -639,24 +636,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   drawerTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   closeText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
   },
   drawerOptionList: {
     paddingBottom: spacing.md,
   },
   drawerGroupTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
     textTransform: 'uppercase',
     marginTop: spacing.md,
@@ -683,9 +677,8 @@ const styles = StyleSheet.create({
     backgroundColor: colours.errorSurface,
   },
   drawerOptionMarkerText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   drawerOptionMarkerDangerText: {
@@ -693,9 +686,8 @@ const styles = StyleSheet.create({
   },
   drawerOptionTitle: {
     flex: 1,
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
   },
   drawerOptionTitleDanger: {
@@ -733,9 +725,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   sectionTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   addActivityButton: {
@@ -759,9 +750,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   eventIconText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   eventCopy: {
@@ -769,19 +759,18 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   eventTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
     color: colours.textPrimary,
   },
   eventMeta: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     marginTop: 2,
   },
   eventDate: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.xs,
     color: colours.textSecondary,
     marginLeft: spacing.sm,
@@ -797,9 +786,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   viewAllActivityText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
   },
 });

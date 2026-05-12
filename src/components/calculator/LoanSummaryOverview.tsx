@@ -9,7 +9,7 @@ import {
   buildSavedLoanSummary,
 } from '@/loans/loanInsightSummary';
 import { LoanResult } from '@/results/loanResultRoute';
-import { colours, fonts, fontSizes, fontWeights, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, spacing } from '@/theme';
 import { SavedLoan } from '@/types/SavedLoan';
 
 interface Props {
@@ -95,9 +95,8 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   shareText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
 });

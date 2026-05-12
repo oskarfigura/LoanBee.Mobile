@@ -7,7 +7,7 @@ import { getLoanCalculations } from '@/core/amortisation';
 import { DownPaymentType } from '@/core/DownPaymentType';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { Button } from '@/components/ui/Button';
-import { colours, fonts, fontSizes } from '@/theme';
+import { colours, fontFaces, fontSizes } from '@/theme';
 import { buildDraftResultParams } from '@/results/loanResultRoute';
 import { getShareableCalculationValuesFromParams } from '@/share/calculationShareLink';
 import { CurrencyCode } from '@/currency/currencies';
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.md,
     color: colours.textPrimary,
     marginBottom: 16,

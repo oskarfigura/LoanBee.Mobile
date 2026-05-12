@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { PieChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, fontFaces, fontSizes } from '@/theme';
 import { formatCurrency } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 
@@ -79,13 +79,12 @@ const styles = StyleSheet.create({
   container: { alignItems: 'center', paddingTop: 6, paddingBottom: 2 },
   center: { alignItems: 'center' },
   centerPct: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.extrabold,
     color: colours.primary,
   },
   centerLabel: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.tiny,
     color: colours.textSecondary,
     marginTop: 2,
@@ -110,21 +109,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   legendLabel: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
     textTransform: 'uppercase',
   },
   legendValue: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
     marginTop: 2,
   },
   legendPercent: {
-    fontWeight: fontWeights.extrabold,
+    ...fontFaces.heading.extrabold,
     color: colours.primary,
   },
 });

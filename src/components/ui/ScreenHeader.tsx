@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './AppText';
-import { colours, fonts, fontSizes, fontWeights, layout, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
 
 interface Props {
   title: string;
@@ -10,6 +10,7 @@ interface Props {
   leftAction?: React.ReactNode;
   rightAction?: React.ReactNode;
   variant?: 'top-level' | 'detail' | 'editor';
+  subtitleVariant?: 'plain' | 'context';
   showBottomBorder?: boolean;
   backgroundColor?: string;
 }
@@ -20,6 +21,7 @@ export const ScreenHeader = ({
   leftAction,
   rightAction,
   variant = 'top-level',
+  subtitleVariant = 'plain',
   showBottomBorder = true,
   backgroundColor,
 }: Props) => {
@@ -63,8 +65,18 @@ export const ScreenHeader = ({
           </>
         )}
       </View>
-      {subtitle ? (
-        <AppText variant="bodyMd" tone="muted" style={styles.subtitle}>
+      {subtitle && subtitleVariant === 'context' ? (
+        <View style={styles.contextSubtitle}>
+          <AppText variant="labelMd" tone="accent" style={styles.contextSubtitleText} numberOfLines={1}>
+            {subtitle}
+          </AppText>
+        </View>
+      ) : subtitle ? (
+        <AppText
+          variant="bodyMd"
+          tone="muted"
+          style={[styles.subtitle, centeredTitle && styles.centeredSubtitle]}
+        >
           {subtitle}
         </AppText>
       ) : null}
@@ -111,9 +123,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   centerTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     lineHeight: 25,
     textAlign: 'center',
   },
@@ -142,5 +153,24 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: spacing.sm,
     maxWidth: '92%',
+  },
+  centeredSubtitle: {
+    maxWidth: '86%',
+    alignSelf: 'center',
+    textAlign: 'center',
+  },
+  contextSubtitle: {
+    alignSelf: 'center',
+    maxWidth: '82%',
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xxs,
+    borderRadius: radii.chip,
+    backgroundColor: colours.surfaceRaised,
+    borderWidth: 1,
+    borderColor: colours.borderSoft,
+  },
+  contextSubtitleText: {
+    textAlign: 'center',
   },
 });

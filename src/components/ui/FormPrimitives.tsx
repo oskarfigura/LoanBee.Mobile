@@ -10,7 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { AppText } from './AppText';
-import { colours, elevation, fonts, fontSizes, layout, radii, spacing } from '@/theme';
+import { colours, elevation, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
 
 export const FormSection = ({
   title,
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 48,
     color: colours.textPrimary,
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.base,
     paddingVertical: spacing.xs,
   },

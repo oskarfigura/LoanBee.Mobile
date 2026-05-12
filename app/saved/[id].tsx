@@ -9,7 +9,7 @@ import { MoreIcon } from '@/components/loans/LoanIcons';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/AppText';
 import { AppTextInput, FieldLabel, InputSurface } from '@/components/ui/FormPrimitives';
-import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MortgageDetailView } from '@/components/loans/MortgageDetailView';
@@ -275,7 +275,7 @@ export default function LoanDetailScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  notFoundText: { fontFamily: fonts.heading, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
+  notFoundText: { ...fontFaces.heading.semibold, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
   pinButton: {
     marginBottom: 0,
     marginTop: 4,
@@ -308,9 +308,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colours.border,
   },
   actionMenuText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
   },
   actionMenuDanger: {

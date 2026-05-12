@@ -18,7 +18,7 @@ import {
   removeLatestDealAndEvents,
 } from '@/mortgage/tracker';
 import { savedLoansStorage } from '@/storage/savedLoans';
-import { colours, fonts, fontSizes, fontWeights, radii, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, radii, spacing } from '@/theme';
 import { LoanDeal, SavedLoan } from '@/types/SavedLoan';
 import { formatFriendlyDate, formatFriendlyDateRange } from '@/utils/date';
 
@@ -364,45 +364,40 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   kicker: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
     textTransform: 'uppercase',
   },
   futureTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     color: colours.textPrimary,
     lineHeight: 25,
     marginTop: spacing.xxs,
   },
   currentKicker: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
     textTransform: 'uppercase',
   },
   currentTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.extrabold,
     color: colours.primary,
     lineHeight: 30,
     marginTop: spacing.xs,
   },
   pastTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     color: colours.textPrimary,
     lineHeight: 25,
     marginTop: spacing.xxs,
   },
   meta: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     lineHeight: 19,
@@ -428,16 +423,14 @@ const styles = StyleSheet.create({
     backgroundColor: colours.white,
   },
   statLabel: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
     textTransform: 'uppercase',
   },
   statValue: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
     lineHeight: 22,
     marginTop: spacing.xs,
@@ -467,9 +460,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   timelineActionLabel: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     textAlign: 'center',
   },
   warningCard: {
@@ -477,13 +469,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   warningTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
     color: colours.error,
   },
   warningText: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textPrimary,
     marginTop: 6,
@@ -501,16 +492,15 @@ const styles = StyleSheet.create({
     minWidth: 96,
   },
   completionText: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     lineHeight: 19,
     marginTop: spacing.sm,
   },
   startText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
     paddingTop: spacing.xxs,
   },

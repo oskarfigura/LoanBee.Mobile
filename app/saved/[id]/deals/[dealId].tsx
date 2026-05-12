@@ -115,6 +115,7 @@ export default function EditDealScreen() {
         <ScreenHeader
           title={t('mortgage.dealDetails')}
           subtitle={deal.name}
+          subtitleVariant="context"
           variant="detail"
           leftAction={<HeaderBackAction onPress={() => router.back()} />}
         />
@@ -146,6 +147,7 @@ export default function EditDealScreen() {
         <ScreenHeader
           title={t('mortgage.dealDetails')}
           subtitle={deal.name}
+          subtitleVariant="context"
           variant="detail"
           leftAction={<HeaderBackAction onPress={() => router.back()} />}
         />
@@ -194,6 +196,7 @@ export default function EditDealScreen() {
       <ScreenHeader
         title={isCorrectionMode ? t('mortgage.correctDeal') : t('mortgage.editDeal')}
         subtitle={deal.name}
+        subtitleVariant="context"
         variant="editor"
         leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />

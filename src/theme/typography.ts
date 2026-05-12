@@ -1,8 +1,3 @@
-export const fonts = {
-  body: 'Manrope',
-  heading: 'Nunito',
-} as const;
-
 export const fontSizes = {
   tiny: 10,
   xs: 11,
@@ -23,6 +18,48 @@ export const fontWeights = {
   extrabold: '800' as const,
 };
 
+export const fonts = {
+  body: {
+    regular: 'Manrope_400Regular',
+    medium: 'Manrope_500Medium',
+    semibold: 'Manrope_600SemiBold',
+    bold: 'Manrope_700Bold',
+    extrabold: 'Manrope_800ExtraBold',
+  },
+  heading: {
+    regular: 'Manrope_400Regular',
+    medium: 'Manrope_500Medium',
+    semibold: 'Manrope_600SemiBold',
+    bold: 'Manrope_700Bold',
+    extrabold: 'Manrope_800ExtraBold',
+  },
+} as const;
+
+export const fontFamilies = [
+  fonts.body.regular,
+  fonts.body.medium,
+  fonts.body.semibold,
+  fonts.body.bold,
+  fonts.body.extrabold,
+] as const;
+
+export const fontFaces = {
+  body: {
+    regular: { fontFamily: fonts.body.regular, fontWeight: fontWeights.regular },
+    medium: { fontFamily: fonts.body.medium, fontWeight: fontWeights.medium },
+    semibold: { fontFamily: fonts.body.semibold, fontWeight: fontWeights.semibold },
+    bold: { fontFamily: fonts.body.bold, fontWeight: fontWeights.bold },
+    extrabold: { fontFamily: fonts.body.extrabold, fontWeight: fontWeights.extrabold },
+  },
+  heading: {
+    regular: { fontFamily: fonts.heading.regular, fontWeight: fontWeights.regular },
+    medium: { fontFamily: fonts.heading.medium, fontWeight: fontWeights.medium },
+    semibold: { fontFamily: fonts.heading.semibold, fontWeight: fontWeights.semibold },
+    bold: { fontFamily: fonts.heading.bold, fontWeight: fontWeights.bold },
+    extrabold: { fontFamily: fonts.heading.extrabold, fontWeight: fontWeights.extrabold },
+  },
+} as const;
+
 export const lineHeights = {
   tight: 1.2,
   title: 1.25,
@@ -41,81 +78,69 @@ export const letterSpacing = {
 
 export const textStyles = {
   display: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: 36,
     letterSpacing: letterSpacing.tighter,
   },
   title1: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     lineHeight: 32,
     letterSpacing: letterSpacing.tight,
   },
   title2: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
     lineHeight: 25,
     letterSpacing: letterSpacing.tight,
   },
   title3: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.semibold,
     lineHeight: 22,
   },
   bodyLg: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.regular,
     lineHeight: 24,
   },
   bodyMd: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.base,
-    fontWeight: fontWeights.regular,
     lineHeight: 22,
   },
   bodySm: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.regular,
     lineHeight: 19,
   },
   labelMd: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     lineHeight: 15,
     letterSpacing: letterSpacing.wide,
   },
   labelSm: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
     lineHeight: 13,
     letterSpacing: letterSpacing.wider,
   },
   metricLg: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: 36,
     letterSpacing: letterSpacing.tighter,
   },
   metricMd: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     lineHeight: 25,
   },
   helper: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.medium,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.medium,
     lineHeight: 16,
   },
 } as const;

@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/ui/AppText';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
-import { colours, fonts, fontSizes, fontWeights, layout, radii, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
 
 type DashboardRoute = '/saved' | '/settings' | '/about';
 
@@ -167,10 +167,9 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   wordmark: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes.xl,
     lineHeight: 30,
-    fontWeight: fontWeights.extrabold,
     letterSpacing: 0,
   },
   wordmarkLoan: {

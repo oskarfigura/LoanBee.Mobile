@@ -10,7 +10,7 @@ import { getMortgageTrackerSummary } from '@/mortgage/tracker';
 import { buildSavedLoanSummary } from '@/loans/loanInsightSummary';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { MortgageEvent, SavedLoan } from '@/types/SavedLoan';
-import { colours, fonts, fontSizes, fontWeights, radii, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, radii, spacing } from '@/theme';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
 import { LoanInsightCard } from '@/components/loans/LoanInsightCard';
 import { PlusIcon } from '@/components/loans/LoanIcons';
@@ -260,30 +260,27 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   lender: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.base,
     color: colours.textSecondary,
     marginBottom: 4,
   },
   title: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes['3xl'],
-    fontWeight: fontWeights.extrabold,
     color: colours.primary,
   },
   balanceCard: { marginBottom: 14 },
   card: { marginBottom: 14 },
   kicker: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
     textTransform: 'uppercase',
   },
   balance: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes['3xl'],
-    fontWeight: fontWeights.extrabold,
     color: colours.primary,
     marginTop: 16,
   },
@@ -295,19 +292,18 @@ const styles = StyleSheet.create({
   statRow: { flexDirection: 'row', gap: 20 },
   stat: { flex: 1 },
   statLabel: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     marginBottom: 6,
   },
   statValue: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     color: colours.textPrimary,
   },
   statSuffix: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
   },
@@ -318,21 +314,19 @@ const styles = StyleSheet.create({
   },
   metric: { flex: 1 },
   metricLabel: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.xs,
     color: colours.textSecondary,
   },
   metricValue: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
     marginTop: 4,
   },
   sectionTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   timelineSection: {
@@ -363,31 +357,29 @@ const styles = StyleSheet.create({
     backgroundColor: colours.focusRing,
   },
   eventIconText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.base,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   eventCopy: { flex: 1 },
   eventTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
   },
   eventMeta: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     marginTop: 3,
   },
   eventDate: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.xs,
     color: colours.textSecondary,
   },
   empty: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
   },
@@ -400,9 +392,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   emptyAction: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
     marginTop: spacing.xs,
   },
@@ -435,15 +426,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   modalTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   closeText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.primary,
   },
   optionList: {
@@ -451,9 +440,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   optionGroupTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.bold,
     color: colours.textSecondary,
     textTransform: 'uppercase',
     marginTop: spacing.sm,
@@ -479,22 +467,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionMarkerText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   optionCopy: {
     flex: 1,
   },
   optionTitle: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.base,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
   },
   optionDescription: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
     marginTop: spacing.xxxs,

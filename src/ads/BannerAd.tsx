@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { BannerAd as GoogleBannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { AD_UNITS } from './adUnits';
-import { colours, fonts, fontSizes } from '@/theme';
+import { colours, fontFaces, fontSizes } from '@/theme';
 
 export const BannerAd = () => (
   <View style={styles.container}>
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   label: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.xs,
     color: colours.textSecondary,
     marginBottom: 2,

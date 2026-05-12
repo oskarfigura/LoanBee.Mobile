@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { LoanInsightSummary } from '@/loans/loanInsightSummary';
-import { colours, fonts, fontSizes, fontWeights, radii, spacing } from '@/theme';
+import { colours, fontFaces, fontSizes, radii, spacing } from '@/theme';
 
 type InsightDensity = 'full' | 'compact';
 
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   subtitle: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.base,
     color: colours.textSecondary,
     marginBottom: spacing.xxs,
@@ -217,15 +217,14 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
   },
   title: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.extrabold,
     lineHeight: 36,
     color: colours.primary,
   },
   compactTitle: {
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     lineHeight: 25,
   },
   hero: {
@@ -235,17 +234,15 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   heroLabel: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
     textTransform: 'uppercase',
     marginBottom: spacing.sm,
   },
   heroValue: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes['3xl'],
-    fontWeight: fontWeights.extrabold,
     color: colours.primary,
   },
   compactHeroValue: {
@@ -277,15 +274,14 @@ const styles = StyleSheet.create({
     flexBasis: '100%',
   },
   metricLabel: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.xs,
     color: colours.textSecondary,
     marginBottom: spacing.xxs,
   },
   metricValue: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     color: colours.textPrimary,
   },
   compactMetricValue: {
@@ -303,20 +299,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   progressLabel: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.textPrimary,
     textTransform: 'uppercase',
   },
   progressPercent: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.bold,
     color: colours.secondary,
   },
   progressCaption: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.sm,
     color: colours.textSecondary,
   },
@@ -336,9 +330,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   progressMetricValue: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.bold,
     fontSize: fontSizes.md,
-    fontWeight: fontWeights.bold,
     color: colours.primary,
   },
   savingsBadge: {
@@ -350,9 +343,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   savingsText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.semibold,
     color: colours.success,
   },
   footer: {

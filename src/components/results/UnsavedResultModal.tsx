@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, fontFaces, fontSizes } from '@/theme';
 
 interface Props {
   visible: boolean;
@@ -67,19 +67,17 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   iconText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.extrabold,
     color: colours.primary,
   },
   title: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.extrabold,
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.extrabold,
     color: colours.textPrimary,
   },
   message: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.base,
     color: colours.textSecondary,
     lineHeight: 22,

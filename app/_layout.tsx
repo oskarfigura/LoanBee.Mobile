@@ -13,38 +13,26 @@ import {
   Manrope_700Bold,
   Manrope_800ExtraBold,
 } from '@expo-google-fonts/manrope';
-import {
-  Nunito_400Regular,
-  Nunito_500Medium,
-  Nunito_600SemiBold,
-  Nunito_700Bold,
-  Nunito_800ExtraBold,
-} from '@expo-google-fonts/nunito';
 import i18n from '@/i18n';
 import { AdProvider } from '@/ads/AdProvider';
-import { fonts, fontSizes } from '@/theme';
+import { fontFaces, fontSizes } from '@/theme';
 import { recordReviewAppOpen } from '@/review';
 
 SplashScreen.preventAutoHideAsync();
 
 const TabIcon = ({ symbol }: { symbol: string; color: string }) => (
-  <Text style={{ fontFamily: fonts.body, fontSize: fontSizes.lg }}>{symbol}</Text>
+  <Text style={[fontFaces.body.regular, { fontSize: fontSizes.lg }]}>{symbol}</Text>
 );
 
 export { TabIcon };
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Manrope: Manrope_400Regular,
-    'Manrope-Medium': Manrope_500Medium,
-    'Manrope-SemiBold': Manrope_600SemiBold,
-    'Manrope-Bold': Manrope_700Bold,
-    'Manrope-ExtraBold': Manrope_800ExtraBold,
-    Nunito: Nunito_400Regular,
-    'Nunito-Medium': Nunito_500Medium,
-    'Nunito-SemiBold': Nunito_600SemiBold,
-    'Nunito-Bold': Nunito_700Bold,
-    'Nunito-ExtraBold': Nunito_800ExtraBold,
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
   });
 
   useEffect(() => {

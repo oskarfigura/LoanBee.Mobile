@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
-import { colours, fonts, fontSizes, fontWeights } from '@/theme';
+import { colours, fontFaces, fontSizes } from '@/theme';
 import { formatCurrencyCompact } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 import { getProjectionChartWidth } from './dimensions';
@@ -103,7 +103,7 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, labelArray, cur
 const styles = StyleSheet.create({
   container: { paddingTop: 4, paddingBottom: 2 },
   axisText: {
-    fontFamily: fonts.body,
+    ...fontFaces.body.regular,
     fontSize: fontSizes.tiny,
     color: colours.textSecondary,
   },
@@ -127,9 +127,8 @@ const styles = StyleSheet.create({
   },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
   legendText: {
-    fontFamily: fonts.heading,
+    ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.semibold,
     color: colours.textSecondary,
   },
 });
