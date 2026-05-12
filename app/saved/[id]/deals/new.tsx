@@ -82,7 +82,6 @@ export default function NewDealScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScreenHeader
         title={t('mortgage.addNextDeal')}
-        subtitle={loan.nickname}
         variant="editor"
         leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />

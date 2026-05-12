@@ -239,7 +239,6 @@ export default function ResultScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScreenHeader
         title={t('results.title')}
-        subtitle={savedLoan ? undefined : t('results.unsavedSubtitle')}
         variant="detail"
         leftAction={<HeaderBackAction onPress={handleBack} variant="circle" />}
         rightAction={!isSavedMode ? (

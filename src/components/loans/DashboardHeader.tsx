@@ -21,7 +21,7 @@ interface Props {
 }
 
 const BeeMark = () => (
-  <Svg width={32} height={32} viewBox="0 0 32 32" fill="none">
+  <Svg width={28} height={28} viewBox="0 0 32 32" fill="none">
     <Path
       d="M8.4 15.2c-2.8-2.9-2.6-6.3-.2-7.1 2.2-.8 4.2 1 5.4 4.4"
       fill={colours.secondarySoft}
@@ -48,11 +48,11 @@ const BeeMark = () => (
 );
 
 const MenuIcon = () => (
-  <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
     <Path
       d="M5 7h14M5 12h14M5 17h14"
       stroke={colours.primary}
-      strokeWidth={2.1}
+      strokeWidth={2}
       strokeLinecap="round"
     />
   </Svg>
@@ -122,7 +122,7 @@ export const DashboardHeader = ({ onNewCalculation, onNavigate }: Props) => {
         onRequestClose={closeMenu}
       >
         <Pressable style={styles.menuScrim} onPress={closeMenu}>
-          <Pressable style={[styles.menu, { top: insets.top + 62 }]}>
+          <Pressable style={[styles.menu, { top: insets.top + 56 }]}>
             <AppText variant="labelSm" tone="muted" style={styles.menuSectionLabel}>
               {t('mortgage.quickActions')}
             </AppText>
@@ -146,11 +146,11 @@ const styles = StyleSheet.create({
     backgroundColor: colours.background,
     paddingHorizontal: layout.headerPadding,
     paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0,
     borderBottomColor: colours.borderSoft,
   },
   headerRow: {
-    minHeight: 46,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -167,9 +167,9 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   wordmark: {
-    ...fontFaces.heading.extrabold,
-    fontSize: fontSizes.xl,
-    lineHeight: 30,
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.lg,
+    lineHeight: 25,
     letterSpacing: 0,
   },
   wordmarkLoan: {
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     borderColor: colours.borderSoft,
     shadowColor: colours.shadow,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.07,
     shadowRadius: 24,
     elevation: 8,
   },
