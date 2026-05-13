@@ -95,6 +95,25 @@ const splitMonths = (totalMonths: number) => ({
   months: totalMonths % 12,
 });
 
+const repaymentTypeLabel = (repaymentType: LoanDeal['repaymentType']): string => (
+  repaymentType === 'interestOnly' ? 'Interest Only' : 'Fixed'
+);
+
+export const generateDefaultDealName = (
+  years: number,
+  months: number,
+  repaymentType: LoanDeal['repaymentType'],
+): string => {
+  const typeLabel = repaymentTypeLabel(repaymentType);
+  const totalMonths = Math.max(0, Math.round(years) * 12 + Math.round(months));
+  if (totalMonths === 0) return `${typeLabel} deal`;
+  const wholeYears = Math.floor(totalMonths / 12);
+  const remainderMonths = totalMonths % 12;
+  if (wholeYears === 0) return `${remainderMonths}-month ${typeLabel}`;
+  if (remainderMonths === 0) return `${wholeYears}-year ${typeLabel}`;
+  return `${wholeYears}y ${remainderMonths}m ${typeLabel}`;
+};
+
 const getOverallTermInMonths = (loan: Pick<LoanGroup, 'mortgageTermInMonths' | 'formSnapshot' | 'resultSnapshot'>): number => (
   loan.mortgageTermInMonths
   || loan.resultSnapshot.totalTermInMonths
@@ -273,7 +292,9 @@ export const buildNextDealDraft = (
       id,
       createdAt: now,
       updatedAt: now,
-      name: loan.category === 'mortgage' ? 'Initial deal' : 'Fixed loan',
+      name: loan.category === 'mortgage'
+        ? generateDefaultDealName(years, months, 'repayment')
+        : 'Fixed loan',
       lender: loan.lender,
       status: 'draft',
       startDate,
@@ -295,12 +316,13 @@ export const buildNextDealDraft = (
   const remainingTermMonths = getRemainingMortgageTermInMonths(loan, startDate);
   const { years, months } = splitMonths(remainingTermMonths);
   const defaultDealDurationMonths = Math.max(1, Math.min(60, remainingTermMonths));
+  const { years: defaultDurationYears, months: defaultDurationMonths } = splitMonths(defaultDealDurationMonths);
 
   return {
     id,
     createdAt: now,
     updatedAt: now,
-    name: defaultDealDurationMonths === 60 ? '5-year Fixed' : 'Next deal',
+    name: generateDefaultDealName(defaultDurationYears, defaultDurationMonths, previousDeal.repaymentType),
     lender: previousDeal.lender ?? loan.lender,
     status: 'draft',
     startDate,

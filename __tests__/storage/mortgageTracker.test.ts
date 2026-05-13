@@ -7,6 +7,7 @@ import {
   canEditInitialDeal,
   CURRENT_STATE_PROJECTION_DEAL_ID,
   formatDealDuration,
+  generateDefaultDealName,
   getDealOverpaymentImpact,
   getMortgageTermInMonths,
   getMortgageTrackerSummary,
@@ -420,6 +421,35 @@ describe('mortgage tracker', () => {
     expect(updatedLoan).toBe(loan);
     expect(updatedLoan.deals).toHaveLength(1);
     expect(updatedLoan.events).toHaveLength(1);
+  });
+
+  it('generates default deal names from duration and repayment type', () => {
+    expect(generateDefaultDealName(2, 0, 'repayment')).toBe('2-year Fixed');
+    expect(generateDefaultDealName(5, 0, 'repayment')).toBe('5-year Fixed');
+    expect(generateDefaultDealName(2, 0, 'interestOnly')).toBe('2-year Interest Only');
+    expect(generateDefaultDealName(0, 6, 'repayment')).toBe('6-month Fixed');
+    expect(generateDefaultDealName(2, 6, 'interestOnly')).toBe('2y 6m Interest Only');
+    expect(generateDefaultDealName(0, 0, 'repayment')).toBe('Fixed deal');
+    expect(generateDefaultDealName(0, 0, 'interestOnly')).toBe('Interest Only deal');
+  });
+
+  it('uses generateDefaultDealName when seeding the next deal draft', () => {
+    const completed = {
+      ...makeMortgage().deals[0],
+      status: 'completed' as const,
+      repaymentType: 'interestOnly' as const,
+      completion: {
+        completedAt: '2031-06-01',
+        closingBalance: 205000,
+        feesAdded: 0,
+      },
+    };
+    const loan = makeMortgage({ deals: [completed] });
+
+    const draft = buildNextDealDraft(loan, 'next', '2031-06-01T00:00:00.000Z');
+
+    expect(draft.name).toBe('5-year Interest Only');
+    expect(draft.repaymentType).toBe('interestOnly');
   });
 
   it('formats deal durations for years, half-years, mixed terms, and months', () => {

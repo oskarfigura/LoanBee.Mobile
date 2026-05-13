@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { PlusIcon } from '@/components/loans/LoanIcons';
+import { LiveDotIcon, PencilIcon, PlusIcon, TickIcon } from '@/components/loans/LoanIcons';
 import { formatCurrency } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 import {
@@ -47,8 +47,14 @@ export const MortgageWarningBanners = ({ loan }: { loan: SavedLoan }) => {
   );
 };
 
+const statusIcon = (variant: 'neutral' | 'active' | 'success') => {
+  if (variant === 'success') return <TickIcon color={colours.success} size={12} />;
+  if (variant === 'active') return <LiveDotIcon color={colours.white} size={8} />;
+  return <PencilIcon color={colours.textSecondary} size={12} />;
+};
+
 const StatusBadge = ({ label, variant = 'neutral' }: { label: string; variant?: 'neutral' | 'active' | 'success' }) => (
-  <Badge label={label} variant={variant} />
+  <Badge label={label} variant={variant} leftIcon={statusIcon(variant)} />
 );
 
 type TimelineActionVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
