@@ -107,6 +107,8 @@ export const DealEditorForm = ({
   showSectionTabs = true,
 }: Props) => {
   const { t } = useTranslation();
+  const fieldError = (field: AmountValidation) =>
+    !field.isEmpty && field.errorKey ? t(field.errorKey) : undefined;
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
 
   const initialAdditionalBorrowing = initialDeal.additionalBorrowing ?? 0;
@@ -367,7 +369,7 @@ export const DealEditorForm = ({
               placeholder="0"
             />
           </InputSurface>
-          <FieldError message={!validation.additionalBorrowingField.isEmpty && validation.additionalBorrowingField.errorKey ? t(validation.additionalBorrowingField.errorKey) : undefined} />
+          <FieldError message={fieldError(validation.additionalBorrowingField)} />
           <FieldHint>{t('mortgage.additionalBorrowingHint')}</FieldHint>
         </View>
       )}
@@ -385,7 +387,7 @@ export const DealEditorForm = ({
                 placeholder="238420"
               />
             </InputSurface>
-            <FieldError message={!validation.openingBalanceField.isEmpty && validation.openingBalanceField.errorKey ? t(validation.openingBalanceField.errorKey) : undefined} />
+            <FieldError message={fieldError(validation.openingBalanceField)} />
           </>
         ) : (
           <View style={styles.readonlyPanel}>
@@ -417,7 +419,7 @@ export const DealEditorForm = ({
           />
           <InputAffix trailing>%</InputAffix>
         </InputSurface>
-        <FieldError message={!validation.interestRateField.isEmpty && validation.interestRateField.errorKey ? t(validation.interestRateField.errorKey) : undefined} />
+        <FieldError message={fieldError(validation.interestRateField)} />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -521,7 +523,7 @@ export const DealEditorForm = ({
             placeholder="150"
           />
         </InputSurface>
-        <FieldError message={!validation.regularOverpaymentField.isEmpty && validation.regularOverpaymentField.errorKey ? t(validation.regularOverpaymentField.errorKey) : undefined} />
+        <FieldError message={fieldError(validation.regularOverpaymentField)} />
       </View>
     </FormSection>
   );
@@ -548,7 +550,7 @@ export const DealEditorForm = ({
             placeholder="210000"
           />
         </InputSurface>
-        <FieldError message={!validation.closingBalanceField.isEmpty && validation.closingBalanceField.errorKey ? t(validation.closingBalanceField.errorKey) : undefined} />
+        <FieldError message={fieldError(validation.closingBalanceField)} />
       </View>
 
       <View style={styles.fieldGroup}>
@@ -562,7 +564,7 @@ export const DealEditorForm = ({
             placeholder="0"
           />
         </InputSurface>
-        <FieldError message={!validation.feesAddedField.isEmpty && validation.feesAddedField.errorKey ? t(validation.feesAddedField.errorKey) : undefined} />
+        <FieldError message={fieldError(validation.feesAddedField)} />
         <FieldHint>{t('mortgage.feesAddedHint')}</FieldHint>
       </View>
 

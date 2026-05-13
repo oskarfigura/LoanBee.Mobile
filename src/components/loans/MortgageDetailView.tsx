@@ -409,9 +409,9 @@ const OpeningBalanceHint = ({
       onPress={() => router.push(`/saved/${loan.id}/deals/${activeDeal.id}`)}
       accessibilityRole="button"
     >
-      <Text style={styles.openingBalanceHintTitle}>{t('mortgage.openingBalanceHintTitle')}</Text>
-      <Text style={styles.openingBalanceHintBody}>{t('mortgage.openingBalanceHintBody')}</Text>
-      <Text style={styles.openingBalanceHintCta}>{t('mortgage.openingBalanceHintCta')} →</Text>
+      <AppText style={styles.openingBalanceHintTitle}>{t('mortgage.openingBalanceHintTitle')}</AppText>
+      <AppText style={styles.openingBalanceHintBody}>{t('mortgage.openingBalanceHintBody')}</AppText>
+      <AppText style={styles.openingBalanceHintCta}>{t('mortgage.openingBalanceHintCta')} →</AppText>
     </TouchableOpacity>
   );
 };
