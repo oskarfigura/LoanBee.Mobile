@@ -194,6 +194,13 @@ export default function RecalculateScreen() {
   const yrs = t('results.years');
   const mo = t('results.months');
   const loanStartDate = parseDateLabelValue(loan.formSnapshot.startDate) ?? new Date();
+  const today = new Date();
+  const lumpSumMinDate = loanStartDate > today ? loanStartDate : today;
+  const lumpSumMaxDate = (() => {
+    const d = new Date(loanStartDate);
+    d.setMonth(d.getMonth() + baselineTotals.totalTermInMonths - 1);
+    return d;
+  })();
   const termLabel = formatDuration(
     (loan.formSnapshot.termInYears * 12) + loan.formSnapshot.termInMonths,
     yrs, mo,
@@ -264,7 +271,8 @@ export default function RecalculateScreen() {
                 value={lumpSumDate}
                 onChange={setLumpSumDate}
                 hint={t('recalculate.lumpSumDateHint')}
-                minimumDate={loanStartDate}
+                minimumDate={lumpSumMinDate}
+                maximumDate={lumpSumMaxDate}
               />
             </View>
           ) : null}
