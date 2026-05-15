@@ -112,11 +112,17 @@ export default function RecalculateScreen() {
   const loan = savedLoansStorage.getById(id);
 
   const savedOverpayment = loan?.formSnapshot.additionalMonthlyPayment ?? 0;
+  const savedLumpSum = loan?.formSnapshot.lumpSumAmount ?? 0;
+  const savedLumpSumDate = loan?.formSnapshot.lumpSumDate ?? null;
   const [overpayment, setOverpayment] = useState(
     savedOverpayment > 0 ? String(savedOverpayment) : '',
   );
-  const [lumpSum, setLumpSum] = useState('');
-  const [lumpSumDate, setLumpSumDate] = useState(oneYearFromNow);
+  const [lumpSum, setLumpSum] = useState(
+    savedLumpSum > 0 ? String(savedLumpSum) : '',
+  );
+  const [lumpSumDate, setLumpSumDate] = useState(
+    savedLumpSumDate ?? oneYearFromNow(),
+  );
 
   const overpaymentAmount = parseFloat(overpayment) || 0;
   const lumpSumAmount = parseFloat(lumpSum) || 0;
@@ -169,22 +175,29 @@ export default function RecalculateScreen() {
   const interestSaved = baselineTotals.totalInterestPaid - scenarioTotals.totalInterestPaid;
   const monthsSaved = baselineTotals.totalTermInMonths - scenarioTotals.totalTermInMonths;
   const hasImpact = overpaymentAmount > 0 || lumpSumAmount > 0;
-  const isUnchanged = overpaymentAmount === savedOverpayment;
+  const isUnchanged = (
+    overpaymentAmount === savedOverpayment
+    && lumpSumAmount === savedLumpSum
+    && (lumpSumAmount === 0 || lumpSumDate === (savedLumpSumDate ?? lumpSumDate))
+  );
 
   const handleSave = () => {
-    const extra = overpaymentAmount;
+    const form = loan.formSnapshot;
+    const calcType = form.calculationType.toLowerCase() as LoanCalculationType;
+    const dpType = form.downPaymentType.toLowerCase() as DownPaymentType;
     const scenarioForSave = getLoanCalculations(
-      loan.formSnapshot.loanAmount, loan.formSnapshot.interest,
-      loan.formSnapshot.termInYears, loan.formSnapshot.termInMonths,
-      loan.formSnapshot.desiredMonthlyPayment ?? 0,
-      loan.formSnapshot.calculationType.toLowerCase() as LoanCalculationType,
-      loan.formSnapshot.downPayment,
-      loan.formSnapshot.downPaymentType.toLowerCase() as DownPaymentType,
-      extra, loan.formSnapshot.startDate,
+      form.loanAmount, form.interest, form.termInYears, form.termInMonths,
+      form.desiredMonthlyPayment ?? 0, calcType, form.downPayment, dpType,
+      overpaymentAmount, form.startDate,
     );
     savedLoansStorage.update({
       ...loan,
-      formSnapshot: { ...loan.formSnapshot, additionalMonthlyPayment: extra },
+      formSnapshot: {
+        ...form,
+        additionalMonthlyPayment: overpaymentAmount,
+        lumpSumAmount: lumpSumAmount > 0 ? lumpSumAmount : null,
+        lumpSumDate: lumpSumAmount > 0 ? lumpSumDate : null,
+      },
       resultSnapshot: buildResultSnapshot(scenarioForSave, loan.resultSnapshot.totalInterestPaidBaseline),
       updatedAt: new Date().toISOString(),
     });

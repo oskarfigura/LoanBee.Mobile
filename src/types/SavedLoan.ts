@@ -20,6 +20,8 @@ export interface LoanFormSnapshot {
   downPaymentType: 'CASH' | 'PERCENT';
   desiredMonthlyPayment: number | null;
   additionalMonthlyPayment: number | null;
+  lumpSumAmount?: number | null;
+  lumpSumDate?: string | null;
   startDate: string;
   calculationType: 'TERM' | 'PAYMENT';
   currency: CurrencyCode;
