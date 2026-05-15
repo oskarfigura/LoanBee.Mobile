@@ -4,7 +4,7 @@ import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from '
 import { useTranslation } from 'react-i18next';
 import { savedLoansStorage } from '@/storage/savedLoans';
 import { LoanCalculationView } from '@/components/calculator/LoanCalculationView';
-import { LoanSummaryOverview } from '@/components/calculator/LoanSummaryOverview';
+import { LoanSummaryPanel } from '@/components/calculator/LoanSummaryPanel';
 import { MoreIcon } from '@/components/loans/LoanIcons';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/AppText';
@@ -15,7 +15,6 @@ import { colours, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MortgageDetailView } from '@/components/loans/MortgageDetailView';
-import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -139,6 +138,10 @@ export default function LoanDetailScreen() {
 
   const loanQuickActions = (
     <View style={styles.loanQuickActionsCard}>
+      <View style={styles.quickActionsHeader}>
+        <Text style={styles.quickActionsTitle}>{t('loan.quickActions')}</Text>
+        <Text style={styles.quickActionsHelper}>{t('loan.quickActionsHelp')}</Text>
+      </View>
       <View style={styles.loanQuickActionsRow}>
         <QuickActionTile
           label={t('recalculate.ctaButton')}
@@ -296,24 +299,13 @@ export default function LoanDetailScreen() {
         ownsScroll
         summaryContent={(
           <>
-            <LoanSummaryOverview
+            <LoanSummaryPanel
+              loan={loan}
               result={result}
-              startDate={loan.formSnapshot.startDate}
-              currency={loan.currency}
-              mode="saved"
-              savedLoan={loan}
-              title={loan.nickname}
-              subtitle={loan.lender || t('saved.category.loan')}
-              headerAction={(
-                <DashboardPinButton
-                  pinned={loan.pinnedToDashboard}
-                  onPress={() => {
-                    savedLoansStorage.togglePinned(loan.id);
-                    refresh();
-                  }}
-                  style={styles.pinButton}
-                />
-              )}
+              onTogglePinned={() => {
+                savedLoansStorage.togglePinned(loan.id);
+                refresh();
+              }}
             />
             {loanQuickActions}
           </>
@@ -344,10 +336,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { ...fontFaces.heading.semibold, fontSize: fontSizes.md, color: colours.textPrimary, marginBottom: 16 },
-  pinButton: {
-    marginBottom: 0,
-    marginTop: 4,
-  },
   loanQuickActionsCard: {
     backgroundColor: colours.surfaceMuted,
     borderWidth: 1,
@@ -356,6 +344,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  quickActionsHeader: {
+    gap: spacing.xxxs,
+  },
+  quickActionsTitle: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    textTransform: 'uppercase',
+  },
+  quickActionsHelper: {
+    ...fontFaces.body.regular,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
   },
   loanQuickActionsRow: {
     flexDirection: 'row',

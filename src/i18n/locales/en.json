@@ -234,7 +234,10 @@
     "loanActions": "Loan actions",
     "renameLoan": "Rename loan",
     "renameLoanHelp": "This only changes the name shown in LoanBee. Calculation figures and currency stay unchanged.",
-    "deleteLoan": "Delete loan"
+    "deleteLoan": "Delete loan",
+    "loanDetails": "Loan details",
+    "quickActions": "Quick actions",
+    "quickActionsHelp": "Manage your loan"
   },
   "mortgage": {
     "summaryTitle": "Mortgage Summary",

@@ -222,7 +222,10 @@
     "loanActions": "Akcje kredytu",
     "renameLoan": "Zmień nazwę kredytu",
     "renameLoanHelp": "To zmienia tylko nazwę widoczną w LoanBee. Dane kalkulacji i waluta pozostają bez zmian.",
-    "deleteLoan": "Usuń kredyt"
+    "deleteLoan": "Usuń kredyt",
+    "loanDetails": "Szczegóły pożyczki",
+    "quickActions": "Szybkie akcje",
+    "quickActionsHelp": "Zarządzaj swoją pożyczką"
   },
   "mortgage": {
     "summaryTitle": "Podsumowanie Hipoteki",
