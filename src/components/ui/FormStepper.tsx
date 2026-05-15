@@ -1,8 +1,10 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  KeyboardAvoidingView,
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   View,
@@ -84,7 +86,10 @@ export const FormStepper = ({
   ), [sections]);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {showTabs ? (
         <View style={styles.tabBar}>
           <SegmentedControl
@@ -103,6 +108,8 @@ export const FormStepper = ({
         onScroll={handleScroll}
         scrollEventThrottle={32}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       >
         {banner ? <View style={styles.banner}>{banner}</View> : null}
         {sections.map(section => (
@@ -116,7 +123,7 @@ export const FormStepper = ({
         ))}
         {footer ? <View style={styles.footer}>{footer}</View> : null}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

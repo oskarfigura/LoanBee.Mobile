@@ -637,9 +637,6 @@ export const DealEditorForm = ({
         </AppText>
       ) : null}
       <View style={styles.actionsRow}>
-        {onCancel ? (
-          <Button label={t('save.cancel')} onPress={onCancel} variant="secondary" style={styles.action} />
-        ) : null}
         {isDraft && canPublish ? (
           <Button
             label={t('mortgage.saveAsDraft')}
@@ -651,6 +648,9 @@ export const DealEditorForm = ({
         ) : null}
         <Button label={primaryLabel} onPress={handlePrimary} style={styles.action} disabled={formHasErrors} />
       </View>
+      {onCancel ? (
+        <Button label={t('save.cancel')} onPress={onCancel} variant="ghost" style={styles.cancelAction} />
+      ) : null}
       {onDeleteDraft ? (
         <Button label={t('mortgage.deleteDraft')} onPress={onDeleteDraft} variant="ghost" style={styles.deleteAction} />
       ) : null}
@@ -699,5 +699,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   action: { flex: 1 },
+  cancelAction: { marginTop: spacing.xxs },
   deleteAction: { marginTop: spacing.xs },
 });

@@ -227,7 +227,7 @@ export const MortgageDashboard = ({ loans, onNewCalculation }: Props) => {
           ))}
         </ScrollView>
       </ScrollView>
-      <View style={[styles.floatingAction, { paddingBottom: bottomInset }]}>
+      <View style={[styles.floatingAction, { paddingBottom: Math.max(bottomInset, spacing.xs) }]}>
         {loans.length > 1 ? (
           <View style={styles.indicatorBlock}>
             <View style={styles.dots}>
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: layout.headerPadding,
-    paddingTop: 0,
+    paddingTop: spacing.xs,
     backgroundColor: colours.background,
   },
   newCalculationButton: {

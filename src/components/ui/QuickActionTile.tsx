@@ -28,10 +28,11 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 72,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     gap: spacing.xs,
     paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xxs,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxs,
   },
   iconWrap: {
     width: 48,

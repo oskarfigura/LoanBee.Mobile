@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   },
   loanQuickActionsRow: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'flex-start',
     gap: spacing.xs,
   },
   modalScrim: {
