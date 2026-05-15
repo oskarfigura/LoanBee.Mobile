@@ -1,10 +1,9 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
 import { DashboardProgressGauge } from '@/components/loans/DashboardProgressGauge';
 import { formatCurrency } from '@/currency/format';
-import { formatFriendlyDate } from '@/utils/date';
 import {
   buildSavedLoanDashboardProgress,
   buildSavedLoanSummary,
@@ -164,16 +163,11 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned }: Props) => {
             />
           ) : null}
           {lumpSumEvents.map(event => (
-            <React.Fragment key={event.id}>
-              <SummaryFact
-                label={t('recalculate.lumpSumLabel')}
-                value={formatCurrency(event.amount ?? 0, loan.currency)}
-              />
-              <SummaryFact
-                label={t('recalculate.lumpSumDateLabel')}
-                value={formatFriendlyDate(event.date, i18n.language)}
-              />
-            </React.Fragment>
+            <SummaryFact
+              key={event.id}
+              label={t('recalculate.lumpSumLabel')}
+              value={formatCurrency(event.amount ?? 0, loan.currency)}
+            />
           ))}
           {savingsAmount ? (
             <SummaryFact label={t('mortgage.dealSavedSoFar')} value={savingsAmount} />
