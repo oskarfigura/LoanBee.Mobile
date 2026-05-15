@@ -297,17 +297,6 @@ export const LoanCalculationView = ({
             <AppText variant="title3" style={styles.scheduleTitle}>{t('results.amortisationTable')}</AppText>
             <View style={styles.scheduleActions}>
               <TouchableOpacity
-                style={styles.fullscreenButton}
-                onPress={() => openFullscreenPreview('schedule')}
-                accessibilityRole="button"
-                activeOpacity={0.8}
-              >
-                <FullscreenIcon />
-                <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
-                  {t('results.fullScreen')}
-                </AppText>
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[styles.exportButton, isExportingCsv && styles.exportButtonDisabled]}
                 onPress={handleExportCsv}
                 disabled={isExportingCsv}
@@ -317,6 +306,15 @@ export const LoanCalculationView = ({
                 <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
                   {isExportingCsv ? t('results.exportingCsv') : t('results.exportCsv')}
                 </AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.fullscreenButton}
+                onPress={() => openFullscreenPreview('schedule')}
+                accessibilityRole="button"
+                accessibilityLabel={t('results.fullScreen')}
+                activeOpacity={0.8}
+              >
+                <FullscreenIcon />
               </TouchableOpacity>
             </View>
           </View>
@@ -445,19 +443,17 @@ const styles = StyleSheet.create({
     opacity: 0.84,
   },
   scheduleHeader: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   scheduleTitle: {
-    width: '100%',
+    flex: 1,
   },
   scheduleActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
     gap: 10,
-    flexWrap: 'wrap',
   },
   exportButton: {
     minHeight: 36,
@@ -473,12 +469,10 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   fullscreenButton: {
-    minHeight: 36,
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
     borderRadius: radii.button,
     backgroundColor: colours.white,
     borderWidth: 1,
