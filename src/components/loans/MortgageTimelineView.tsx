@@ -18,12 +18,13 @@ import {
   getDraftDeals,
   getPublishedDeals,
   getTimelineWarnings,
+  projectDeal,
   removeLatestDealAndEvents,
 } from '@/mortgage/tracker';
 import { savedLoansStorage } from '@/storage/savedLoans';
 import { colours, fontFaces, fontSizes, radii, spacing } from '@/theme';
 import { LoanDeal, MortgageEvent, SavedLoan } from '@/types/SavedLoan';
-import { formatFriendlyDate, formatFriendlyDateRange } from '@/utils/date';
+import { formatFriendlyDate, formatFriendlyDateRange, parseDateLabelValue } from '@/utils/date';
 
 interface Props {
   loan: SavedLoan;
@@ -100,9 +101,32 @@ const DealStats = ({
 }) => {
   const { t, i18n } = useTranslation();
   const impact = useMemo(() => getDealOverpaymentImpact(deal, events, asOf), [deal, events, asOf]);
+  const closingBalance = useMemo(() => {
+    if (deal.status === 'completed' && deal.completion) {
+      return { value: deal.completion.closingBalance, isPredicted: false };
+    }
+    const endDate = parseDateLabelValue(deal.endDate) ?? asOf;
+    return { value: projectDeal(deal, events, endDate).balance, isPredicted: true };
+  }, [deal, events, asOf]);
 
   return (
     <View>
+      <View style={styles.dealBalances}>
+        <View style={styles.dealStat}>
+          <Text style={styles.statLabel}>{t('mortgage.dealOpeningBalance')}</Text>
+          <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+            {formatCurrency(deal.openingBalance, currency)}
+          </Text>
+        </View>
+        <View style={styles.dealStat}>
+          <Text style={styles.statLabel}>
+            {closingBalance.isPredicted ? t('mortgage.dealPredictedBalance') : t('mortgage.dealClosingBalance')}
+          </Text>
+          <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+            {formatCurrency(closingBalance.value, currency)}
+          </Text>
+        </View>
+      </View>
       <View style={styles.dealStats}>
         <View style={styles.dealStat}>
           <Text style={styles.statLabel}>{t('mortgage.duration')}</Text>
@@ -531,12 +555,20 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginTop: spacing.md,
   },
-  dealStats: {
+  dealBalances: {
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: colours.border,
     borderRadius: radii.input,
     marginTop: spacing.md,
+    overflow: 'hidden',
+  },
+  dealStats: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderRadius: radii.input,
+    marginTop: spacing.xs,
     overflow: 'hidden',
   },
   dealStat: {

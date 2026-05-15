@@ -440,7 +440,10 @@
     "totalOverpaid": "Łącznie nadpłacono",
     "estInterestSaved": "Szac. oszczędzone odsetki",
     "dealActivity": "Aktywność",
-    "hiddenCompletedDeals": "{{count}} ukończona/e umowa/y nie jest wyświetlana"
+    "hiddenCompletedDeals": "{{count}} ukończona/e umowa/y nie jest wyświetlana",
+    "dealOpeningBalance": "Otwarcie",
+    "dealClosingBalance": "Zamknięcie",
+    "dealPredictedBalance": "Prognoza"
   },
   "share": {
     "button": "Udostępnij obliczenie",
