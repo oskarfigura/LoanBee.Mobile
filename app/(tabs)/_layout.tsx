@@ -61,8 +61,11 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: colours.primary,
         tabBarInactiveTintColor: colours.textSecondary,
+        sceneStyle: {
+          backgroundColor: colours.background,
+        },
         tabBarStyle: {
-          backgroundColor: colours.navScrim,
+          backgroundColor: colours.surfaceRaised,
           borderTopColor: colours.borderSoft,
           height: 72,
           paddingTop: 6,
@@ -77,7 +80,6 @@ export default function TabLayout() {
         },
         tabBarItemStyle: {
           borderRadius: radii.lg,
-          marginHorizontal: 4,
         },
       }}
     >

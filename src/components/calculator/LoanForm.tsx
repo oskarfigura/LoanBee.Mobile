@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, ScrollView,
-  StyleSheet, Platform, KeyboardAvoidingView,
+  Dimensions,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   LoanCalculatorFormInputValues,
   LoanCalculatorFormValues,
@@ -53,6 +59,7 @@ const displayNumberValue = (value: unknown, formatted: boolean) => {
 
 export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { control, handleSubmit, watch, setValue, formState: { errors } } = form;
   const calculationType = watch('calculationType');
   const downPaymentType = watch('downPaymentType') as DownPaymentType;
@@ -60,23 +67,91 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
 
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const startDateStr = watch('startDate');
   const downPaymentAffix = downPaymentType === DownPaymentType.CASH ? currencySymbol : '%';
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollOffsetRef = useRef(0);
+  const keyboardHeightRef = useRef(0);
+  const fieldRefs = useRef<Partial<Record<string, View | null>>>({});
+
+  const registerFieldRef = useCallback((name: string) => (node: View | null) => {
+    fieldRefs.current[name] = node;
+  }, []);
+
+  const scrollFieldIntoView = useCallback((name: string) => {
+    const field = fieldRefs.current[name];
+    if (!field || !scrollRef.current) return;
+
+    field.measureInWindow((_x, y, _width, height) => {
+      const keyboardTop = Dimensions.get('window').height - keyboardHeightRef.current - spacing.lg;
+      const fieldBottom = y + height;
+      if (fieldBottom <= keyboardTop) return;
+
+      const delta = fieldBottom - keyboardTop;
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, scrollOffsetRef.current + delta),
+        animated: true,
+      });
+    });
+  }, []);
+
+  const handleFieldFocus = useCallback((name: string) => {
+    setFocusedField(name);
+    requestAnimationFrame(() => {
+      scrollFieldIntoView(name);
+    });
+  }, [scrollFieldIntoView]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, event => {
+      keyboardHeightRef.current = event.endCoordinates.height;
+      setKeyboardInset(event.endCoordinates.height);
+      if (focusedField) {
+        requestAnimationFrame(() => {
+          scrollFieldIntoView(focusedField);
+        });
+      }
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      keyboardHeightRef.current = 0;
+      setKeyboardInset(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [focusedField, scrollFieldIntoView]);
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + spacing.lg : 0}
       style={styles.keyboardView}
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.container}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        onScroll={event => {
+          scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: spacing.xl + keyboardInset + insets.bottom },
+        ]}
       >
         {topContent}
         <FormSection style={styles.section} accent>
-          <View style={styles.fieldGroup}>
+          <View ref={registerFieldRef('loanAmount')} style={styles.fieldGroup}>
             <FieldLabel>{t('calculator.loanAmount')}</FieldLabel>
             <Controller
               control={control}
@@ -89,7 +164,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                     placeholder={t('calculator.loanAmountPlaceholder')}
                     value={displayNumberValue(field.value, focusedField !== 'loanAmount')}
                     onChangeText={value => field.onChange(sanitiseNumberText(value))}
-                    onFocus={() => setFocusedField('loanAmount')}
+                    onFocus={() => handleFieldFocus('loanAmount')}
                     onBlur={() => {
                       setFocusedField(null);
                       field.onBlur();
@@ -101,7 +176,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
             <FieldError message={errors.loanAmount?.message} />
           </View>
 
-          <View style={styles.fieldGroup}>
+          <View ref={registerFieldRef('interest')} style={styles.fieldGroup}>
             <FieldLabel>{t('calculator.interestRate')}</FieldLabel>
             <Controller
               control={control}
@@ -113,7 +188,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                     placeholder={t('calculator.interestPlaceholder')}
                     value={fieldValue(field.value)}
                     onChangeText={field.onChange}
-                    onFocus={() => setFocusedField('interest')}
+                    onFocus={() => handleFieldFocus('interest')}
                     onBlur={() => {
                       setFocusedField(null);
                       field.onBlur();
@@ -126,7 +201,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
             <FieldError message={errors.interest?.message} />
           </View>
 
-          <View style={styles.fieldGroup}>
+          <View ref={registerFieldRef('downPayment')} style={styles.fieldGroup}>
             <FieldLabel>{t('calculator.downPayment')}</FieldLabel>
             <View style={styles.downPaymentRow}>
               <View style={styles.downPaymentInput}>
@@ -144,7 +219,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                           downPaymentType === DownPaymentType.CASH && focusedField !== 'downPayment',
                         )}
                         onChangeText={value => field.onChange(sanitiseNumberText(value))}
-                        onFocus={() => setFocusedField('downPayment')}
+                        onFocus={() => handleFieldFocus('downPayment')}
                         onBlur={() => {
                           setFocusedField(null);
                           field.onBlur();
@@ -168,7 +243,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
             <FieldError message={errors.downPayment?.message} />
           </View>
 
-          <View style={styles.fieldGroup}>
+          <View ref={registerFieldRef('startDate')} style={styles.fieldGroup}>
             <DatePickerField
               label={t('calculator.startDate')}
               value={startDateStr}
@@ -181,7 +256,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
             />
           </View>
 
-          <View style={styles.fieldGroup}>
+          <View ref={registerFieldRef('calculationType')} style={styles.fieldGroup}>
             <FieldLabel>{t('calculator.calculationType')}</FieldLabel>
             <SegmentedControl
               value={calculationType}
@@ -200,7 +275,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
 
           {calculationType === LoanCalculationType.TERM ? (
             <>
-              <View style={styles.termRow}>
+              <View ref={registerFieldRef('term')} style={styles.termRow}>
                 <View style={styles.termField}>
                   <FieldLabel>{t('calculator.termYears')}</FieldLabel>
                   <Controller
@@ -213,6 +288,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                           placeholder="0"
                           value={fieldValue(field.value)}
                           onChangeText={field.onChange}
+                          onFocus={() => handleFieldFocus('term')}
                           onBlur={field.onBlur}
                         />
                       </InputSurface>
@@ -231,6 +307,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                           placeholder="0"
                           value={fieldValue(field.value)}
                           onChangeText={field.onChange}
+                          onFocus={() => handleFieldFocus('term')}
                           onBlur={field.onBlur}
                         />
                       </InputSurface>
@@ -240,7 +317,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
               </View>
               <FieldError message={errors.termInYears?.message || errors.termInMonths?.message} />
 
-              <View style={styles.fieldGroup}>
+              <View ref={registerFieldRef('additionalMonthlyPayment')} style={styles.fieldGroup}>
                 <FieldLabel>{t('calculator.additionalPayment')}</FieldLabel>
                 <Controller
                   control={control}
@@ -253,7 +330,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                         placeholder={t('calculator.additionalPaymentPlaceholder')}
                         value={displayNumberValue(field.value, focusedField !== 'additionalMonthlyPayment')}
                         onChangeText={value => field.onChange(sanitiseNumberText(value))}
-                        onFocus={() => setFocusedField('additionalMonthlyPayment')}
+                        onFocus={() => handleFieldFocus('additionalMonthlyPayment')}
                         onBlur={() => {
                           setFocusedField(null);
                           field.onBlur();
@@ -266,7 +343,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
               </View>
             </>
           ) : (
-            <View style={styles.fieldGroup}>
+            <View ref={registerFieldRef('desiredMonthlyPayment')} style={styles.fieldGroup}>
               <FieldLabel>{t('calculator.desiredPayment')}</FieldLabel>
               <Controller
                 control={control}
@@ -279,7 +356,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                       placeholder={t('calculator.desiredPaymentPlaceholder')}
                       value={displayNumberValue(field.value, focusedField !== 'desiredMonthlyPayment')}
                       onChangeText={value => field.onChange(sanitiseNumberText(value))}
-                      onFocus={() => setFocusedField('desiredMonthlyPayment')}
+                      onFocus={() => handleFieldFocus('desiredMonthlyPayment')}
                       onBlur={() => {
                         setFocusedField(null);
                         field.onBlur();
