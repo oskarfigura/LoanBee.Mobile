@@ -292,9 +292,6 @@ export const MortgageDetailView = ({
                 activeOpacity={0.8}
               >
                 <FullscreenIcon />
-                <AppText variant="labelSm" tone="accent" style={styles.actionButtonText}>
-                  {t('results.fullScreen')}
-                </AppText>
               </TouchableOpacity>
             </View>
             <AmortisationTable
