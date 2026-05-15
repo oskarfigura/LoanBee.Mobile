@@ -223,6 +223,7 @@
     "renameLoan": "Zmień nazwę kredytu",
     "renameLoanHelp": "To zmienia tylko nazwę widoczną w LoanBee. Dane kalkulacji i waluta pozostają bez zmian.",
     "deleteLoan": "Usuń kredyt",
+    "deleteLoanHelp": "Trwale usuń tę pożyczkę z zapisanych",
     "loanDetails": "Szczegóły pożyczki",
     "quickActions": "Szybkie akcje",
     "quickActionsHelp": "Zarządzaj swoją pożyczką"
