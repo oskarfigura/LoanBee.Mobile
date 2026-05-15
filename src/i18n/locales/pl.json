@@ -226,7 +226,9 @@
     "deleteLoanHelp": "Trwale usuń tę pożyczkę z zapisanych",
     "loanDetails": "Szczegóły pożyczki",
     "quickActions": "Szybkie akcje",
-    "quickActionsHelp": "Zarządzaj swoją pożyczką"
+    "quickActionsHelp": "Zarządzaj swoją pożyczką",
+    "addLumpSum": "Dodaj spłatę jednorazową",
+    "addLumpSumHelp": "Dokonaj jednorazowej wpłaty, aby zmniejszyć saldo"
   },
   "mortgage": {
     "summaryTitle": "Podsumowanie Hipoteki",
@@ -493,7 +495,7 @@
     "interestSaved": "Oszczędzone odsetki",
     "timeSaved": "Zaoszczędzony czas",
     "newMonthlyTotal": "Łączna miesięczna płatność",
-    "noImpactMessage": "Wpisz nadpłatę miesięczną lub jednorazową, aby zobaczyć efekt.",
+    "noImpactMessage": "Wpisz nadpłatę miesięczną, aby zobaczyć efekt.",
     "saveToLoan": "Zapisz nadpłatę miesięczną do pożyczki",
     "ctaButton": "Wypróbuj nadpłaty"
   },

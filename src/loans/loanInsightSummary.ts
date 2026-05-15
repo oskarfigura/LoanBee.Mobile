@@ -139,7 +139,7 @@ const buildSavedProgress = (
   const currentBalance = getCurrentBalance(result, loan.formSnapshot.startDate, asOf);
   const paidSoFar = Math.max(0, principalAmount - currentBalance);
   const hasOverpayment = (loan.formSnapshot.additionalMonthlyPayment ?? 0) > 0
-    || (loan.formSnapshot.lumpSumAmount ?? 0) > 0;
+    || loan.events.some(e => e.type === 'lumpOverpayment' && (e.amount ?? 0) > 0);
   const savings = loan.resultSnapshot.totalInterestPaidBaseline - loan.resultSnapshot.totalInterestPaid;
 
   return {

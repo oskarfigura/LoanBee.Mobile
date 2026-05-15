@@ -72,8 +72,9 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned }: Props) => {
   const totalCost = findMetric(insightSummary.metrics, 'results.totalCost');
 
   const additionalPayment = loan.formSnapshot.additionalMonthlyPayment ?? 0;
-  const lumpSumPayment = loan.formSnapshot.lumpSumAmount ?? 0;
-  const lumpSumDate = loan.formSnapshot.lumpSumDate ?? null;
+  const lumpSumEvents = loan.events
+    .filter(e => e.type === 'lumpOverpayment' && (e.amount ?? 0) > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
   const savingsAmount = insightSummary.progress?.savingsAmount;
 
   return (
@@ -162,18 +163,18 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned }: Props) => {
               value={formatCurrency(additionalPayment, loan.currency)}
             />
           ) : null}
-          {lumpSumPayment > 0 ? (
-            <SummaryFact
-              label={t('recalculate.lumpSumLabel')}
-              value={formatCurrency(lumpSumPayment, loan.currency)}
-            />
-          ) : null}
-          {lumpSumPayment > 0 && lumpSumDate ? (
-            <SummaryFact
-              label={t('recalculate.lumpSumDateLabel')}
-              value={formatFriendlyDate(lumpSumDate, i18n.language)}
-            />
-          ) : null}
+          {lumpSumEvents.map(event => (
+            <React.Fragment key={event.id}>
+              <SummaryFact
+                label={t('recalculate.lumpSumLabel')}
+                value={formatCurrency(event.amount ?? 0, loan.currency)}
+              />
+              <SummaryFact
+                label={t('recalculate.lumpSumDateLabel')}
+                value={formatFriendlyDate(event.date, i18n.language)}
+              />
+            </React.Fragment>
+          ))}
           {savingsAmount ? (
             <SummaryFact label={t('mortgage.dealSavedSoFar')} value={savingsAmount} />
           ) : null}
