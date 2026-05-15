@@ -468,6 +468,19 @@
     "errorTitle": "Nie udało się udostępnić",
     "errorMessage": "Spróbuj ponownie udostępnić to obliczenie."
   },
+  "recalculate": {
+    "title": "Scenariusz nadpłat",
+    "subtitle": "Sprawdź, jak dodatkowe płatności wpływają na pożyczkę",
+    "loanSummaryTitle": "Twoja pożyczka",
+    "extraPaymentLabel": "Dodatkowa miesięczna płatność",
+    "impactTitle": "Szacowany efekt",
+    "interestSaved": "Oszczędzone odsetki",
+    "timeSaved": "Zaoszczędzony czas",
+    "newMonthlyTotal": "Łączna miesięczna płatność",
+    "noImpactMessage": "Wpisz kwotę, aby zobaczyć efekt nadpłat.",
+    "saveToLoan": "Zapisz do pożyczki",
+    "ctaButton": "Wypróbuj nadpłaty"
+  },
   "tabs": {
     "home": "Start",
     "calculator": "Kalkulator",

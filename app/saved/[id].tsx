@@ -135,6 +135,10 @@ export default function LoanDetailScreen() {
   const manageButton = (
     <View style={styles.detailActions}>
       <Button
+        label={t('recalculate.ctaButton')}
+        onPress={() => router.push(`/saved/${id}/recalculate`)}
+      />
+      <Button
         label={t('edit.manageShort')}
         onPress={() => router.push(`/saved/${id}/edit`)}
         variant="secondary"

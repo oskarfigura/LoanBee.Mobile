@@ -480,6 +480,19 @@
     "errorTitle": "Could not share",
     "errorMessage": "Please try sharing this calculation again."
   },
+  "recalculate": {
+    "title": "Overpayment Scenario",
+    "subtitle": "See how extra payments affect your loan",
+    "loanSummaryTitle": "Your Loan",
+    "extraPaymentLabel": "Extra monthly payment",
+    "impactTitle": "Estimated Impact",
+    "interestSaved": "Interest saved",
+    "timeSaved": "Time saved",
+    "newMonthlyTotal": "Total monthly outgoing",
+    "noImpactMessage": "Enter an amount to see the impact of overpaying.",
+    "saveToLoan": "Save to loan",
+    "ctaButton": "Try Overpayments"
+  },
   "tabs": {
     "home": "Home",
     "calculator": "Calculator",
