@@ -1,5 +1,10 @@
 import React from 'react';
 import Svg, { Circle, Path } from 'react-native-svg';
+import {
+  ChevronRightIcon as SystemChevronRightIcon,
+  EditIcon as SystemEditIcon,
+  PlusIcon as SystemPlusIcon,
+} from '@/components/ui/Icons';
 import { colours } from '@/theme';
 
 interface IconProps {
@@ -19,22 +24,8 @@ export const PinIcon = ({ color = colours.primary, size = 16 }: IconProps) => (
   </Svg>
 );
 
-export const EditIcon = ({ color = colours.white, size = 18 }: IconProps) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M4 20h4.25L18.7 9.55a2.121 2.121 0 0 0-3-3L5.25 17H4v3z"
-      stroke={color}
-      strokeWidth={1.9}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <Path
-      d="M14.5 7.75l1.75 1.75"
-      stroke={color}
-      strokeWidth={1.9}
-      strokeLinecap="round"
-    />
-  </Svg>
+export const EditIcon = ({ color = colours.primary, size = 18 }: IconProps) => (
+  <SystemEditIcon color={color} size={size} strokeWidth={1.8} />
 );
 
 export const CalculatorIcon = ({ color = colours.white, size = 18 }: IconProps) => (
@@ -124,14 +115,7 @@ export const PaymentIcon = ({ color = colours.primary, size = 20 }: IconProps) =
 );
 
 export const PlusIcon = ({ color = colours.primary, size = 20 }: IconProps) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M12 5v14M5 12h14"
-      stroke={color}
-      strokeWidth={1.9}
-      strokeLinecap="round"
-    />
-  </Svg>
+  <SystemPlusIcon color={color} size={size} strokeWidth={1.9} />
 );
 
 export const MoreIcon = ({ color = colours.primary, size = 20 }: IconProps) => (
@@ -176,15 +160,7 @@ export const TimelineIcon = ({ color = colours.primary, size = 20 }: IconProps) 
 );
 
 export const ChevronRightIcon = ({ color = colours.primary, size = 16 }: IconProps) => (
-  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="m9 6 6 6-6 6"
-      stroke={color}
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
+  <SystemChevronRightIcon color={color} size={size} strokeWidth={1.8} />
 );
 
 export const TickIcon = ({ color = colours.success, size = 14 }: IconProps) => (
