@@ -90,82 +90,107 @@ export default function OverpaymentsScreen() {
     return { loanMinDate: minDate, loanMaxDate: end };
   }, [form]);
 
-  const handleSaveMonthly = useCallback((amount: number) => {
-    if (!loan) return;
-    const f = loan.formSnapshot;
-    const calcType = f.calculationType.toLowerCase() as LoanCalculationType;
-    const dpType = f.downPaymentType.toLowerCase() as DownPaymentType;
-    const result = getLoanCalculations(
+  const calcArgs = useMemo(() => {
+    if (!form) return null;
+    return {
+      calcType: form.calculationType.toLowerCase() as LoanCalculationType,
+      dpType: form.downPaymentType.toLowerCase() as DownPaymentType,
+    };
+  }, [form]);
+
+  const rebuildSnapshot = useCallback((
+    f: typeof form,
+    monthlyAmt: number,
+    allLumpSums: LumpSumEntry[],
+  ) => {
+    if (!f || !calcArgs) return loan!.resultSnapshot;
+    const { calcType, dpType } = calcArgs;
+    const withMonthly = getLoanCalculations(
       f.loanAmount, f.interest, f.termInYears, f.termInMonths,
       f.desiredMonthlyPayment ?? 0, calcType, f.downPayment, dpType,
-      amount, f.startDate,
+      monthlyAmt, f.startDate,
     );
     const baseline = getLoanCalculations(
       f.loanAmount, f.interest, f.termInYears, f.termInMonths,
       f.desiredMonthlyPayment ?? 0, calcType, f.downPayment, dpType,
       0, f.startDate,
     );
+    const combined = computeLoanOverpayments(f, monthlyAmt, allLumpSums);
+    return {
+      ...buildResultSnapshot(withMonthly, baseline.totalInterestPaid),
+      totalInterestPaid: combined.scenario.totalInterestPaid,
+      totalTermInMonths: combined.scenario.totalTermInMonths,
+    };
+  }, [calcArgs, loan]);
+
+  const handleSaveMonthly = useCallback((amount: number) => {
+    if (!loan || !form) return;
     savedLoansStorage.update({
       ...loan,
-      formSnapshot: { ...f, additionalMonthlyPayment: amount },
-      resultSnapshot: buildResultSnapshot(result, baseline.totalInterestPaid),
+      formSnapshot: { ...form, additionalMonthlyPayment: amount },
+      resultSnapshot: rebuildSnapshot(form, amount, lumpSumEntries),
     });
     setMonthlySheetVisible(false);
     refresh();
-  }, [loan, refresh]);
+  }, [loan, form, lumpSumEntries, rebuildSnapshot, refresh]);
 
   const handleRemoveMonthly = useCallback(() => {
-    if (!loan) return;
-    const f = loan.formSnapshot;
-    const calcType = f.calculationType.toLowerCase() as LoanCalculationType;
-    const dpType = f.downPaymentType.toLowerCase() as DownPaymentType;
-    const result = getLoanCalculations(
-      f.loanAmount, f.interest, f.termInYears, f.termInMonths,
-      f.desiredMonthlyPayment ?? 0, calcType, f.downPayment, dpType,
-      0, f.startDate,
-    );
+    if (!loan || !form) return;
     savedLoansStorage.update({
       ...loan,
-      formSnapshot: { ...f, additionalMonthlyPayment: null },
-      resultSnapshot: buildResultSnapshot(result, result.totalInterestPaid),
+      formSnapshot: { ...form, additionalMonthlyPayment: null },
+      resultSnapshot: rebuildSnapshot(form, 0, lumpSumEntries),
     });
     setMonthlySheetVisible(false);
     refresh();
-  }, [loan, refresh]);
+  }, [loan, form, lumpSumEntries, rebuildSnapshot, refresh]);
 
   const handleSaveLumpSum = useCallback((date: string, amount: number) => {
-    if (!loan) return;
+    if (!loan || !form) return;
     const now = new Date().toISOString();
+    let updatedEvents: MortgageEvent[];
     if (editingEvent) {
-      savedLoansStorage.updateEvent(loan.id, {
-        ...editingEvent,
-        date,
-        amount,
-        updatedAt: now,
-      });
+      updatedEvents = loan.events.map(e =>
+        e.id === editingEvent.id ? { ...editingEvent, date, amount, updatedAt: now } : e,
+      );
     } else {
-      const event: MortgageEvent = {
+      updatedEvents = [...loan.events, {
         id: createLocalId('op'),
         createdAt: now,
         updatedAt: now,
         type: 'lumpOverpayment',
         date,
         amount,
-      };
-      savedLoansStorage.addEvent(loan.id, event);
+      } as MortgageEvent];
     }
+    const newLumpSums: LumpSumEntry[] = updatedEvents
+      .filter(e => e.type === 'lumpOverpayment' && !e.dealId)
+      .map(e => ({ date: e.date, amount: e.amount ?? 0 }));
+    savedLoansStorage.update({
+      ...loan,
+      events: updatedEvents,
+      resultSnapshot: rebuildSnapshot(form, monthlyOverpayment, newLumpSums),
+    });
     setLumpSumSheetVisible(false);
     setEditingEvent(null);
     refresh();
-  }, [loan, editingEvent, refresh]);
+  }, [loan, form, editingEvent, monthlyOverpayment, rebuildSnapshot, refresh]);
 
   const handleDeleteLumpSum = useCallback((eventId: string) => {
-    if (!loan) return;
-    savedLoansStorage.removeEvent(loan.id, eventId);
+    if (!loan || !form) return;
+    const updatedEvents = loan.events.filter(e => e.id !== eventId);
+    const newLumpSums: LumpSumEntry[] = updatedEvents
+      .filter(e => e.type === 'lumpOverpayment' && !e.dealId)
+      .map(e => ({ date: e.date, amount: e.amount ?? 0 }));
+    savedLoansStorage.update({
+      ...loan,
+      events: updatedEvents,
+      resultSnapshot: rebuildSnapshot(form, monthlyOverpayment, newLumpSums),
+    });
     setLumpSumSheetVisible(false);
     setEditingEvent(null);
     refresh();
-  }, [loan, refresh]);
+  }, [loan, form, monthlyOverpayment, rebuildSnapshot, refresh]);
 
   const openAddLumpSum = () => {
     setEditingEvent(null);
