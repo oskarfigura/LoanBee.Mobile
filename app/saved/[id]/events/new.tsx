@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,24 +46,35 @@ export default function NewMortgageEventScreen() {
         variant="editor"
         leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />
-      <ScrollView contentContainerStyle={styles.container}>
-        <MortgageEventForm
-          currency={loan.currency}
-          currentDeal={currentDeal}
-          events={loan.events}
-          initialType={initialType}
-          onSave={event => {
-            savedLoansStorage.update(upsertMortgageEvent(loan, event));
-            router.back();
-          }}
-        />
-      </ScrollView>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        >
+          <MortgageEventForm
+            currency={loan.currency}
+            currentDeal={currentDeal}
+            events={loan.events}
+            initialType={initialType}
+            onSave={event => {
+              savedLoansStorage.update(upsertMortgageEvent(loan, event));
+              router.back();
+            }}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
+  keyboardView: { flex: 1 },
   container: { padding: layout.screenPadding, paddingBottom: spacing['3xl'] },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing['2xl'] },
   notFoundText: { marginBottom: spacing.md },

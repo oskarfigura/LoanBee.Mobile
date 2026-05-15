@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -105,12 +107,35 @@ export const MortgageDetailView = ({
   const publishedDeals = getPublishedDeals(loan);
   const draftDeal = trackerSummary.nextDraftDeal;
   const canPlanNextDeal = !draftDeal;
-  const switchTab = (nextTab: MortgageDetailTab) => {
+  const switchTab = useCallback((nextTab: MortgageDetailTab) => {
     setActiveTab(nextTab);
     requestAnimationFrame(() => {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     });
-  };
+  }, []);
+
+  const tabOrder: MortgageDetailTab[] = ['overview', 'projection', 'timeline'];
+  const stateRef = useRef({ activeTab, switchTab });
+  stateRef.current = { activeTab, switchTab };
+
+  const goNext = useCallback(() => {
+    const idx = tabOrder.indexOf(stateRef.current.activeTab);
+    if (idx < tabOrder.length - 1) stateRef.current.switchTab(tabOrder[idx + 1]);
+  }, []);
+
+  const goPrev = useCallback(() => {
+    const idx = tabOrder.indexOf(stateRef.current.activeTab);
+    if (idx > 0) stateRef.current.switchTab(tabOrder[idx - 1]);
+  }, []);
+
+  const swipeGesture = useMemo(() => Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-15, 15])
+    .onEnd(event => {
+      'worklet';
+      if (event.translationX < -40) runOnJS(goNext)();
+      else if (event.translationX > 40) runOnJS(goPrev)();
+    }), [goNext, goPrev]);
   const navigateFromActions = (href: string) => {
     setAddDrawerVisible(false);
     setActionDrawerVisible(false);
@@ -180,6 +205,7 @@ export const MortgageDetailView = ({
   ), []);
 
   return (
+    <GestureDetector gesture={swipeGesture}>
     <ScrollView
       ref={scrollRef}
       style={styles.scroll}
@@ -202,7 +228,6 @@ export const MortgageDetailView = ({
 
       {activeTab === 'overview' ? (
         <View style={styles.tabPanel}>
-          <OpeningBalanceHint loan={loan} activeDeal={activeDeal} />
           <MortgageSummaryPanel
             loan={loan}
             summary={insightSummary}
@@ -370,41 +395,7 @@ export const MortgageDetailView = ({
         onNavigate={navigateFromActions}
       />
     </ScrollView>
-  );
-};
-
-const OPENING_BALANCE_HINT_WINDOW_DAYS = 14;
-
-const OpeningBalanceHint = ({
-  loan,
-  activeDeal,
-}: {
-  loan: SavedLoan;
-  activeDeal?: LoanDeal;
-}) => {
-  const { t } = useTranslation();
-  const router = useRouter();
-  const onlyActiveDeal = loan.deals.length === 1 && activeDeal?.status === 'active';
-  const hasNoActivityYet = loan.events.length === 0;
-  const createdAt = new Date(loan.createdAt).getTime();
-  const ageInDays = Number.isFinite(createdAt)
-    ? (Date.now() - createdAt) / (1000 * 60 * 60 * 24)
-    : Number.POSITIVE_INFINITY;
-  const isFreshlySaved = ageInDays <= OPENING_BALANCE_HINT_WINDOW_DAYS;
-
-  if (!onlyActiveDeal || !hasNoActivityYet || !activeDeal || !isFreshlySaved) return null;
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.84}
-      style={styles.openingBalanceHint}
-      onPress={() => router.push(`/saved/${loan.id}/deals/${activeDeal.id}`)}
-      accessibilityRole="button"
-    >
-      <AppText style={styles.openingBalanceHintTitle}>{t('mortgage.openingBalanceHintTitle')}</AppText>
-      <AppText style={styles.openingBalanceHintBody}>{t('mortgage.openingBalanceHintBody')}</AppText>
-      <AppText style={styles.openingBalanceHintCta}>{t('mortgage.openingBalanceHintCta')} →</AppText>
-    </TouchableOpacity>
+    </GestureDetector>
   );
 };
 
@@ -1463,32 +1454,6 @@ const styles = StyleSheet.create({
   },
   projectionBasisCard: {
     marginBottom: spacing.sm,
-  },
-  openingBalanceHint: {
-    borderWidth: 1,
-    borderColor: colours.accent,
-    backgroundColor: colours.surfaceAccent,
-    borderRadius: radii.card,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    gap: spacing.xxs,
-  },
-  openingBalanceHintTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.md,
-    color: colours.primary,
-  },
-  openingBalanceHintBody: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-    lineHeight: 19,
-  },
-  openingBalanceHintCta: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.primary,
-    marginTop: spacing.xs,
   },
   contextHeader: {
     flexDirection: 'row',
