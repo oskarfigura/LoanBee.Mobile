@@ -22,6 +22,7 @@ import {
   getDealOverpaymentImpact,
   getMortgageTermInMonths,
   getNextDealStartDate,
+  isEstimateBackedDeal,
   normaliseDealChain,
   removeLatestDealAndEvents,
   withMortgageTermInMonths,
@@ -279,6 +280,9 @@ export default function EditDealScreen() {
   const isInitialDeal = chronologicalDeals[0]?.id === deal.id;
   const dealIsEditable = canEditDeal(loan, deal.id);
   const canEditMortgageTerm = isInitialDeal && dealIsEditable;
+  const dealForEditor: LoanDeal = isEstimateBackedDeal(loan, deal)
+    ? { ...deal, source: 'estimate' }
+    : deal;
 
   const deleteLatestDeal = () => {
     if (!canDeleteDeal(loan, deal.id)) return;
@@ -369,7 +373,7 @@ export default function EditDealScreen() {
       />
       <DealEditorForm
         currency={loan.currency}
-        initialDeal={deal}
+        initialDeal={dealForEditor}
         canPublish={canActivateDeal(loan, deal.id)}
         fixedStartDate={fixedStartDate}
         mortgageStartDate={loan.formSnapshot.startDate}

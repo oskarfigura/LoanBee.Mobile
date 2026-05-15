@@ -205,19 +205,21 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
   const asOf = useMemo(() => new Date(), [loan]);
   const timeline = useMemo(() => {
     const publishedDeals = getPublishedDeals(loan);
+    const drafts = getDraftDeals(loan);
 
     return {
-      drafts: getDraftDeals(loan),
+      drafts,
       current: getCurrentDeal(loan),
       completed: publishedDeals.filter(deal => deal.status === 'completed').reverse(),
       initialDealId: publishedDeals[0]?.id,
+      publishedCount: publishedDeals.length,
     };
   }, [loan]);
-  const hasDeals = loan.deals.length > 0;
+  const hasDeals = timeline.publishedCount + timeline.drafts.length > 0;
   const hasPublishedDeals = Boolean(timeline.initialDealId);
   const addDealButton = (
     <Button
-      label={hasPublishedDeals ? t('mortgage.addNextDeal') : t('mortgage.addFirstDeal')}
+      label={hasPublishedDeals ? t('mortgage.addNextDeal') : t('mortgage.addCurrentDeal')}
       leftIcon={<PlusIcon color={colours.primaryInk} size={18} />}
       onPress={() => router.push(`/saved/${loan.id}/deals/new`)}
       variant="secondary"
@@ -247,7 +249,7 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
 
   return (
     <View>
-      {showFooterAction && hasPublishedDeals ? (
+      {showFooterAction ? (
         <View style={styles.topAction}>
           {addDealButton}
         </View>
