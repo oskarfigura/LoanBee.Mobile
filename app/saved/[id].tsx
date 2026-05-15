@@ -8,7 +8,7 @@ import { LoanSummaryPanel } from '@/components/calculator/LoanSummaryPanel';
 import { MoreIcon } from '@/components/loans/LoanIcons';
 import { Button } from '@/components/ui/Button';
 import { AppText } from '@/components/ui/AppText';
-import { CoinsStackedIcon, EditIcon as UiEditIcon, TrashIcon, ZapIcon } from '@/components/ui/Icons';
+import { CoinsStackedIcon, EditIcon as UiEditIcon, PlusCircleIcon, TrashIcon } from '@/components/ui/Icons';
 import { QuickActionTile } from '@/components/ui/QuickActionTile';
 import { AppTextInput, FieldLabel, InputSurface } from '@/components/ui/FormPrimitives';
 import { colours, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
@@ -150,6 +150,11 @@ export default function LoanDetailScreen() {
           label={t('recalculate.ctaButton')}
           icon={<CoinsStackedIcon size={21} color={colours.primary} strokeWidth={1.9} />}
           onPress={() => router.push(`/saved/${id}/recalculate`)}
+        />
+        <QuickActionTile
+          label={t('loan.addLumpSum')}
+          icon={<PlusCircleIcon size={21} color={colours.primary} strokeWidth={1.9} />}
+          onPress={() => router.push(`/saved/${id}/lump-sum/new`)}
         />
         <QuickActionTile
           label={t('saved.edit')}
@@ -346,22 +351,6 @@ export default function LoanDetailScreen() {
                 <Text style={styles.drawerCloseText}>{t('common.close')}</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.drawerOptionRow}
-              onPress={() => {
-                setLoanMoreDrawerVisible(false);
-                router.push(`/saved/${id}/lump-sum/new`);
-              }}
-              activeOpacity={0.84}
-            >
-              <View style={styles.drawerOptionIcon}>
-                <ZapIcon size={20} color={colours.primary} strokeWidth={1.9} />
-              </View>
-              <View style={styles.drawerOptionCopy}>
-                <Text style={styles.drawerOptionTitle}>{t('loan.addLumpSum')}</Text>
-                <Text style={styles.drawerOptionDescription}>{t('loan.addLumpSumHelp')}</Text>
-              </View>
-            </TouchableOpacity>
             <TouchableOpacity style={styles.drawerOptionRow} onPress={openRenameModal} activeOpacity={0.84}>
               <View style={styles.drawerOptionIcon}>
                 <UiEditIcon size={20} color={colours.primary} strokeWidth={1.9} />
