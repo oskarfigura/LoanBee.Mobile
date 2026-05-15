@@ -229,6 +229,13 @@
     "openMenu": "Open menu",
     "links": "Navigation"
   },
+  "loan": {
+    "summaryTitle": "Loan Summary",
+    "loanActions": "Loan actions",
+    "renameLoan": "Rename loan",
+    "renameLoanHelp": "This only changes the name shown in LoanBee. Calculation figures and currency stay unchanged.",
+    "deleteLoan": "Delete loan"
+  },
   "mortgage": {
     "summaryTitle": "Mortgage Summary",
     "mortgageActions": "Mortgage actions",
@@ -479,6 +486,24 @@
     "viewCalculation": "View the calculation:",
     "errorTitle": "Could not share",
     "errorMessage": "Please try sharing this calculation again."
+  },
+  "recalculate": {
+    "title": "Overpayment Scenario",
+    "subtitle": "See how extra payments affect your loan",
+    "loanSummaryTitle": "Your Loan",
+    "monthlySection": "Monthly Overpayment",
+    "extraPaymentLabel": "Extra monthly payment",
+    "lumpSumSection": "One-off Lump Sum",
+    "lumpSumLabel": "Lump sum payment",
+    "lumpSumDateLabel": "Payment date",
+    "lumpSumDateHint": "When you plan to make this payment",
+    "impactTitle": "Estimated Impact",
+    "interestSaved": "Interest saved",
+    "timeSaved": "Time saved",
+    "newMonthlyTotal": "Total monthly outgoing",
+    "noImpactMessage": "Enter a monthly overpayment or a one-off lump sum to see the impact.",
+    "saveToLoan": "Save monthly overpayment to loan",
+    "ctaButton": "Try Overpayments"
   },
   "tabs": {
     "home": "Home",
