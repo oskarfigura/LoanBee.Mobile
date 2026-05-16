@@ -139,7 +139,7 @@
     "title": "Zarządzaj zapisanym kredytem",
     "manageTitle": "Zarządzaj zapisanym kredytem",
     "manageShort": "Zarządzaj kredytem",
-    "manageSubtitle": "Zmień sposób wyświetlania tej pozycji albo zarządzaj szczegółami umów hipotecznych.",
+    "manageSubtitle": "Zmień sposób wyświetlania tej pozycji na liście i pulpicie.",
     "general": "Ogólne",
     "specifics": "Szczegóły",
     "pinHelp": "Pokaż tę pozycję w panelu na ekranie Start.",
@@ -240,6 +240,7 @@
   "mortgage": {
     "summaryTitle": "Podsumowanie Hipoteki",
     "mortgageActions": "Dzialania hipoteki",
+    "manageDetails": "Zarządzaj szczegółami",
     "renameMortgage": "Zmien nazwe hipoteki",
     "renameMortgageHelp": "To zmienia tylko nazwe widoczna w LoanBee. Dane umow i waluta pozostaja bez zmian.",
     "deleteMortgage": "Usun hipoteke",

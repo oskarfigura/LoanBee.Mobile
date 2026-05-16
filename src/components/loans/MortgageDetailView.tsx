@@ -108,6 +108,7 @@ export const MortgageDetailView = ({
   const publishedDeals = getPublishedDeals(loan);
   const draftDeal = trackerSummary.nextDraftDeal;
   const canPlanNextDeal = !draftDeal;
+  const overpaymentDeal = activeDeal ?? publishedDeals[publishedDeals.length - 1];
   const switchTab = useCallback((nextTab: MortgageDetailTab) => {
     setActiveTab(nextTab);
     requestAnimationFrame(() => {
@@ -246,12 +247,8 @@ export const MortgageDetailView = ({
             onOpenTimeline={() => switchTab('timeline')}
           />
 
-          {activeDeal ? (
-            <CouldPaySoonerCard loan={loan} currentDeal={activeDeal} />
-          ) : null}
-
-          {activeDeal ? (
-            <DealOverpaymentsCard loan={loan} currentDeal={activeDeal} />
+          {overpaymentDeal ? (
+            <DealOverpaymentsCard loan={loan} deal={overpaymentDeal} />
           ) : null}
 
           {activeDeal ? (
@@ -816,28 +813,28 @@ const ContextMetric = ({
   </View>
 );
 
-const CouldPaySoonerCard = ({
+const DealOverpaymentsCard = ({
   loan,
-  currentDeal,
+  deal,
 }: {
   loan: SavedLoan;
-  currentDeal: LoanDeal;
+  deal: LoanDeal;
 }) => {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const hasRegular = currentDeal.regularOverpayment > 0;
+  const hasRegular = deal.regularOverpayment > 0;
   const hasLumps = loan.events.some(
-    e => e.type === 'lumpOverpayment' && e.dealId === currentDeal.id,
+    e => e.type === 'lumpOverpayment' && e.dealId === deal.id,
   );
   const hasOverpayments = hasRegular || hasLumps;
 
   const impact = useMemo(
-    () => hasOverpayments ? getDealOverpaymentImpact(currentDeal, loan.events) : null,
-    [currentDeal, hasOverpayments, loan.events],
+    () => hasOverpayments ? getDealOverpaymentImpact(deal, loan.events) : null,
+    [deal, hasOverpayments, loan.events],
   );
 
-  const destination = `/saved/${loan.id}/deals/${currentDeal.id}/overpayments` as const;
+  const destination = `/saved/${loan.id}/deals/${deal.id}/overpayments` as const;
 
   if (hasOverpayments && impact) {
     return (
@@ -885,63 +882,6 @@ const CouldPaySoonerCard = ({
         variant="secondary"
       />
     </View>
-  );
-};
-
-const DealOverpaymentsCard = ({
-  loan,
-  currentDeal,
-}: {
-  loan: SavedLoan;
-  currentDeal: LoanDeal;
-}) => {
-  const { t, i18n } = useTranslation();
-  const router = useRouter();
-
-  const lumpOverpayments = loan.events
-    .filter(e => e.type === 'lumpOverpayment' && e.dealId === currentDeal.id)
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  if (lumpOverpayments.length === 0) return null;
-
-  const impact = getDealOverpaymentImpact(currentDeal, loan.events);
-  const totalOverpaid = lumpOverpayments.reduce((sum, e) => sum + (e.amount ?? 0), 0);
-
-  return (
-    <Card style={styles.overpaymentCard}>
-      <View style={styles.overpaymentCardHeader}>
-        <Text style={styles.sectionTitle}>{t('mortgage.overpayments')}</Text>
-        <Button
-          label={t('mortgage.addOverpayment')}
-          onPress={() => router.push(`/saved/${loan.id}/events/new?type=lumpOverpayment`)}
-          variant="icon-pill"
-          style={styles.addActivityButton}
-        />
-      </View>
-      {lumpOverpayments.map(event => (
-        <TouchableOpacity
-          key={event.id}
-          style={styles.eventRow}
-          onPress={() => router.push(`/saved/${loan.id}/events/${event.id}`)}
-          activeOpacity={0.84}
-        >
-          <View style={styles.overpaymentRowLeft}>
-            <Text style={styles.eventTitle}>{formatCurrency(event.amount ?? 0, loan.currency)}</Text>
-          </View>
-          <Text style={styles.eventDate}>{formatFriendlyDate(event.date, i18n.language)}</Text>
-        </TouchableOpacity>
-      ))}
-      <View style={styles.overpaymentCardFooter}>
-        <Text style={styles.overpaymentFooterTotal}>
-          {t('mortgage.totalOverpaid')}: {formatCurrency(totalOverpaid, loan.currency)}
-        </Text>
-        {impact.interestSaved > 0 ? (
-          <Text style={styles.overpaymentFooterSaved}>
-            {t('mortgage.estInterestSaved')}: {formatCurrency(impact.interestSaved, loan.currency)}
-          </Text>
-        ) : null}
-      </View>
-    </Card>
   );
 };
 

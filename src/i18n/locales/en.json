@@ -139,7 +139,7 @@
     "title": "Manage saved loan",
     "manageTitle": "Manage saved loan",
     "manageShort": "Manage saved loan",
-    "manageSubtitle": "Update how this saved item appears, or manage mortgage-specific deal tracking.",
+    "manageSubtitle": "Update how this saved item appears on your list and dashboard.",
     "general": "General",
     "specifics": "Specifics",
     "pinHelp": "Show this saved item on the Home dashboard.",
@@ -252,6 +252,7 @@
   "mortgage": {
     "summaryTitle": "Mortgage Summary",
     "mortgageActions": "Mortgage actions",
+    "manageDetails": "Manage details",
     "renameMortgage": "Rename mortgage",
     "renameMortgageHelp": "This only changes the name shown in LoanBee. Deal figures and currency stay unchanged.",
     "deleteMortgage": "Delete",
