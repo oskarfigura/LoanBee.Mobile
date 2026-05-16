@@ -52,13 +52,30 @@ export const CalculationSummaryPanel = ({
 
   return (
     <View style={styles.panel}>
+      {/* Panel 1 — Key Metrics with share action in the Monthly Payment header */}
       <View style={styles.summaryRaisedPanel}>
-        <View style={styles.summaryMetricRow}>
+        <View style={styles.metricHeaderRow}>
           <Text style={styles.summaryMetricLabel}>{t('results.monthlyPayment')}</Text>
-          <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
-            {formatCurrency(result.monthlyPayments, currency)}
-          </Text>
+          {onShare ? (
+            <TouchableOpacity
+              style={styles.shareAction}
+              onPress={onShare}
+              activeOpacity={0.82}
+              accessibilityRole="button"
+            >
+              {shareIcon ? <View style={styles.shareIcon}>{shareIcon}</View> : null}
+              <Text style={styles.shareText} numberOfLines={1}>
+                {shareLabel ?? t('share.short')}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
+        <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
+          {formatCurrency(result.monthlyPayments, currency)}
+        </Text>
+
+        <View style={styles.metricDivider} />
+
         <View style={styles.summaryMetricRow}>
           <Text style={styles.summaryMetricLabel}>{t('results.payoffDate')}</Text>
           <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
@@ -70,6 +87,7 @@ export const CalculationSummaryPanel = ({
         </View>
       </View>
 
+      {/* Panel 2 — Loan Details fact grid */}
       <View style={styles.summaryRaisedPanel}>
         <View style={styles.summarySectionHeader}>
           <Text style={styles.summarySectionKicker}>{t('loan.loanDetails')}</Text>
@@ -99,20 +117,6 @@ export const CalculationSummaryPanel = ({
           ) : null}
         </View>
       </View>
-
-      {onShare ? (
-        <TouchableOpacity
-          style={styles.shareRow}
-          onPress={onShare}
-          activeOpacity={0.82}
-          accessibilityRole="button"
-        >
-          {shareIcon ? <View style={styles.shareIcon}>{shareIcon}</View> : null}
-          <Text style={styles.shareText} numberOfLines={1} adjustsFontSizeToFit>
-            {shareLabel ?? t('share.short')}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
     </View>
   );
 };
@@ -121,6 +125,7 @@ const styles = StyleSheet.create({
   panel: {
     gap: spacing.lg,
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.sm,
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
   },
@@ -132,9 +137,15 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     ...elevation.level2,
   },
+  metricHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xxs,
+  },
   summaryMetricRow: {
-    minHeight: 66,
     justifyContent: 'center',
+    paddingTop: spacing.md,
   },
   summaryMetricLabel: {
     ...fontFaces.body.regular,
@@ -155,6 +166,11 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     lineHeight: 16,
     color: colours.textSecondary,
+  },
+  metricDivider: {
+    height: 1,
+    backgroundColor: colours.border,
+    marginTop: spacing.md,
   },
   summarySectionHeader: {
     marginBottom: spacing.sm,
@@ -187,11 +203,11 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colours.textPrimary,
   },
-  shareRow: {
+  shareAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    minHeight: 32,
   },
   shareIcon: {
     marginRight: 5,
