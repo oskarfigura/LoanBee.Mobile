@@ -64,7 +64,7 @@ const DashboardMetricPanel = ({
   progress: LoanDashboardProgress[];
 }) => {
   const { t } = useTranslation();
-  const candidates = [summary.hero, ...summary.metrics];
+  const candidates = [summary.hero, ...summary.metrics, ...(summary.progress?.metrics ?? [])];
   const timeProgress = progress.find(item => item.labelKey === 'mortgage.timeProgress');
   const elapsedMonths = Number(timeProgress?.caption.values?.elapsed ?? 0);
   const totalMonths = Number(timeProgress?.caption.values?.total ?? 0);
