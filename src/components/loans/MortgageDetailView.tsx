@@ -1109,6 +1109,22 @@ const QuickActionsDrawer = ({
                   icon={<MessageTextCircleIcon size={20} color={colours.primary} strokeWidth={1.9} />}
                   onPress={() => onNavigate(`/saved/${loan.id}/events/new?type=note`)}
                 />
+                <QuickActionOption
+                  title={t('mortgage.eventMissedPayment')}
+                  description={t('mortgage.missedPaymentHelp')}
+                  icon={<AlertTriangleIcon size={20} color={colours.primary} strokeWidth={1.9} />}
+                  onPress={() => onNavigate(`/saved/${loan.id}/events/new?type=missedPayment`)}
+                />
+                <QuickActionOption
+                  title={t('mortgage.eventPaymentHoliday')}
+                  description={t('mortgage.paymentHolidayHelp')}
+                  icon={<ClockCheckIcon size={20} color={colours.primary} strokeWidth={1.9} />}
+                  onPress={() => onNavigate(`/saved/${loan.id}/events/new?type=paymentHoliday`)}
+                />
+              </>
+            ) : null}
+            {mode === 'more' && activeDeal ? (
+              <>
                 <Text style={styles.drawerGroupTitle}>{t('mortgage.dealGroup')}</Text>
                 {canPlanNextDeal ? (
                   <QuickActionOption
@@ -1126,33 +1142,13 @@ const QuickActionsDrawer = ({
                     onPress={() => onNavigate(`/saved/${loan.id}/deals/${draftDeal.id}`)}
                   />
                 ) : null}
-              </>
-            ) : null}
-            {mode === 'more' && activeDeal ? (
-              <>
-                <Text style={styles.drawerGroupTitle}>{t('mortgage.eventGroup')}</Text>
-                <QuickActionOption
-                  title={t('mortgage.eventMissedPayment')}
-                  description={t('mortgage.missedPaymentHelp')}
-                  icon={<AlertTriangleIcon size={20} color={colours.primary} strokeWidth={1.9} />}
-                  onPress={() => onNavigate(`/saved/${loan.id}/events/new?type=missedPayment`)}
-                />
-                <QuickActionOption
-                  title={t('mortgage.eventPaymentHoliday')}
-                  description={t('mortgage.paymentHolidayHelp')}
-                  icon={<ClockCheckIcon size={20} color={colours.primary} strokeWidth={1.9} />}
-                  onPress={() => onNavigate(`/saved/${loan.id}/events/new?type=paymentHoliday`)}
-                />
                 {activeDeal.status === 'active' ? (
-                  <>
-                    <Text style={styles.drawerGroupTitle}>{t('mortgage.dealGroup')}</Text>
-                    <QuickActionOption
-                      title={t('mortgage.completeCurrentDeal')}
-                      description={t('mortgage.completeCurrentDealHelp')}
-                      icon={<ClockCheckIcon size={20} color={colours.primary} strokeWidth={1.9} />}
-                      onPress={() => onNavigate(`/saved/${loan.id}/complete-current`)}
-                    />
-                  </>
+                  <QuickActionOption
+                    title={t('mortgage.completeCurrentDeal')}
+                    description={t('mortgage.completeCurrentDealHelp')}
+                    icon={<ClockCheckIcon size={20} color={colours.primary} strokeWidth={1.9} />}
+                    onPress={() => onNavigate(`/saved/${loan.id}/complete-current`)}
+                  />
                 ) : null}
               </>
             ) : null}
