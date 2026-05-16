@@ -845,17 +845,17 @@ const CouldPaySoonerCard = ({
         <View style={styles.soonerCardHeader}>
           <CoinsStackedIcon size={18} color={colours.secondary} strokeWidth={1.8} />
           <AppText variant="labelMd" tone="success" style={styles.soonerCardTitle}>
-            {t('mortgage.manageDealOverpayments')}
+            {t('mortgage.dealOverpaymentsSummary')}
           </AppText>
         </View>
         <View style={styles.soonerSavingsRow}>
           <View style={styles.soonerMetric}>
-            <Text style={styles.soonerMetricLabel}>{t('mortgage.dealInterestSavedLabel')}</Text>
-            <Text style={styles.soonerMetricValue}>{formatCurrency(impact.interestSaved, loan.currency)}</Text>
+            <AppText variant="bodySm" tone="muted">{t('mortgage.dealInterestSavedLabel')}</AppText>
+            <AppText variant="labelMd" style={{ color: colours.secondary }}>{formatCurrency(impact.interestSaved, loan.currency)}</AppText>
           </View>
           <View style={styles.soonerMetric}>
-            <Text style={styles.soonerMetricLabel}>{t('mortgage.dealExtraRepaidLabel')}</Text>
-            <Text style={styles.soonerMetricValue}>{formatCurrency(impact.extraPrincipalRepaid, loan.currency)}</Text>
+            <AppText variant="bodySm" tone="muted">{t('mortgage.dealExtraRepaidLabel')}</AppText>
+            <AppText variant="labelMd" style={{ color: colours.secondary }}>{formatCurrency(impact.extraPrincipalRepaid, loan.currency)}</AppText>
           </View>
         </View>
         <TouchableOpacity
@@ -863,7 +863,7 @@ const CouldPaySoonerCard = ({
           onPress={() => router.push(destination)}
           activeOpacity={0.84}
         >
-          <Text style={styles.soonerManageText}>{t('mortgage.manageDealOverpayments')}</Text>
+          <AppText variant="labelMd" style={{ color: colours.secondary, flex: 1 }}>{t('mortgage.manageDealOverpayments')}</AppText>
           <ChevronRightIcon size={14} color={colours.secondary} />
         </TouchableOpacity>
       </Card>
@@ -875,15 +875,14 @@ const CouldPaySoonerCard = ({
       <View style={styles.soonerNudgeInner}>
         <CoinsStackedIcon size={20} color={colours.primary} strokeWidth={1.8} />
         <View style={styles.soonerNudgeCopy}>
-          <Text style={styles.soonerNudgeTitle}>{t('mortgage.couldPaySoonerTitle')}</Text>
-          <Text style={styles.soonerNudgeBody}>{t('mortgage.couldPaySoonerBody')}</Text>
+          <AppText variant="labelMd">{t('mortgage.couldPaySoonerTitle')}</AppText>
+          <AppText variant="bodySm" tone="muted">{t('mortgage.couldPaySoonerBody')}</AppText>
         </View>
       </View>
       <Button
         label={t('mortgage.setUpDealOverpayment')}
         onPress={() => router.push(destination)}
         variant="secondary"
-        style={styles.soonerNudgeBtn}
       />
     </View>
   );
@@ -1941,18 +1940,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xxs,
   },
-  soonerNudgeTitle: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-  },
-  soonerNudgeBody: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.xs,
-    lineHeight: 16,
-    color: colours.textSecondary,
-  },
-  soonerNudgeBtn: {},
   soonerCardActive: {
     marginBottom: spacing.sm,
     backgroundColor: colours.successSurface,
@@ -1976,17 +1963,7 @@ const styles = StyleSheet.create({
     flexBasis: '47%',
     flexGrow: 1,
     minWidth: 0,
-  },
-  soonerMetricLabel: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    marginBottom: spacing.xxxs,
-  },
-  soonerMetricValue: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.secondary,
+    gap: spacing.xxxs,
   },
   soonerManageRow: {
     flexDirection: 'row',
@@ -1996,12 +1973,6 @@ const styles = StyleSheet.create({
     borderTopColor: colours.successBorder,
     paddingTop: spacing.xs,
     marginTop: spacing.xxs,
-  },
-  soonerManageText: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.secondary,
-    flex: 1,
   },
   overpaymentCard: {
     marginBottom: 14,

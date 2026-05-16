@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -9,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,8 +32,6 @@ import { colours, layout, radii, spacing } from '@/theme';
 import { formatFriendlyDate, formatIsoDate, parseDateLabelValue } from '@/utils/date';
 import { createLocalId } from '@/utils/id';
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-
 export default function DealOverpaymentsScreen() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -50,7 +48,7 @@ export default function DealOverpaymentsScreen() {
 
   useFocusEffect(refresh);
 
-  const deal = loan?.deals.find(d => d.id === dealId) as LoanDeal | undefined;
+  const deal = loan?.deals.find(d => d.id === dealId);
   const currency = loan?.currency ?? 'GBP';
 
   const lumpSumEvents = useMemo(
@@ -168,7 +166,7 @@ export default function DealOverpaymentsScreen() {
 
         {/* Monthly overpayment */}
         <View style={styles.section}>
-          <AppText variant="title3" style={styles.sectionTitle}>
+          <AppText variant="title3">
             {t('mortgage.dealMonthlyOverpayment')}
           </AppText>
           {deal.regularOverpayment > 0 ? (
@@ -191,7 +189,7 @@ export default function DealOverpaymentsScreen() {
 
         {/* Lump sum payments */}
         <View style={styles.section}>
-          <AppText variant="title3" style={styles.sectionTitle}>
+          <AppText variant="title3">
             {t('mortgage.dealLumpSums')}
           </AppText>
           {lumpSumEvents.length === 0 ? (
@@ -228,7 +226,6 @@ export default function DealOverpaymentsScreen() {
             label={t('overpayments.lumpSumAdd')}
             onPress={openAddLumpSum}
             variant="secondary"
-            style={styles.addLumpSumBtn}
             leftIcon={<PlusIcon size={16} color={colours.primary} />}
           />
         </View>
@@ -302,7 +299,7 @@ const MonthlySheet = ({
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={sheetStyles.kav}>
           <Pressable style={sheetStyles.sheet}>
             <View style={sheetStyles.handle} />
-            <AppText variant="title2" style={sheetStyles.heading}>
+            <AppText variant="title2">
               {t('mortgage.dealMonthlyOverpayment')}
             </AppText>
             <View style={sheetStyles.field}>
@@ -370,19 +367,24 @@ const LumpSumSheet = ({
   onClose: () => void;
 }) => {
   const { t } = useTranslation();
+  const { height: screenHeight } = useWindowDimensions();
   const isEditing = event !== null;
   const datePickerRef = useRef<DatePickerFieldHandle>(null);
+  const minDateRef = useRef(minDate);
+  minDateRef.current = minDate;
 
-  const defaultDate = minDate > new Date() ? minDate : new Date();
-  const [date, setDate] = useState(() => event?.date ?? formatIsoDate(defaultDate));
+  const [date, setDate] = useState(() => {
+    const fallback = minDate > new Date() ? minDate : new Date();
+    return event?.date ?? formatIsoDate(fallback);
+  });
   const [amount, setAmount] = useState(event?.amount ? String(event.amount) : '');
 
   React.useEffect(() => {
     if (visible) {
-      setDate(event?.date ?? formatIsoDate(defaultDate));
+      const fallback = minDateRef.current > new Date() ? minDateRef.current : new Date();
+      setDate(event?.date ?? formatIsoDate(fallback));
       setAmount(event?.amount ? String(event.amount) : '');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, event]);
 
   const parsedAmount = parseFloat(amount) || 0;
@@ -404,9 +406,9 @@ const LumpSumSheet = ({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={sheetStyles.scrim} onPress={onClose}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={sheetStyles.kav}>
-          <Pressable style={[sheetStyles.sheet, sheetStyles.sheetTall]}>
+          <Pressable style={[sheetStyles.sheet, { maxHeight: screenHeight * 0.92 }]}>
             <View style={sheetStyles.handle} />
-            <AppText variant="title2" style={sheetStyles.heading}>
+            <AppText variant="title2">
               {isEditing ? t('overpayments.lumpSumSection') : t('overpayments.lumpSumAdd')}
             </AppText>
             <View style={sheetStyles.fields}>
@@ -486,7 +488,6 @@ const styles = StyleSheet.create({
   },
   centredText: { textAlign: 'center' },
   section: { gap: spacing.sm },
-  sectionTitle: {},
   rowCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -517,7 +518,6 @@ const styles = StyleSheet.create({
   },
   lumpSumMain: { flex: 1, gap: 2 },
   divider: { height: 1, backgroundColor: colours.border, marginHorizontal: spacing.md },
-  addLumpSumBtn: {},
   dateNoteCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -542,7 +542,6 @@ const sheetStyles = StyleSheet.create({
     paddingBottom: spacing['3xl'],
     gap: spacing.lg,
   },
-  sheetTall: { maxHeight: SCREEN_HEIGHT * 0.92 },
   handle: {
     width: 40,
     height: 4,
@@ -551,7 +550,6 @@ const sheetStyles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.xs,
   },
-  heading: {},
   field: { gap: spacing.xs },
   fields: { gap: spacing.sm },
   actions: { flexDirection: 'row', gap: spacing.sm },

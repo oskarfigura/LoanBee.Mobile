@@ -491,6 +491,7 @@
     "couldPaySoonerBody": "Add a regular monthly overpayment to this deal to reduce your balance faster and save on interest.",
     "setUpDealOverpayment": "Set up overpayment",
     "manageDealOverpayments": "Manage overpayments",
+    "dealOverpaymentsSummary": "Overpayment savings",
     "dealOverpaymentsTitle": "Deal Overpayments",
     "dealMonthlyOverpayment": "Monthly overpayment",
     "dealMonthlyOverpaymentNotSet": "No monthly overpayment set",
