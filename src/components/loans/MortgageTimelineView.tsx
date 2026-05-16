@@ -6,10 +6,12 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { DestructiveConfirmDialog } from '@/components/ui/DestructiveConfirmDialog';
+import { TrashIcon } from '@/components/ui/Icons';
 import { LiveDotIcon, PencilIcon, PlusIcon, TickIcon } from '@/components/loans/LoanIcons';
 import { mortgageEventLabelKey } from '@/components/loans/MortgageEventForm';
 import { formatCurrency } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
+import { removeMortgageEvent } from '@/mortgage/events';
 import {
   canDeleteDeal,
   canEditDeal,
@@ -165,12 +167,17 @@ const DealStats = ({
 const DealActivityList = ({
   deal,
   loan,
+  isActiveDeal,
+  onRemoved,
 }: {
   deal: LoanDeal;
   loan: SavedLoan;
+  isActiveDeal: boolean;
+  onRemoved: () => void;
 }) => {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const [eventPendingRemove, setEventPendingRemove] = useState<MortgageEvent | null>(null);
 
   const dealEvents = loan.events
     .filter(e => e.dealId === deal.id)
@@ -178,24 +185,51 @@ const DealActivityList = ({
 
   if (dealEvents.length === 0) return null;
 
+  const confirmRemove = () => {
+    if (!eventPendingRemove) return;
+    const updated = removeMortgageEvent(loan, eventPendingRemove.id);
+    savedLoansStorage.update(updated);
+    setEventPendingRemove(null);
+    onRemoved();
+  };
+
   return (
     <View style={styles.activityList}>
       {dealEvents.map(event => (
-        <TouchableOpacity
-          key={event.id}
-          style={styles.activityRow}
-          onPress={() => router.push(`/saved/${loan.id}/events/${event.id}`)}
-          activeOpacity={0.84}
-        >
-          <View style={styles.activityLeft}>
-            <Text style={styles.activityType}>{t(mortgageEventLabelKey(event.type))}</Text>
-            {event.amount !== undefined ? (
-              <Text style={styles.activityAmount}> · {formatCurrency(event.amount, loan.currency)}</Text>
-            ) : null}
-          </View>
-          <Text style={styles.activityDate}>{formatFriendlyDate(event.date, i18n.language)}</Text>
-        </TouchableOpacity>
+        <View key={event.id} style={styles.activityRow}>
+          <TouchableOpacity
+            style={styles.activityRowContent}
+            onPress={() => router.push(`/saved/${loan.id}/events/${event.id}`)}
+            activeOpacity={0.84}
+          >
+            <View style={styles.activityLeft}>
+              <Text style={styles.activityType}>{t(mortgageEventLabelKey(event.type))}</Text>
+              {event.amount !== undefined ? (
+                <Text style={styles.activityAmount}> · {formatCurrency(event.amount, loan.currency)}</Text>
+              ) : null}
+            </View>
+            <Text style={styles.activityDate}>{formatFriendlyDate(event.date, i18n.language)}</Text>
+          </TouchableOpacity>
+          {isActiveDeal ? (
+            <TouchableOpacity
+              onPress={() => setEventPendingRemove(event)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 0 }}
+              accessibilityLabel={t('mortgage.deleteEvent')}
+            >
+              <TrashIcon size={15} color={colours.error} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ))}
+      <DestructiveConfirmDialog
+        visible={Boolean(eventPendingRemove)}
+        title={t('mortgage.deleteEvent')}
+        message={t('mortgage.deleteEventMessage')}
+        confirmLabel={t('mortgage.deleteEvent')}
+        cancelLabel={t('results.cancelLeave')}
+        onCancel={() => setEventPendingRemove(null)}
+        onConfirm={confirmRemove}
+      />
     </View>
   );
 };
@@ -283,7 +317,15 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
                 {formatFriendlyDateRange(timeline.current.startDate, timeline.current.endDate, i18n.language)}
               </Text>
               <DealStats deal={timeline.current} currency={loan.currency} events={loan.events} asOf={asOf} />
-              <DealActivityList deal={timeline.current} loan={loan} />
+              <DealActivityList
+                deal={timeline.current}
+                loan={loan}
+                isActiveDeal={true}
+                onRemoved={() => {
+                  const updated = savedLoansStorage.getById(loan.id);
+                  if (updated) onLoanUpdated?.(updated);
+                }}
+              />
               <View style={styles.currentActions}>
                 <TimelineAction
                   label={t('mortgage.completeCurrentDeal')}
@@ -332,7 +374,7 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
               </View>
               <Text style={styles.meta}>{formatFriendlyDateRange(deal.startDate, deal.endDate, i18n.language)}</Text>
               <DealStats deal={deal} currency={loan.currency} events={loan.events} asOf={asOf} />
-              <DealActivityList deal={deal} loan={loan} />
+              <DealActivityList deal={deal} loan={loan} isActiveDeal={false} onRemoved={() => {}} />
               {deal.completion && (
                 <Text style={styles.completionText}>
                   {t('mortgage.closedAt', { amount: formatCurrency(deal.completion.closingBalance, loan.currency) })}
@@ -692,9 +734,15 @@ const styles = StyleSheet.create({
   },
   activityRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.xs,
+    gap: spacing.sm,
+  },
+  activityRowContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   activityLeft: {
