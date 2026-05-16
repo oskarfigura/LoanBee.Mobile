@@ -138,6 +138,12 @@ export const MortgageDetailView = ({
       if (event.translationX < -40) runOnJS(goNext)();
       else if (event.translationX > 40) runOnJS(goPrev)();
     }), [goNext, goPrev]);
+  // The amortisation table scrolls horizontally; while it is being scrolled the
+  // tab-swipe Pan must yield so a sideways drag on the table doesn't change tabs.
+  const tableScrollGesture = useMemo(
+    () => Gesture.Native().blocksExternalGesture(swipeGesture),
+    [swipeGesture],
+  );
   const navigateFromActions = (href: string) => {
     setAddDrawerVisible(false);
     setActionDrawerVisible(false);
@@ -325,6 +331,7 @@ export const MortgageDetailView = ({
               items={projection.tableItems}
               startDate={publishedDeals[0]?.startDate ?? loan.formSnapshot.startDate}
               currency={loan.currency}
+              scrollGesture={tableScrollGesture}
             />
           </Card>
         </View>
@@ -866,6 +873,8 @@ const DealOverpaymentsCard = ({
       </Card>
     );
   }
+
+  if (deal.status === 'completed') return null;
 
   return (
     <View style={styles.soonerNudgeCard}>
