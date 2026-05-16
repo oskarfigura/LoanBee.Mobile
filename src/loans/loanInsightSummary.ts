@@ -52,7 +52,7 @@ const clamp = (value: number) => Math.max(0, Math.min(value, 1));
 
 const formatPercent = (value: number) => `${Number.isFinite(value) ? value : 0}%`;
 
-const formatPayoffDate = (startDate: string, totalMonths: number, locale?: string) => {
+export const formatPayoffDate = (startDate: string, totalMonths: number, locale?: string) => {
   const date = parseDateLabelValue(startDate);
   if (!date) return '—';
 
@@ -138,7 +138,11 @@ const buildSavedProgress = (
   const progress = clamp(elapsed / total);
   const remaining = Math.max(0, total - elapsed);
   const principalAmount = getPrincipalAmount(result);
-  const currentBalance = getCurrentBalance(result, loan.formSnapshot.startDate, asOf);
+  const rawBalance = getCurrentBalance(result, loan.formSnapshot.startDate, asOf);
+  const lumpSumOffset = (loan.events ?? [])
+    .filter(e => e.type === 'lumpOverpayment' && !e.dealId && e.date <= asOf.toISOString().slice(0, 10))
+    .reduce((sum, e) => sum + (e.amount ?? 0), 0);
+  const currentBalance = Math.max(0, rawBalance - lumpSumOffset);
   const paidSoFar = Math.max(0, principalAmount - currentBalance);
   const hasOverpayment = (loan.formSnapshot.additionalMonthlyPayment ?? 0) > 0
     || loan.events.some(e => e.type === 'lumpOverpayment' && (e.amount ?? 0) > 0);

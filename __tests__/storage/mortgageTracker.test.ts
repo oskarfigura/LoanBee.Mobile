@@ -964,7 +964,7 @@ describe('mortgage tracker', () => {
       ],
     });
 
-    const impact = getDealOverpaymentImpact(loan.deals[0], loan.events, new Date('2027-06-01T00:00:00'));
+    const impact = getDealOverpaymentImpact(loan.deals[0], loan.events);
 
     expect(impact.hasOverpayments).toBe(false);
     expect(impact.totalOverpayments).toBe(0);
@@ -987,7 +987,7 @@ describe('mortgage tracker', () => {
       ],
     });
 
-    const impact = getDealOverpaymentImpact(loan.deals[0], loan.events, new Date('2027-06-01T00:00:00'));
+    const impact = getDealOverpaymentImpact(loan.deals[0], loan.events);
 
     expect(impact.hasOverpayments).toBe(true);
     expect(impact.totalOverpayments).toBeGreaterThan(5000);
@@ -1010,7 +1010,7 @@ describe('mortgage tracker', () => {
     };
     const loan = makeMortgage({ deals: [completed] });
 
-    const impact = getDealOverpaymentImpact(completed, loan.events, new Date('2032-01-01T00:00:00'));
+    const impact = getDealOverpaymentImpact(completed, loan.events);
 
     expect(impact.hasOverpayments).toBe(true);
     // 5y × £150/mo = £9,000 of regular overpayments on a 240k @ 4.2% mortgage. A regression
@@ -1043,10 +1043,10 @@ describe('mortgage tracker', () => {
       ],
     });
 
-    // From 2026-06-01 to 2027-06-01 = 12 months, 2 skipped → 10 effective × £150 = £1,500.
-    const impact = getDealOverpaymentImpact(baseDeal, loan.events, new Date('2027-06-01T00:00:00'));
+    // Deal runs 2026-06-01 to 2031-06-01 = 60 months, 2 skipped → 58 effective × £150 = £8,700.
+    const impact = getDealOverpaymentImpact(baseDeal, loan.events);
 
-    expect(impact.totalOverpayments).toBeCloseTo(150 * 10, 0);
+    expect(impact.totalOverpayments).toBeCloseTo(150 * 58, 0);
   });
 
   it('omits events tied to draft deals from recent activity', () => {

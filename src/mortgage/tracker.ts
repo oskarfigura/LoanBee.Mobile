@@ -469,6 +469,21 @@ export const projectDeal = (
     }
   }
 
+  // Apply lump-sum events in the current partial month (the period after the last
+  // complete-month projection). This handles the case where asOf is mid-month or
+  // the deal started in the same calendar month as asOf (monthsToProject = 0).
+  if (includeOverpayments) {
+    const partialMonthCursor = addMonths(monthStart(deal.startDate), monthsToProject);
+    const partialKey = `${partialMonthCursor.getFullYear()}-${String(partialMonthCursor.getMonth() + 1).padStart(2, '0')}`;
+    dealEvents
+      .filter(e => e.type === 'lumpOverpayment' && typeof e.amount === 'number' && monthKey(e.date) === partialKey)
+      .forEach(e => {
+        const amount = e.amount ?? 0;
+        balance = Math.max(0, balance - amount);
+        totalPaid += amount;
+      });
+  }
+
   if (deal.status === 'completed' && deal.completion) {
     const closingBalance = deal.completion.closingBalance;
     const principalPaid = Math.max(0, deal.openingBalance + deal.completion.feesAdded - closingBalance);
@@ -496,7 +511,6 @@ export interface DealOverpaymentImpact {
 export const getDealOverpaymentImpact = (
   deal: LoanDeal,
   events: MortgageEvent[],
-  asOf = new Date(),
 ): DealOverpaymentImpact => {
   // For completed deals, the completion block in projectDeal overrides interestPaid via
   // bank-confirmed reconciliation, which breaks like-for-like comparison. Strip the
@@ -506,8 +520,11 @@ export const getDealOverpaymentImpact = (
     ? { ...deal, status: 'active', endDate: deal.completion.completedAt, completion: undefined }
     : deal;
 
-  const actual = projectDeal(dealForImpact, events, asOf, true);
-  const baseline = projectDeal(dealForImpact, events, asOf, false);
+  // Project to deal end so impact is visible even for new deals — matches how
+  // the loan calculator shows full-term savings rather than "so far" savings.
+  const projectionEnd = parseDate(dealForImpact.endDate);
+  const actual = projectDeal(dealForImpact, events, projectionEnd, true);
+  const baseline = projectDeal(dealForImpact, events, projectionEnd, false);
 
   const dealEvents = events.filter(event => event.dealId === deal.id);
   const lumpOverpaymentTotal = dealEvents
@@ -532,6 +549,55 @@ export const getDealOverpaymentImpact = (
     totalOverpayments,
     hasOverpayments: totalOverpayments > 0,
   };
+};
+
+export const buildDealBalanceArrays = (
+  deal: LoanDeal,
+  events: MortgageEvent[],
+): { baseline: number[]; scenario: number[] } => {
+  const dealForChart: LoanDeal = deal.status === 'completed' && deal.completion
+    ? { ...deal, status: 'active', endDate: deal.completion.completedAt, completion: undefined }
+    : deal;
+
+  const dealEvents = getDealEvents(events, dealForChart.id);
+  const monthsToProject = monthsBetween(dealForChart.startDate, dealForChart.endDate);
+  const monthlyInterestRate = dealForChart.interestRate / 100 / 12;
+
+  const buildArray = (includeOverpayments: boolean): number[] => {
+    let balance = dealForChart.openingBalance;
+    const arr: number[] = [];
+
+    for (let month = 0; month < monthsToProject; month++) {
+      const cursor = addMonths(monthStart(dealForChart.startDate), month);
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+      const eventsInMonth = dealEvents.filter(event => monthKey(event.date) === key);
+      const hasSkippedPayment = eventsInMonth.some(event => (
+        event.type === 'missedPayment' || event.type === 'paymentHoliday'
+      ));
+
+      eventsInMonth
+        .filter(event => event.type === 'balanceCheckpoint' && typeof event.balance === 'number')
+        .forEach(event => { balance = event.balance ?? balance; });
+
+      const interest = balance * monthlyInterestRate;
+      const scheduledPayment = hasSkippedPayment ? 0 : dealForChart.monthlyPayment;
+      const regularOverpayment = includeOverpayments && !hasSkippedPayment ? dealForChart.regularOverpayment : 0;
+
+      balance = Math.max(0, balance + interest - scheduledPayment - regularOverpayment);
+
+      if (includeOverpayments) {
+        eventsInMonth
+          .filter(event => event.type === 'lumpOverpayment' && typeof event.amount === 'number')
+          .forEach(event => { balance = Math.max(0, balance - (event.amount ?? 0)); });
+      }
+
+      arr.push(toMoney(balance));
+    }
+
+    return arr;
+  };
+
+  return { baseline: buildArray(false), scenario: buildArray(true) };
 };
 
 export const normaliseDealChain = (loan: LoanGroup, fromDealId?: string): LoanGroup => {
@@ -629,8 +695,16 @@ export const getMortgageTrackerSummary = (
   const additionalBorrowingTotal = publishedDeals
     .slice(1)
     .reduce((sum, deal) => sum + Math.max(0, deal.additionalBorrowing ?? 0), 0);
-  const projections = projectionDeals.map(deal => projectDeal(deal, loan.events, asOf, true));
-  const baselineProjections = projectionDeals.map(deal => projectDeal(deal, loan.events, asOf, false));
+  // When no published deals exist we project via buildCurrentStateProjectionDeal (id =
+  // CURRENT_STATE_PROJECTION_DEAL_ID). getDealEvents filters by dealId, so loan-level
+  // events (dealId = undefined) would be silently dropped. Remap them to the projection
+  // deal's id so they are included.
+  const eventsForProjection = publishedDeals.length > 0
+    ? loan.events
+    : loan.events.map(e => (!e.dealId ? { ...e, dealId: CURRENT_STATE_PROJECTION_DEAL_ID } : e));
+
+  const projections = projectionDeals.map(deal => projectDeal(deal, eventsForProjection, asOf, true));
+  const baselineProjections = projectionDeals.map(deal => projectDeal(deal, eventsForProjection, asOf, false));
   const lastProjection = projections[projections.length - 1];
   const currentBalance = lastProjection?.balance ?? originalBalance;
   const interestPaidEstimate = projections.reduce((sum, projection) => sum + projection.interestPaid, 0);

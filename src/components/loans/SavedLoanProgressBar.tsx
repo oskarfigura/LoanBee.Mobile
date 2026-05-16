@@ -27,8 +27,17 @@ export const SavedLoanProgressBar = ({ loan, result, summary, style }: Props) =>
     ? Number(result.tableItems[currentBalanceIndex]?.ending ?? principalAmount)
     : principalAmount;
   const safeCurrentBalance = Number.isFinite(currentBalanceValue) ? currentBalanceValue : principalAmount;
+  // Loan-level lump-sum events aren't in the amortisation table. Subtract them so
+  // the progress bar reflects actual payments made, not just the scheduled balance.
+  const today = new Date().toISOString().slice(0, 10);
+  const lumpSumOffset = loan.category === 'loan'
+    ? (loan.events ?? [])
+        .filter(e => e.type === 'lumpOverpayment' && !e.dealId && e.date <= today)
+        .reduce((sum, e) => sum + (e.amount ?? 0), 0)
+    : 0;
+  const adjustedBalance = Math.max(0, safeCurrentBalance - lumpSumOffset);
   const balancePaidProgress = principalAmount > 0
-    ? Math.max(0, Math.min((principalAmount - safeCurrentBalance) / principalAmount, 1))
+    ? Math.max(0, Math.min((principalAmount - adjustedBalance) / principalAmount, 1))
     : 0;
   const progressValue = loan.category === 'mortgage'
     ? summary.progress?.value ?? 0

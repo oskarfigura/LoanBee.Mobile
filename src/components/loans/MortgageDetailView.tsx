@@ -22,6 +22,7 @@ import { SegmentedControl } from '@/components/ui/FormPrimitives';
 import {
   AlertTriangleIcon,
   CalendarDateIcon,
+  ChevronRightIcon,
   ClockCheckIcon,
   CoinsStackedIcon,
   EyeIcon,
@@ -244,6 +245,10 @@ export const MortgageDetailView = ({
             }}
             onOpenTimeline={() => switchTab('timeline')}
           />
+
+          {activeDeal ? (
+            <CouldPaySoonerCard loan={loan} currentDeal={activeDeal} />
+          ) : null}
 
           {activeDeal ? (
             <DealOverpaymentsCard loan={loan} currentDeal={activeDeal} />
@@ -654,7 +659,7 @@ const CurrentDealSummaryPanel = ({
         <SummaryFact label={t('mortgage.currentDealEnds')} value={formatFriendlyDate(currentDeal.endDate, i18n.language)} />
         <SummaryFact label={t('calculator.additionalPayment')} value={formatCurrency(currentDeal.regularOverpayment, loan.currency)} />
         {dealImpact?.hasOverpayments ? (
-          <SummaryFact label={t('mortgage.dealSavedSoFar')} value={formatCurrency(dealImpact.interestSaved, loan.currency)} />
+          <SummaryFact label={t('mortgage.dealInterestSavedLabel')} value={formatCurrency(dealImpact.interestSaved, loan.currency)} />
         ) : null}
       </View>
       <View style={styles.summarySourceRow}>
@@ -810,6 +815,78 @@ const ContextMetric = ({
     <Text style={styles.contextMetricValue} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
   </View>
 );
+
+const CouldPaySoonerCard = ({
+  loan,
+  currentDeal,
+}: {
+  loan: SavedLoan;
+  currentDeal: LoanDeal;
+}) => {
+  const { t } = useTranslation();
+  const router = useRouter();
+
+  const hasRegular = currentDeal.regularOverpayment > 0;
+  const hasLumps = loan.events.some(
+    e => e.type === 'lumpOverpayment' && e.dealId === currentDeal.id,
+  );
+  const hasOverpayments = hasRegular || hasLumps;
+
+  const impact = useMemo(
+    () => hasOverpayments ? getDealOverpaymentImpact(currentDeal, loan.events) : null,
+    [currentDeal, hasOverpayments, loan.events],
+  );
+
+  const destination = `/saved/${loan.id}/deals/${currentDeal.id}/overpayments` as const;
+
+  if (hasOverpayments && impact) {
+    return (
+      <Card style={styles.soonerCardActive}>
+        <View style={styles.soonerCardHeader}>
+          <CoinsStackedIcon size={18} color={colours.secondary} strokeWidth={1.8} />
+          <AppText variant="labelMd" tone="success" style={styles.soonerCardTitle}>
+            {t('mortgage.dealOverpaymentsSummary')}
+          </AppText>
+        </View>
+        <View style={styles.soonerSavingsRow}>
+          <View style={styles.soonerMetric}>
+            <AppText variant="bodySm" tone="muted">{t('mortgage.dealInterestSavedLabel')}</AppText>
+            <AppText variant="labelMd" style={{ color: colours.secondary }}>{formatCurrency(impact.interestSaved, loan.currency)}</AppText>
+          </View>
+          <View style={styles.soonerMetric}>
+            <AppText variant="bodySm" tone="muted">{t('mortgage.dealExtraRepaidLabel')}</AppText>
+            <AppText variant="labelMd" style={{ color: colours.secondary }}>{formatCurrency(impact.extraPrincipalRepaid, loan.currency)}</AppText>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.soonerManageRow}
+          onPress={() => router.push(destination)}
+          activeOpacity={0.84}
+        >
+          <AppText variant="labelMd" style={{ color: colours.secondary, flex: 1 }}>{t('mortgage.manageDealOverpayments')}</AppText>
+          <ChevronRightIcon size={14} color={colours.secondary} />
+        </TouchableOpacity>
+      </Card>
+    );
+  }
+
+  return (
+    <View style={styles.soonerNudgeCard}>
+      <View style={styles.soonerNudgeInner}>
+        <CoinsStackedIcon size={20} color={colours.primary} strokeWidth={1.8} />
+        <View style={styles.soonerNudgeCopy}>
+          <AppText variant="labelMd">{t('mortgage.couldPaySoonerTitle')}</AppText>
+          <AppText variant="bodySm" tone="muted">{t('mortgage.couldPaySoonerBody')}</AppText>
+        </View>
+      </View>
+      <Button
+        label={t('mortgage.setUpDealOverpayment')}
+        onPress={() => router.push(destination)}
+        variant="secondary"
+      />
+    </View>
+  );
+};
 
 const DealOverpaymentsCard = ({
   loan,
@@ -1078,7 +1155,7 @@ const QuickActionsDrawer = ({
                   title={t('mortgage.addOverpayment')}
                   description={t('mortgage.addOverpaymentHelp')}
                   icon={<CoinsStackedIcon size={20} color={colours.primary} strokeWidth={1.9} />}
-                  onPress={() => onNavigate(`/saved/${loan.id}/events/new?type=lumpOverpayment`)}
+                  onPress={() => onNavigate(`/saved/${loan.id}/deals/${activeDeal.id}/overpayments`)}
                 />
                 <QuickActionOption
                   title={t('mortgage.recordBalance')}
@@ -1403,6 +1480,7 @@ const styles = StyleSheet.create({
     borderColor: colours.surfaceStrong,
     borderRadius: radii.card,
     marginBottom: spacing.sm,
+    marginHorizontal: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     gap: spacing.sm,
@@ -1844,8 +1922,62 @@ const styles = StyleSheet.create({
     maxWidth: 92,
     textAlign: 'right',
   },
+  soonerNudgeCard: {
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colours.border,
+    borderStyle: 'dashed',
+    backgroundColor: colours.surface,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  soonerNudgeInner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  soonerNudgeCopy: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  soonerCardActive: {
+    marginBottom: spacing.sm,
+    backgroundColor: colours.successSurface,
+    borderColor: colours.successBorder,
+    gap: spacing.xs,
+  },
+  soonerCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  soonerCardTitle: {
+    flex: 1,
+  },
+  soonerSavingsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+  },
+  soonerMetric: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    minWidth: 0,
+    gap: spacing.xxxs,
+  },
+  soonerManageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colours.successBorder,
+    paddingTop: spacing.xs,
+    marginTop: spacing.xxs,
+  },
   overpaymentCard: {
     marginBottom: 14,
+    marginHorizontal: spacing.sm,
   },
   overpaymentCardHeader: {
     flexDirection: 'row',
