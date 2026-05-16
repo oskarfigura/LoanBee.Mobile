@@ -680,8 +680,16 @@ export const getMortgageTrackerSummary = (
   const additionalBorrowingTotal = publishedDeals
     .slice(1)
     .reduce((sum, deal) => sum + Math.max(0, deal.additionalBorrowing ?? 0), 0);
-  const projections = projectionDeals.map(deal => projectDeal(deal, loan.events, asOf, true));
-  const baselineProjections = projectionDeals.map(deal => projectDeal(deal, loan.events, asOf, false));
+  // When no published deals exist we project via buildCurrentStateProjectionDeal (id =
+  // CURRENT_STATE_PROJECTION_DEAL_ID). getDealEvents filters by dealId, so loan-level
+  // events (dealId = undefined) would be silently dropped. Remap them to the projection
+  // deal's id so they are included.
+  const eventsForProjection = publishedDeals.length > 0
+    ? loan.events
+    : loan.events.map(e => (!e.dealId ? { ...e, dealId: CURRENT_STATE_PROJECTION_DEAL_ID } : e));
+
+  const projections = projectionDeals.map(deal => projectDeal(deal, eventsForProjection, asOf, true));
+  const baselineProjections = projectionDeals.map(deal => projectDeal(deal, eventsForProjection, asOf, false));
   const lastProjection = projections[projections.length - 1];
   const currentBalance = lastProjection?.balance ?? originalBalance;
   const interestPaidEstimate = projections.reduce((sum, projection) => sum + projection.interestPaid, 0);
