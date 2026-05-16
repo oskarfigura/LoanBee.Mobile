@@ -25,7 +25,7 @@ import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ChevronRightIcon, CoinsStackedIcon, InfoCircleIcon, PlusIcon } from '@/components/ui/Icons';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { OverpaymentsComparisonChart } from '@/components/charts/OverpaymentsComparisonChart';
-import { CURRENCIES } from '@/currency/currencies';
+import { CURRENCIES, CurrencyCode } from '@/currency/currencies';
 import { formatCurrency } from '@/currency/format';
 import { upsertMortgageEvent, removeMortgageEvent } from '@/mortgage/events';
 import { buildDealBalanceArrays, getDealOverpaymentImpact, normaliseDealChain } from '@/mortgage/tracker';
@@ -79,7 +79,7 @@ export default function DealOverpaymentsScreen() {
   useFocusEffect(refresh);
 
   const deal = loan?.deals.find(d => d.id === dealId);
-  const currency = loan?.currency ?? 'GBP';
+  const currency = (loan?.currency ?? 'GBP') as CurrencyCode;
 
   const lumpSumEvents = useMemo(
     () => (loan?.events ?? [])
@@ -305,6 +305,8 @@ export default function DealOverpaymentsScreen() {
         visible={monthlySheetVisible}
         current={deal.regularOverpayment}
         currency={currency}
+        deal={deal}
+        loanEvents={loan.events}
         onSave={saveMonthlyOverpayment}
         onClose={() => setMonthlySheetVisible(false)}
       />
@@ -315,6 +317,8 @@ export default function DealOverpaymentsScreen() {
         currency={currency}
         minDate={dealMinDate}
         maxDate={dealMaxDate}
+        deal={deal}
+        loanEvents={loan.events}
         onSave={saveLumpSum}
         onDelete={deleteLumpSum}
         onClose={() => {
@@ -359,24 +363,47 @@ const MonthlySheet = ({
   visible,
   current,
   currency,
+  deal,
+  loanEvents,
   onSave,
   onClose,
 }: {
   visible: boolean;
   current: number;
-  currency: string;
+  currency: CurrencyCode;
+  deal: LoanDeal;
+  loanEvents: MortgageEvent[];
   onSave: (amount: number) => void;
   onClose: () => void;
 }) => {
   const { t } = useTranslation();
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
   const [value, setValue] = useState(current > 0 ? String(current) : '');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedAmount, setDebouncedAmount] = useState(current);
 
   React.useEffect(() => {
-    if (visible) setValue(current > 0 ? String(current) : '');
+    if (visible) {
+      setValue(current > 0 ? String(current) : '');
+      setDebouncedAmount(current);
+    }
   }, [visible, current]);
 
+  const handleChange = (text: string) => {
+    setValue(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedAmount(parseFloat(text) || 0), 400);
+  };
+
   const amount = parseFloat(value) || 0;
+
+  const impact = useMemo(() => {
+    if (debouncedAmount <= 0) return null;
+    const tempDeal: LoanDeal = { ...deal, regularOverpayment: debouncedAmount };
+    const result = getDealOverpaymentImpact(tempDeal, loanEvents);
+    return result.hasOverpayments ? result : null;
+  }, [deal, loanEvents, debouncedAmount]);
+
   const isUnchanged = amount === current;
   const canSave = amount > 0 && !isUnchanged;
   const canRemove = current > 0;
@@ -396,13 +423,30 @@ const MonthlySheet = ({
                 <InputAffix>{currencySymbol}</InputAffix>
                 <AppTextInput
                   value={value}
-                  onChangeText={setValue}
+                  onChangeText={handleChange}
                   placeholder="150"
                   keyboardType="decimal-pad"
                   autoFocus={visible}
                 />
               </InputSurface>
             </View>
+            {impact && impact.interestSaved > 0 ? (
+              <Card style={sheetStyles.impactCard}>
+                <AppText variant="labelSm" tone="muted">{t('overpayments.monthlySavings')}</AppText>
+                <View style={sheetStyles.impactRows}>
+                  <View style={sheetStyles.impactRow}>
+                    <AppText variant="bodySm" tone="muted">{t('mortgage.dealInterestSavedLabel')}</AppText>
+                    <AppText variant="labelMd" tone="success">{formatCurrency(impact.interestSaved, currency)}</AppText>
+                  </View>
+                  {impact.extraPrincipalRepaid > 0 ? (
+                    <View style={sheetStyles.impactRow}>
+                      <AppText variant="bodySm" tone="muted">{t('mortgage.dealExtraRepaidLabel')}</AppText>
+                      <AppText variant="labelMd" tone="success">{formatCurrency(impact.extraPrincipalRepaid, currency)}</AppText>
+                    </View>
+                  ) : null}
+                </View>
+              </Card>
+            ) : null}
             <View style={sheetStyles.actions}>
               {canRemove ? (
                 <Button
@@ -441,15 +485,19 @@ const LumpSumSheet = ({
   currency,
   minDate,
   maxDate,
+  deal,
+  loanEvents,
   onSave,
   onDelete,
   onClose,
 }: {
   visible: boolean;
   event: MortgageEvent | null;
-  currency: string;
+  currency: CurrencyCode;
   minDate: Date;
   maxDate: Date;
+  deal: LoanDeal;
+  loanEvents: MortgageEvent[];
   onSave: (date: string, amount: number) => void;
   onDelete: (eventId: string) => void;
   onClose: () => void;
@@ -460,20 +508,57 @@ const LumpSumSheet = ({
   const datePickerRef = useRef<DatePickerFieldHandle>(null);
   const minDateRef = useRef(minDate);
   minDateRef.current = minDate;
+  const amountDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dateDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [date, setDate] = useState(() => {
+  const initialDate = () => {
     const fallback = minDate > new Date() ? minDate : new Date();
     return event?.date ?? formatIsoDate(fallback);
-  });
+  };
+
+  const [date, setDate] = useState(initialDate);
   const [amount, setAmount] = useState(event?.amount ? String(event.amount) : '');
+  const [debouncedAmount, setDebouncedAmount] = useState(event?.amount ?? 0);
+  const [debouncedDate, setDebouncedDate] = useState(initialDate);
 
   React.useEffect(() => {
     if (visible) {
       const fallback = minDateRef.current > new Date() ? minDateRef.current : new Date();
-      setDate(event?.date ?? formatIsoDate(fallback));
+      const d = event?.date ?? formatIsoDate(fallback);
+      setDate(d);
+      setDebouncedDate(d);
       setAmount(event?.amount ? String(event.amount) : '');
+      setDebouncedAmount(event?.amount ?? 0);
     }
   }, [visible, event]);
+
+  const handleAmountChange = (text: string) => {
+    setAmount(text);
+    if (amountDebounceRef.current) clearTimeout(amountDebounceRef.current);
+    amountDebounceRef.current = setTimeout(() => setDebouncedAmount(parseFloat(text) || 0), 400);
+  };
+
+  const handleDateChange = (newDate: string) => {
+    setDate(newDate);
+    if (dateDebounceRef.current) clearTimeout(dateDebounceRef.current);
+    dateDebounceRef.current = setTimeout(() => setDebouncedDate(newDate), 200);
+  };
+
+  const impact = useMemo(() => {
+    if (debouncedAmount <= 0) return null;
+    const tempEvent: MortgageEvent = {
+      id: event?.id ?? 'preview',
+      createdAt: '',
+      updatedAt: '',
+      dealId: deal.id,
+      type: 'lumpOverpayment',
+      date: debouncedDate,
+      amount: debouncedAmount,
+    };
+    const tempEvents = [...loanEvents.filter(e => e.id !== event?.id), tempEvent];
+    const result = getDealOverpaymentImpact(deal, tempEvents);
+    return result.hasOverpayments ? result : null;
+  }, [deal, loanEvents, event, debouncedAmount, debouncedDate]);
 
   const parsedAmount = parseFloat(amount) || 0;
   const canSave = parsedAmount > 0;
@@ -504,7 +589,7 @@ const LumpSumSheet = ({
                 ref={datePickerRef}
                 label={t('overpayments.lumpSumDate')}
                 value={date}
-                onChange={setDate}
+                onChange={handleDateChange}
                 hint=""
                 minimumDate={minDate}
                 maximumDate={maxDate}
@@ -514,7 +599,7 @@ const LumpSumSheet = ({
                 <InputSurface>
                   <AppTextInput
                     value={amount}
-                    onChangeText={setAmount}
+                    onChangeText={handleAmountChange}
                     placeholder="5000"
                     keyboardType="decimal-pad"
                     onFocus={() => datePickerRef.current?.closePicker()}
@@ -522,6 +607,23 @@ const LumpSumSheet = ({
                 </InputSurface>
               </View>
             </View>
+            {impact && impact.interestSaved > 0 ? (
+              <Card style={sheetStyles.impactCard}>
+                <AppText variant="labelSm" tone="muted">{t('overpayments.lumpSumImpact')}</AppText>
+                <View style={sheetStyles.impactRows}>
+                  <View style={sheetStyles.impactRow}>
+                    <AppText variant="bodySm" tone="muted">{t('mortgage.dealInterestSavedLabel')}</AppText>
+                    <AppText variant="labelMd" tone="success">{formatCurrency(impact.interestSaved, currency)}</AppText>
+                  </View>
+                  {impact.extraPrincipalRepaid > 0 ? (
+                    <View style={sheetStyles.impactRow}>
+                      <AppText variant="bodySm" tone="muted">{t('mortgage.dealExtraRepaidLabel')}</AppText>
+                      <AppText variant="labelMd" tone="success">{formatCurrency(impact.extraPrincipalRepaid, currency)}</AppText>
+                    </View>
+                  ) : null}
+                </View>
+              </Card>
+            ) : null}
             <View style={sheetStyles.actions}>
               {isEditing ? (
                 <Button
@@ -691,6 +793,13 @@ const sheetStyles = StyleSheet.create({
   },
   field: { gap: spacing.xs },
   fields: { gap: spacing.sm },
+  impactCard: {
+    backgroundColor: colours.successLight,
+    borderColor: colours.successBorder,
+    gap: spacing.xs,
+  },
+  impactRows: { gap: spacing.xs },
+  impactRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
   actions: { flexDirection: 'row', gap: spacing.sm },
   actionBtn: { flex: 1 },
 });
