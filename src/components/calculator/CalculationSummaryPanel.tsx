@@ -52,42 +52,63 @@ export const CalculationSummaryPanel = ({
 
   return (
     <View style={styles.panel}>
-      {/* Panel 1 — Key Metrics with share action in the Monthly Payment header */}
+      {/* Panel 1 — Key Metrics: 2×2 grid with equal visual prominence */}
       <View style={styles.summaryRaisedPanel}>
-        <View style={styles.metricHeaderRow}>
-          <Text style={styles.summaryMetricLabel}>{t('results.monthlyPayment')}</Text>
-          {onShare ? (
-            <TouchableOpacity
-              style={styles.shareAction}
-              onPress={onShare}
-              activeOpacity={0.82}
-              accessibilityRole="button"
-            >
-              {shareIcon ? <View style={styles.shareIcon}>{shareIcon}</View> : null}
-              <Text style={styles.shareText} numberOfLines={1}>
-                {shareLabel ?? t('share.short')}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+        {onShare ? (
+          <TouchableOpacity
+            style={styles.shareAction}
+            onPress={onShare}
+            activeOpacity={0.82}
+            accessibilityRole="button"
+          >
+            {shareIcon ? <View style={styles.shareIcon}>{shareIcon}</View> : null}
+            <Text style={styles.shareText} numberOfLines={1}>
+              {shareLabel ?? t('share.short')}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {/* Row 1: Monthly Payment | Payoff Date */}
+        <View style={styles.metricRow}>
+          <View style={styles.metricCell}>
+            <Text style={styles.metricKicker}>{t('results.monthlyPayment')}</Text>
+            <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+              {formatCurrency(result.monthlyPayments, currency)}
+            </Text>
+          </View>
+          <View style={styles.metricCellSeparator} />
+          <View style={styles.metricCell}>
+            <Text style={styles.metricKicker}>{t('results.payoffDate')}</Text>
+            <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+              {payoffDateFormatted}
+            </Text>
+            {totalMonths > 0 ? (
+              <Text style={styles.metricHelper} numberOfLines={1}>{termHelper}</Text>
+            ) : null}
+          </View>
         </View>
-        <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
-          {formatCurrency(result.monthlyPayments, currency)}
-        </Text>
 
-        <View style={styles.metricDivider} />
+        <View style={styles.metricRowSeparator} />
 
-        <View style={styles.summaryMetricRow}>
-          <Text style={styles.summaryMetricLabel}>{t('results.payoffDate')}</Text>
-          <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
-            {payoffDateFormatted}
-          </Text>
-          {totalMonths > 0 ? (
-            <Text style={styles.summaryMetricHelper} numberOfLines={1}>{termHelper}</Text>
-          ) : null}
+        {/* Row 2: Total Interest | Total Cost */}
+        <View style={styles.metricRow}>
+          <View style={styles.metricCell}>
+            <Text style={styles.metricKicker}>{t('results.totalInterest')}</Text>
+            <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+              {formatCurrency(result.totalInterestPaid, currency)}
+            </Text>
+          </View>
+          <View style={styles.metricCellSeparator} />
+          <View style={styles.metricCell}>
+            <Text style={styles.metricKicker}>{t('results.totalCost')}</Text>
+            <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+              {formatCurrency(result.totalAmountPaid, currency)}
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* Panel 2 — Loan Details fact grid */}
+      {/* Panel 2 — Loan Details (secondary info) */}
       <View style={styles.summaryRaisedPanel}>
         <View style={styles.summarySectionHeader}>
           <Text style={styles.summarySectionKicker}>{t('loan.loanDetails')}</Text>
@@ -100,14 +121,6 @@ export const CalculationSummaryPanel = ({
           <SummaryFact
             label={t('calculator.interestRate')}
             value={`${result.interest}%`}
-          />
-          <SummaryFact
-            label={t('results.totalInterest')}
-            value={formatCurrency(result.totalInterestPaid, currency)}
-          />
-          <SummaryFact
-            label={t('results.totalCost')}
-            value={formatCurrency(result.totalAmountPaid, currency)}
           />
           {additionalPayment > 0 ? (
             <SummaryFact
@@ -137,40 +150,58 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     ...elevation.level2,
   },
-  metricHeaderRow: {
+  shareAction: {
+    alignSelf: 'flex-end',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xxs,
+    paddingHorizontal: spacing.xs,
+    minHeight: 32,
+    marginBottom: spacing.xs,
   },
-  summaryMetricRow: {
-    justifyContent: 'center',
-    paddingTop: spacing.md,
+  shareIcon: {
+    marginRight: 5,
   },
-  summaryMetricLabel: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.md,
-    lineHeight: 22,
-    color: colours.textSecondary,
-    marginBottom: spacing.xxs,
-  },
-  summaryMetricValue: {
+  shareText: {
     ...fontFaces.heading.bold,
-    fontSize: fontSizes.lg,
-    lineHeight: 25,
+    fontSize: fontSizes.xs,
     color: colours.primary,
   },
-  summaryMetricHelper: {
+  metricRow: {
+    flexDirection: 'row',
+    paddingVertical: spacing.md,
+  },
+  metricCell: {
+    flex: 1,
+    minWidth: 0,
+  },
+  metricCellSeparator: {
+    width: 1,
+    backgroundColor: colours.border,
+    marginHorizontal: spacing.md,
+  },
+  metricRowSeparator: {
+    height: 1,
+    backgroundColor: colours.border,
+    marginHorizontal: -spacing.lg,
+  },
+  metricKicker: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    textTransform: 'uppercase',
+    marginBottom: spacing.xxs,
+  },
+  metricValue: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes['2xl'],
+    color: colours.primary,
+  },
+  metricHelper: {
     ...fontFaces.body.medium,
     marginTop: spacing.xxxs,
     fontSize: fontSizes.xs,
     lineHeight: 16,
     color: colours.textSecondary,
-  },
-  metricDivider: {
-    height: 1,
-    backgroundColor: colours.border,
-    marginTop: spacing.md,
   },
   summarySectionHeader: {
     marginBottom: spacing.sm,
@@ -202,19 +233,5 @@ const styles = StyleSheet.create({
     ...fontFaces.heading.semibold,
     fontSize: fontSizes.sm,
     color: colours.textPrimary,
-  },
-  shareAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xs,
-    minHeight: 32,
-  },
-  shareIcon: {
-    marginRight: 5,
-  },
-  shareText: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.xs,
-    color: colours.primary,
   },
 });
