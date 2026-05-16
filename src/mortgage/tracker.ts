@@ -496,7 +496,6 @@ export interface DealOverpaymentImpact {
 export const getDealOverpaymentImpact = (
   deal: LoanDeal,
   events: MortgageEvent[],
-  asOf = new Date(),
 ): DealOverpaymentImpact => {
   // For completed deals, the completion block in projectDeal overrides interestPaid via
   // bank-confirmed reconciliation, which breaks like-for-like comparison. Strip the
@@ -506,8 +505,11 @@ export const getDealOverpaymentImpact = (
     ? { ...deal, status: 'active', endDate: deal.completion.completedAt, completion: undefined }
     : deal;
 
-  const actual = projectDeal(dealForImpact, events, asOf, true);
-  const baseline = projectDeal(dealForImpact, events, asOf, false);
+  // Project to deal end so impact is visible even for new deals — matches how
+  // the loan calculator shows full-term savings rather than "so far" savings.
+  const projectionEnd = parseDate(dealForImpact.endDate);
+  const actual = projectDeal(dealForImpact, events, projectionEnd, true);
+  const baseline = projectDeal(dealForImpact, events, projectionEnd, false);
 
   const dealEvents = events.filter(event => event.dealId === deal.id);
   const lumpOverpaymentTotal = dealEvents

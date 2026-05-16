@@ -659,7 +659,7 @@ const CurrentDealSummaryPanel = ({
         <SummaryFact label={t('mortgage.currentDealEnds')} value={formatFriendlyDate(currentDeal.endDate, i18n.language)} />
         <SummaryFact label={t('calculator.additionalPayment')} value={formatCurrency(currentDeal.regularOverpayment, loan.currency)} />
         {dealImpact?.hasOverpayments ? (
-          <SummaryFact label={t('mortgage.dealSavedSoFar')} value={formatCurrency(dealImpact.interestSaved, loan.currency)} />
+          <SummaryFact label={t('mortgage.dealInterestSavedLabel')} value={formatCurrency(dealImpact.interestSaved, loan.currency)} />
         ) : null}
       </View>
       <View style={styles.summarySourceRow}>
