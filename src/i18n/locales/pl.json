@@ -206,6 +206,11 @@
     "desiredPaymentExceeds": "Żądana rata nie może przekraczać salda kredytu",
     "additionalPaymentExceeds": "Dodatkowa płatność nie może przekraczać salda kredytu"
   },
+  "errorBoundary": {
+    "title": "Coś poszło nie tak",
+    "message": "Aplikacja napotkała nieoczekiwany błąd. Dotknij poniżej, aby spróbować ponownie — Twoje zapisane kredyty są bezpieczne.",
+    "retry": "Spróbuj ponownie"
+  },
   "common": {
     "goBack": "Wróć",
     "close": "Zamknij",

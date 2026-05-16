@@ -218,6 +218,11 @@
     "desiredPaymentExceeds": "Desired monthly payment cannot exceed the loan balance",
     "additionalPaymentExceeds": "Additional monthly payment cannot exceed the loan balance"
   },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "The app ran into an unexpected error. Tap below to try again — your saved loans are safe.",
+    "retry": "Try again"
+  },
   "common": {
     "goBack": "Go Back",
     "close": "Close",

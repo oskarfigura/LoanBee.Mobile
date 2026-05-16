@@ -19,6 +19,11 @@ import { AdProvider } from '@/ads/AdProvider';
 import { fontFaces, fontSizes } from '@/theme';
 import { recordReviewAppOpen } from '@/review';
 
+// Expo Router wraps this root route in a React error boundary when a component
+// named `ErrorBoundary` is exported here, catching render errors anywhere in the
+// app and showing a recovery screen instead of a blank white screen.
+export { ErrorBoundary } from '@/components/ui/RootErrorBoundary';
+
 SplashScreen.preventAutoHideAsync();
 
 const TabIcon = ({ symbol }: { symbol: string; color: string }) => (
