@@ -11,7 +11,7 @@ export default () => ({
     owner: 'oskarfigura',
     extra: {
       eas: {
-        projectId: '4fb78e7c-b9ae-41be-8afc-6c49ae025d03',
+        projectId: '06179207-8267-41ff-a5ed-dbb4cd7b439e',
       },
       admobBannerAndroid: process.env.ADMOB_BANNER_ANDROID_ID ?? null,
       admobBannerIos: process.env.ADMOB_BANNER_IOS_ID ?? null,

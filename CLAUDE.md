@@ -33,7 +33,7 @@ Screen padding: `paddingHorizontal: 16` (content), `20` (headers).
 
 - **Android package**: `com.cactus.loancalculator.free` — matches the existing Play Store listing with 28+ installs. Do not change this.
 - **iOS bundle ID**: `com.thetechnarrative.loanbee` — new App Store submission.
-- **EAS project ID**: `4fb78e7c-b9ae-41be-8afc-6c49ae025d03`
+- **EAS project ID**: `06179207-8267-41ff-a5ed-dbb4cd7b439e`
 - **Android versionCode**: currently `24` (supersedes production release 23 / v2.1). Always increment before a production build.
 
 ## Test Setup
