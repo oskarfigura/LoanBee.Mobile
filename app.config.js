@@ -1,14 +1,14 @@
 export default () => ({
   expo: {
     name: 'LoanBee',
-    slug: 'loanbee',
+    slug: 'loanbee-odr6tdznqbl20no30tw0',
     version: '1.0.0',
     orientation: 'default',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     scheme: 'loanbee',
     newArchEnabled: true,
-    owner: 'oskarfigura',
+    owner: 'thetechnarrative.uk',
     extra: {
       eas: {
         projectId: '06179207-8267-41ff-a5ed-dbb4cd7b439e',
