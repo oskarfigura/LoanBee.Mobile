@@ -195,12 +195,11 @@
     "skip": "Skip",
     "next": "Next",
     "tryItNow": "Try it now",
-    "exampleBadge": "EXAMPLE",
-    "heroLabel": "You'd save",
-    "yearsSooner": "{{years}} years sooner",
-    "legendWith": "With overpayments",
-    "legendWithout": "Without",
-    "exampleDisclaimer": "For illustration only. Your figures will differ.",
+    "exampleBadge": "Example",
+    "heroLabel": "You could save",
+    "heroSuffix": "in interest",
+    "yearsSooner": "{{years}} yrs sooner",
+    "exampleDisclaimer": "Illustration only · your figures will differ",
     "slides": [
       {
         "icon": "overpay",

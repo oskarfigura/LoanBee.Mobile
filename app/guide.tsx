@@ -9,16 +9,12 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
-  Easing,
   interpolate,
   SharedValue,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withTiming,
 } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,12 +29,9 @@ import {
 import { SvgProps } from '@/components/ui/Svg';
 import { markGuideSeen } from '@/onboarding/guideState';
 import {
-  BalanceSeries,
-  computeBalanceSeries,
   computeSampleSavings,
   getSampleScenario,
   SampleSavings,
-  SampleScenario,
 } from '@/onboarding/sampleScenario';
 import { getDefaultCurrency } from '@/hooks/useLoanCalculatorForm';
 import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
@@ -53,9 +46,7 @@ interface Slide {
 }
 
 interface ChartData {
-  scenario: SampleScenario;
   savings: SampleSavings;
-  series: BalanceSeries;
   currency: CurrencyCode;
 }
 
@@ -74,9 +65,6 @@ interface SlideTheme {
   titleColor: string;
   subtitleColor: string;
   heroAccent: string;
-  chartLineBaseline: string;
-  chartLineWith: string;
-  chartFillWith: string;
 }
 
 const SLIDE_THEMES: Record<string, SlideTheme> = {
@@ -87,9 +75,6 @@ const SLIDE_THEMES: Record<string, SlideTheme> = {
     titleColor: colours.white,
     subtitleColor: colours.textInverse,
     heroAccent: colours.honey,
-    chartLineBaseline: 'rgba(11,28,48,0.32)',
-    chartLineWith: colours.primary,
-    chartFillWith: 'rgba(244,180,0,0.22)',
   },
   accent: {
     cardBg: colours.surfaceStrong,
@@ -98,9 +83,6 @@ const SLIDE_THEMES: Record<string, SlideTheme> = {
     titleColor: colours.primaryInk,
     subtitleColor: colours.textSecondary,
     heroAccent: colours.primary,
-    chartLineBaseline: 'rgba(15,23,42,0.18)',
-    chartLineWith: colours.primary,
-    chartFillWith: 'rgba(0,45,114,0.12)',
   },
   success: {
     cardBg: colours.successLight,
@@ -109,9 +91,6 @@ const SLIDE_THEMES: Record<string, SlideTheme> = {
     titleColor: colours.primaryInk,
     subtitleColor: colours.textSecondary,
     heroAccent: colours.success,
-    chartLineBaseline: 'rgba(15,23,42,0.18)',
-    chartLineWith: colours.success,
-    chartFillWith: 'rgba(4,109,64,0.14)',
   },
 };
 
@@ -133,9 +112,7 @@ export default function GuideScreen() {
     const currency = getDefaultCurrency();
     const scenario = getSampleScenario(currency);
     return {
-      scenario,
       savings: computeSampleSavings(scenario),
-      series: computeBalanceSeries(scenario),
       currency,
     };
   }, []);
@@ -323,15 +300,9 @@ function SlideView({ slide, index, width, scrollX, chartData }: SlideViewProps) 
               </AppText>
             </Animated.View>
             <Animated.View style={[styles.heroExample, heroStyle]}>
-              <SavingsHero chartData={chartData} theme={theme} />
+              <SavingsHero chartData={chartData} />
             </Animated.View>
           </View>
-          <AppText
-            variant="helper"
-            style={[styles.exampleDisclaimer, { color: theme.subtitleColor }]}
-          >
-            {t('guide.exampleDisclaimer')}
-          </AppText>
         </View>
       </View>
     );
@@ -392,162 +363,49 @@ function useCountUp(target: number, duration = 1100, delay = 120): number {
 
 interface SavingsHeroProps {
   chartData: ChartData;
-  theme: SlideTheme;
 }
 
-function SavingsHero({ chartData, theme }: SavingsHeroProps) {
+function SavingsHero({ chartData }: SavingsHeroProps) {
   const { t } = useTranslation();
-  const { savings, series, currency } = chartData;
+  const { savings, currency } = chartData;
   const symbol = (CURRENCIES.find(c => c.code === currency) ?? CURRENCIES[0]).symbol;
   const heroTarget = Math.round(savings.interestSaved / 1000) * 1000;
   const animatedValue = useCountUp(heroTarget);
-  const years = Math.round(savings.monthsSaved / 12);
-  const sparklineOpacity = useSharedValue(0);
-  const sparklineLift = useSharedValue(8);
-
-  useEffect(() => {
-    // Sparkline fades in after the count-up number settles.
-    sparklineOpacity.value = 0;
-    sparklineLift.value = 8;
-    const timing = { duration: 600, easing: Easing.out(Easing.cubic) };
-    sparklineOpacity.value = withDelay(600, withTiming(1, timing));
-    sparklineLift.value = withDelay(600, withTiming(0, timing));
-  }, [sparklineOpacity, sparklineLift]);
-
-  const sparklineStyle = useAnimatedStyle(() => ({
-    opacity: sparklineOpacity.value,
-    transform: [{ translateY: sparklineLift.value }],
-  }));
+  const yearsSaved = Math.round(savings.monthsSaved / 12);
 
   return (
-    <View style={[styles.heroPanel, { backgroundColor: colours.whiteSubtle }]}>
+    <View style={styles.heroPanel}>
       <View style={styles.heroHeader}>
-        <View style={[styles.exampleBadge, { backgroundColor: theme.heroAccent }]}>
-          <AppText style={[styles.exampleBadgeText, { color: colours.primary }]}>
+        <View style={styles.exampleBadge}>
+          <View style={styles.exampleBadgeDot} />
+          <AppText style={styles.exampleBadgeText}>
             {t('guide.exampleBadge')}
           </AppText>
         </View>
-        <View style={[styles.yearsPill, { backgroundColor: theme.cardBg }]}>
-          <AppText style={[styles.yearsPillText, { color: theme.titleColor }]}>
-            {t('guide.yearsSooner', { years })}
+        <View style={styles.yearsPill}>
+          <AppText style={styles.yearsPillText}>
+            {t('guide.yearsSooner', { years: yearsSaved })}
           </AppText>
         </View>
       </View>
 
-      <AppText
-        style={[styles.heroLabel, { color: theme.cardBg }]}
-      >
-        {t('guide.heroLabel')}
-      </AppText>
-      <AppText
-        style={[styles.heroNumber, { color: theme.cardBg }]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.6}
-      >
-        {`${symbol}${animatedValue.toLocaleString('en-GB')}`}
-      </AppText>
-
-      <Animated.View style={[styles.sparklineWrap, sparklineStyle]}>
-        <Sparkline series={series} theme={theme} />
-      </Animated.View>
-
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendSwatch, { backgroundColor: theme.chartLineWith }]} />
-          <AppText style={[styles.legendText, { color: theme.cardBg }]}>
-            {t('guide.legendWith')}
-          </AppText>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={styles.legendSwatchDashed}>
-            <View style={[styles.legendDash, { backgroundColor: theme.cardBg }]} />
-            <View style={[styles.legendDash, { backgroundColor: theme.cardBg }]} />
-            <View style={[styles.legendDash, { backgroundColor: theme.cardBg }]} />
-          </View>
-          <AppText style={[styles.legendText, { color: theme.cardBg }]}>
-            {t('guide.legendWithout')}
-          </AppText>
-        </View>
+      <View style={styles.heroBody}>
+        <AppText style={styles.heroLabel}>{t('guide.heroLabel')}</AppText>
+        <AppText
+          style={styles.heroNumber}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+        >
+          {`${symbol}${animatedValue.toLocaleString('en-GB')}`}
+        </AppText>
+        <AppText style={styles.heroSuffix}>{t('guide.heroSuffix')}</AppText>
       </View>
+
+      <AppText style={styles.exampleDisclaimerInline}>
+        {t('guide.exampleDisclaimer')}
+      </AppText>
     </View>
-  );
-}
-
-interface SparklineProps {
-  series: BalanceSeries;
-  theme: SlideTheme;
-}
-
-function Sparkline({ series, theme }: SparklineProps) {
-  const { width: screenWidth } = useWindowDimensions();
-  // The sparkline lives inside the hero panel, which is inside the card.
-  // slideOuter pads spacing.md outside; card pads spacing.xl; hero panel
-  // pads spacing.lg — subtract them all.
-  const width = Math.min(
-    screenWidth - spacing.md * 2 - spacing.xl * 2 - spacing.lg * 2,
-    320,
-  );
-  const height = 84;
-  const padX = 2;
-  const padY = 4;
-  const usableW = width - padX * 2;
-  const usableH = height - padY * 2;
-
-  const points = series.baseline.length;
-  const project = (val: number, i: number) => {
-    const x = padX + (i / (points - 1)) * usableW;
-    const y = padY + usableH - (val / series.initialBalance) * usableH;
-    return { x, y };
-  };
-
-  const toPath = (arr: number[]): string => {
-    let d = '';
-    arr.forEach((val, i) => {
-      const { x, y } = project(val, i);
-      d += i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
-    });
-    return d;
-  };
-
-  // Filled "savings region" — trace the with-overpayment curve left-to-right
-  // then the baseline curve right-to-left, then close. The enclosed area is
-  // the visible gap between the two curves: that gap IS the saving.
-  const toRegionPath = (): string => {
-    let d = '';
-    series.withOverpayment.forEach((val, i) => {
-      const { x, y } = project(val, i);
-      d += i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
-    });
-    for (let i = points - 1; i >= 0; i--) {
-      const { x, y } = project(series.baseline[i], i);
-      d += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
-    }
-    d += ' Z';
-    return d;
-  };
-
-  return (
-    <Svg width={width} height={height}>
-      <Path d={toRegionPath()} fill={theme.chartFillWith} />
-      <Path
-        d={toPath(series.baseline)}
-        stroke={theme.chartLineBaseline}
-        strokeWidth={1.5}
-        strokeDasharray="4 4"
-        fill="none"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <Path
-        d={toPath(series.withOverpayment)}
-        stroke={theme.chartLineWith}
-        strokeWidth={2.5}
-        fill="none"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </Svg>
   );
 }
 
@@ -598,113 +456,96 @@ const styles = StyleSheet.create({
   exampleInner: {
     flex: 1,
     width: '100%',
+    justifyContent: 'center',
   },
   exampleTextWrap: {
     alignItems: 'center',
     paddingHorizontal: spacing.xs,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   heroExample: {
     width: '100%',
     alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
   },
   heroPanel: {
     width: '100%',
-    borderRadius: 22,
+    backgroundColor: colours.surfaceRaised,
+    borderRadius: 28,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    shadowColor: colours.shadow,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 8,
   },
   heroHeader: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   exampleBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs + 1,
-    borderRadius: radii.full,
-  },
-  exampleBadgeText: {
-    ...fontFaces.heading.extrabold,
-    fontSize: 10,
-    lineHeight: 12,
-    letterSpacing: 1.2,
-  },
-  yearsPill: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xxs + 1,
-    borderRadius: radii.full,
-  },
-  yearsPillText: {
-    ...fontFaces.heading.bold,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 0.3,
-  },
-  heroLabel: {
-    ...fontFaces.body.medium,
-    fontSize: 12,
-    lineHeight: 14,
-    letterSpacing: 0.4,
-    opacity: 0.72,
-    textTransform: 'uppercase',
-    alignSelf: 'flex-start',
-    marginBottom: spacing.xxs,
-  },
-  heroNumber: {
-    ...fontFaces.heading.extrabold,
-    fontSize: 44,
-    lineHeight: 48,
-    letterSpacing: -1.1,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  sparklineWrap: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: spacing.xs,
-  },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    columnGap: spacing.md,
-    rowGap: spacing.xxs,
-    marginTop: spacing.md,
-  },
-  legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs + 2,
+    borderRadius: radii.full,
+    backgroundColor: colours.honeySoft,
   },
-  legendSwatch: {
-    width: 18,
-    height: 3,
-    borderRadius: 2,
+  exampleBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: radii.full,
+    backgroundColor: colours.honey,
   },
-  legendSwatchDashed: {
-    width: 18,
-    height: 3,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  legendDash: {
-    width: 4,
-    height: 2,
-    borderRadius: 1,
-    opacity: 0.55,
-  },
-  legendText: {
-    ...fontFaces.body.semibold,
+  exampleBadgeText: {
+    ...fontFaces.heading.bold,
     fontSize: 11,
+    lineHeight: 13,
+    letterSpacing: 0.4,
+    color: colours.primary,
+  },
+  yearsPill: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs + 2,
+    borderRadius: radii.full,
+    backgroundColor: colours.surfaceMuted,
+  },
+  yearsPillText: {
+    ...fontFaces.heading.bold,
+    fontSize: 12,
     lineHeight: 14,
+    color: colours.primary,
+  },
+  heroBody: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+  },
+  heroLabel: {
+    ...fontFaces.body.medium,
+    fontSize: 13,
+    lineHeight: 16,
+    color: colours.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  heroNumber: {
+    ...fontFaces.heading.extrabold,
+    fontSize: 64,
+    lineHeight: 68,
+    letterSpacing: -2,
+    color: colours.primaryInk,
+    textAlign: 'center',
+  },
+  heroSuffix: {
+    ...fontFaces.body.medium,
+    fontSize: 13,
+    lineHeight: 16,
+    color: colours.textSecondary,
+    marginTop: spacing.xs,
   },
   textWrap: {
     alignItems: 'center',
@@ -719,11 +560,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 300,
   },
-  exampleDisclaimer: {
+  exampleDisclaimerInline: {
+    ...fontFaces.body.regular,
+    fontSize: 10,
+    lineHeight: 13,
+    color: colours.textSecondary,
     textAlign: 'center',
-    opacity: 0.55,
+    marginTop: spacing.md,
     fontStyle: 'italic',
-    marginTop: spacing.sm,
+    opacity: 0.7,
   },
   footer: {
     paddingHorizontal: layout.screenPadding,

@@ -195,12 +195,11 @@
     "skip": "Pomiń",
     "next": "Dalej",
     "tryItNow": "Spróbuj teraz",
-    "exampleBadge": "PRZYKŁAD",
-    "heroLabel": "Zaoszczędzisz",
+    "exampleBadge": "Przykład",
+    "heroLabel": "Możesz zaoszczędzić",
+    "heroSuffix": "na odsetkach",
     "yearsSooner": "{{years}} lat krócej",
-    "legendWith": "Z nadpłatami",
-    "legendWithout": "Bez nadpłat",
-    "exampleDisclaimer": "Tylko dla ilustracji. Twoje wartości będą się różnić.",
+    "exampleDisclaimer": "Tylko ilustracja · Twoje wartości będą się różnić",
     "slides": [
       {
         "icon": "overpay",
