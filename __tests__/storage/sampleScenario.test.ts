@@ -29,11 +29,22 @@ describe('sampleScenario', () => {
 
   describe('computeSampleSavings', () => {
     it.each(currencies)('produces meaningful savings for %s', currency => {
-      const { interestSaved, monthsSaved } = computeSampleSavings(
-        getSampleScenario(currency),
+      const savings = computeSampleSavings(getSampleScenario(currency));
+      expect(savings.baselineInterest).toBeGreaterThan(0);
+      expect(savings.withOverpaymentInterest).toBeGreaterThan(0);
+      expect(savings.withOverpaymentInterest).toBeLessThan(savings.baselineInterest);
+      expect(savings.interestSaved).toBeGreaterThan(0);
+      expect(savings.monthsSaved).toBeGreaterThan(0);
+    });
+
+    it('interestSaved equals baseline minus with-overpayment', () => {
+      // The chart trusts this identity so the visible bar delta matches the
+      // headline savings figure.
+      const savings = computeSampleSavings(getSampleScenario('GBP'));
+      expect(savings.interestSaved).toBeCloseTo(
+        savings.baselineInterest - savings.withOverpaymentInterest,
+        2,
       );
-      expect(interestSaved).toBeGreaterThan(0);
-      expect(monthsSaved).toBeGreaterThan(0);
     });
 
     it('GBP scenario saves a believable amount and time', () => {

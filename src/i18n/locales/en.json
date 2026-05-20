@@ -195,7 +195,9 @@
     "skip": "Skip",
     "next": "Next",
     "tryItNow": "Try it now",
-    "example": "Example: save ~{{savings}} and {{years}} years on a {{amount}} mortgage",
+    "exampleWithout": "Without overpayment",
+    "exampleWith": "With {{amount}}/mo extra",
+    "exampleSaves": "Save ~{{savings}} & {{years}} years",
     "exampleDisclaimer": "For illustration only. Your figures will differ.",
     "slides": [
       {

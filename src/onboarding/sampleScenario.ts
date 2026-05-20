@@ -32,6 +32,8 @@ export function getSampleScenario(currency: CurrencyCode): SampleScenario {
 }
 
 export interface SampleSavings {
+  baselineInterest: number;
+  withOverpaymentInterest: number;
   interestSaved: number;
   monthsSaved: number;
 }
@@ -63,6 +65,8 @@ export function computeSampleSavings(scenario: SampleScenario): SampleSavings {
     startDate,
   );
   return {
+    baselineInterest: baseline.totalInterestPaid,
+    withOverpaymentInterest: withOverpayment.totalInterestPaid,
     interestSaved: Math.max(0, baseline.totalInterestPaid - withOverpayment.totalInterestPaid),
     monthsSaved: Math.max(0, baseline.tableItems.length - withOverpayment.tableItems.length),
   };

@@ -9,11 +9,14 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
+  Easing,
   interpolate,
   SharedValue,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withTiming,
 } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -31,8 +34,11 @@ import { markGuideSeen } from '@/onboarding/guideState';
 import {
   computeSampleSavings,
   getSampleScenario,
+  SampleSavings,
+  SampleScenario,
 } from '@/onboarding/sampleScenario';
 import { getDefaultCurrency } from '@/hooks/useLoanCalculatorForm';
+import { CurrencyCode } from '@/currency/currencies';
 import { formatCurrencyCompact } from '@/currency/format';
 import { colours, layout, radii, spacing } from '@/theme';
 
@@ -44,10 +50,10 @@ interface Slide {
   example?: boolean;
 }
 
-interface ExampleData {
-  savings: string;
-  amount: string;
-  years: number;
+interface ChartData {
+  scenario: SampleScenario;
+  savings: SampleSavings;
+  currency: CurrencyCode;
 }
 
 type IconComponent = (props: SvgProps) => React.JSX.Element;
@@ -101,17 +107,13 @@ export default function GuideScreen() {
   const listRef = useRef<FlatList<Slide>>(null);
   const scrollX = useSharedValue(0);
 
-  // Compute the savings shown on slide 1 from the same scenario the "Try it
-  // now" CTA prefills, so the headline figure matches the calculator result.
-  const exampleData: ExampleData = useMemo(() => {
+  // Compute the savings shown on the slide-1 chart from the same scenario the
+  // "Try it now" CTA prefills, so the headline figure matches the calculator
+  // result and the visible bar delta matches the headline savings.
+  const chartData: ChartData = useMemo(() => {
     const currency = getDefaultCurrency();
     const scenario = getSampleScenario(currency);
-    const savings = computeSampleSavings(scenario);
-    return {
-      savings: formatCurrencyCompact(savings.interestSaved, currency),
-      amount: formatCurrencyCompact(scenario.loanAmount, currency),
-      years: Math.round(savings.monthsSaved / 12),
-    };
+    return { scenario, savings: computeSampleSavings(scenario), currency };
   }, []);
 
   // Reaching this screen counts as having seen the guide, so it never
@@ -186,7 +188,7 @@ export default function GuideScreen() {
             index={i}
             width={width}
             scrollX={scrollX}
-            exampleData={exampleData}
+            chartData={chartData}
           />
         )}
       />
@@ -233,18 +235,18 @@ interface SlideViewProps {
   index: number;
   width: number;
   scrollX: SharedValue<number>;
-  exampleData: ExampleData;
+  chartData: ChartData;
 }
 
-function SlideView({ slide, index, width, scrollX, exampleData }: SlideViewProps) {
+function SlideView({ slide, index, width, scrollX, chartData }: SlideViewProps) {
   const { t } = useTranslation();
   const Icon = SLIDE_ICONS[slide.icon] ?? ZapIcon;
   const theme = SLIDE_THEMES[slide.theme] ?? SLIDE_THEMES.primary;
   const slideOffset = width * index;
 
-  // Parallax: icon drifts horizontally and fades slightly faster than the rail,
-  // so each slide feels like its own scene rather than a flat horizontal page.
-  const iconStyle = useAnimatedStyle(() => {
+  // Parallax: hero element drifts horizontally and fades slightly faster than
+  // the rail, so each slide feels like its own scene rather than a flat page.
+  const heroStyle = useAnimatedStyle(() => {
     const distance = scrollX.value - slideOffset;
     const opacity = interpolate(
       Math.abs(distance),
@@ -260,8 +262,8 @@ function SlideView({ slide, index, width, scrollX, exampleData }: SlideViewProps
     return { opacity, transform: [{ translateX }] };
   });
 
-  // Text settles in slightly later than the icon and fades over a tighter range,
-  // which produces a soft cross-fade between adjacent slides.
+  // Text settles in slightly later than the hero and fades over a tighter
+  // range, which produces a soft cross-fade between adjacent slides.
   const textStyle = useAnimatedStyle(() => {
     const distance = scrollX.value - slideOffset;
     const opacity = interpolate(
@@ -282,10 +284,17 @@ function SlideView({ slide, index, width, scrollX, exampleData }: SlideViewProps
   return (
     <View style={[styles.slideOuter, { width }]}>
       <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
-        <Animated.View style={[styles.iconWrap, iconStyle]}>
-          <View style={[styles.blob, { backgroundColor: theme.blobBg }]} />
-          <Icon color={theme.iconColor} size={104} strokeWidth={1.6} />
-        </Animated.View>
+        {slide.example ? (
+          <Animated.View style={[styles.chartHero, heroStyle]}>
+            <SavingsChart chartData={chartData} theme={theme} />
+          </Animated.View>
+        ) : (
+          <Animated.View style={[styles.iconWrap, heroStyle]}>
+            <View style={[styles.blob, { backgroundColor: theme.blobBg }]} />
+            <Icon color={theme.iconColor} size={104} strokeWidth={1.6} />
+          </Animated.View>
+        )}
+
         <Animated.View style={[styles.textWrap, textStyle]}>
           <AppText
             variant="title1"
@@ -300,23 +309,103 @@ function SlideView({ slide, index, width, scrollX, exampleData }: SlideViewProps
             {slide.subtitle}
           </AppText>
           {slide.example ? (
-            <View style={styles.exampleBlock}>
-              <AppText
-                variant="bodySm"
-                style={[styles.exampleStat, { color: theme.titleColor }]}
-              >
-                {t('guide.example', { ...exampleData })}
-              </AppText>
-              <AppText
-                variant="helper"
-                style={[styles.exampleDisclaimer, { color: theme.subtitleColor }]}
-              >
-                {t('guide.exampleDisclaimer')}
-              </AppText>
-            </View>
+            <AppText
+              variant="helper"
+              style={[styles.exampleDisclaimer, { color: theme.subtitleColor }]}
+            >
+              {t('guide.exampleDisclaimer')}
+            </AppText>
           ) : null}
         </Animated.View>
       </View>
+    </View>
+  );
+}
+
+interface SavingsChartProps {
+  chartData: ChartData;
+  theme: SlideTheme;
+}
+
+function SavingsChart({ chartData, theme }: SavingsChartProps) {
+  const { t } = useTranslation();
+  const { scenario, savings, currency } = chartData;
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    // Bars grow from zero to their final width on first render.
+    progress.value = withDelay(
+      120,
+      withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }),
+    );
+  }, [progress]);
+
+  const baselineFmt = formatCurrencyCompact(savings.baselineInterest, currency);
+  const withFmt = formatCurrencyCompact(savings.withOverpaymentInterest, currency);
+  const monthlyFmt = formatCurrencyCompact(scenario.additionalMonthlyPayment, currency).replace(/\.00$/, '');
+  const savingsFmt = formatCurrencyCompact(savings.interestSaved, currency);
+  const years = Math.round(savings.monthsSaved / 12);
+  const withRatio = savings.withOverpaymentInterest / savings.baselineInterest;
+
+  const baselineBarStyle = useAnimatedStyle(() => ({
+    width: `${interpolate(progress.value, [0, 1], [0, 100], 'clamp')}%`,
+  }));
+
+  const withBarStyle = useAnimatedStyle(() => ({
+    width: `${interpolate(progress.value, [0, 1], [0, withRatio * 100], 'clamp')}%`,
+  }));
+
+  const summaryStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0.6, 1], [0, 1], 'clamp'),
+    transform: [{ translateY: interpolate(progress.value, [0.6, 1], [8, 0], 'clamp') }],
+  }));
+
+  return (
+    <View style={styles.chartWrap}>
+      <View style={styles.chartRow}>
+        <AppText
+          variant="labelSm"
+          style={[styles.chartCaption, { color: theme.subtitleColor }]}
+        >
+          {t('guide.exampleWithout')}
+        </AppText>
+        <AppText
+          variant="labelMd"
+          style={[styles.chartValue, { color: theme.titleColor }]}
+        >
+          {baselineFmt}
+        </AppText>
+      </View>
+      <View style={styles.barTrack}>
+        <Animated.View style={[styles.barFill, styles.barFillBaseline, baselineBarStyle]} />
+      </View>
+
+      <View style={[styles.chartRow, styles.chartRowGap]}>
+        <AppText
+          variant="labelSm"
+          style={[styles.chartCaption, { color: theme.subtitleColor }]}
+        >
+          {t('guide.exampleWith', { amount: monthlyFmt })}
+        </AppText>
+        <AppText
+          variant="labelMd"
+          style={[styles.chartValue, { color: colours.honey }]}
+        >
+          {withFmt}
+        </AppText>
+      </View>
+      <View style={styles.barTrack}>
+        <Animated.View style={[styles.barFill, styles.barFillWith, withBarStyle]} />
+      </View>
+
+      <Animated.View style={[styles.chartSummaryWrap, summaryStyle]}>
+        <AppText
+          variant="title3"
+          style={[styles.chartSummary, { color: theme.titleColor }]}
+        >
+          {t('guide.exampleSaves', { savings: savingsFmt, years })}
+        </AppText>
+      </Animated.View>
     </View>
   );
 }
@@ -362,6 +451,53 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     opacity: 0.55,
   },
+  chartHero: {
+    width: '100%',
+    maxWidth: 340,
+    marginBottom: spacing.xl,
+  },
+  chartWrap: {
+    width: '100%',
+  },
+  chartRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: spacing.xxs,
+  },
+  chartRowGap: {
+    marginTop: spacing.md,
+  },
+  chartCaption: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    opacity: 0.85,
+  },
+  chartValue: {},
+  barTrack: {
+    width: '100%',
+    height: 10,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: radii.full,
+  },
+  barFillBaseline: {
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
+  barFillWith: {
+    backgroundColor: colours.honey,
+  },
+  chartSummaryWrap: {
+    marginTop: spacing.lg,
+    alignItems: 'center',
+  },
+  chartSummary: {
+    textAlign: 'center',
+  },
   textWrap: {
     alignItems: 'center',
     paddingHorizontal: spacing.md,
@@ -375,18 +511,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 300,
   },
-  exampleBlock: {
-    marginTop: spacing.md,
-    alignItems: 'center',
-    gap: spacing.xxs,
-  },
-  exampleStat: {
-    textAlign: 'center',
-    maxWidth: 320,
-    opacity: 0.92,
-  },
   exampleDisclaimer: {
     textAlign: 'center',
+    marginTop: spacing.sm,
     opacity: 0.75,
     fontStyle: 'italic',
   },
