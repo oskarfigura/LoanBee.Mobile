@@ -194,8 +194,7 @@
     "title": "Jak to działa",
     "skip": "Pomiń",
     "next": "Dalej",
-    "trySample": "Wypróbuj przykład",
-    "startFresh": "Zacznij od zera",
+    "tryItNow": "Spróbuj teraz",
     "slides": [
       {
         "icon": "overpay",

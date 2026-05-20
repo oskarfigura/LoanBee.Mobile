@@ -176,21 +176,11 @@ export default function GuideScreen() {
         </View>
 
         {isLast ? (
-          <View style={styles.lastActions}>
-            <Button
-              label={t('guide.trySample')}
-              onPress={() => leave(true)}
-              rightIcon={<ArrowRightIcon color={colours.white} size={18} strokeWidth={2} />}
-            />
-            <TouchableOpacity
-              onPress={() => leave(false)}
-              accessibilityRole="button"
-              hitSlop={6}
-              style={styles.startFreshBtn}
-            >
-              <AppText variant="labelMd" tone="muted">{t('guide.startFresh')}</AppText>
-            </TouchableOpacity>
-          </View>
+          <Button
+            label={t('guide.tryItNow')}
+            onPress={() => leave(true)}
+            rightIcon={<ArrowRightIcon color={colours.white} size={18} strokeWidth={2} />}
+          />
         ) : (
           <View style={styles.nextRow}>
             <Button
@@ -362,13 +352,5 @@ const styles = StyleSheet.create({
   },
   nextRow: {
     alignItems: 'flex-end',
-  },
-  lastActions: {
-    gap: spacing.sm,
-  },
-  startFreshBtn: {
-    alignSelf: 'center',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
   },
 });
