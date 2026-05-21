@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import MobileAds, { AdsConsent, AdsConsentStatus } from 'react-native-google-mobile-ads';
 import { markConsentFlowComplete } from '@/onboarding/firstRunGate';
+import { InterstitialGate } from './InterstitialGate';
 
 interface Props {
   children: React.ReactNode;
@@ -26,5 +27,10 @@ export const AdProvider = ({ children }: Props) => {
     })();
   }, []);
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <InterstitialGate />
+    </>
+  );
 };

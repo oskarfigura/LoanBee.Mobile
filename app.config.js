@@ -15,6 +15,8 @@ export default () => ({
       },
       admobBannerAndroid: process.env.ADMOB_BANNER_ANDROID_ID ?? null,
       admobBannerIos: process.env.ADMOB_BANNER_IOS_ID ?? null,
+      admobInterstitialAndroid: process.env.ADMOB_INTERSTITIAL_ANDROID_ID ?? null,
+      admobInterstitialIos: process.env.ADMOB_INTERSTITIAL_IOS_ID ?? null,
     },
     ios: {
       supportsTablet: true,
