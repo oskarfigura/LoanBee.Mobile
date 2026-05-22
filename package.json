@@ -52,6 +52,25 @@
         }
       },
       {
+        "displayName": "display",
+        "testMatch": [
+          "<rootDir>/__tests__/display/**/*.test.ts"
+        ],
+        "modulePathIgnorePatterns": [
+          "<rootDir>/.worktrees/"
+        ],
+        "preset": "ts-jest",
+        "testEnvironment": "node",
+        "moduleNameMapper": {
+          "^@/(.*)$": "<rootDir>/src/$1"
+        },
+        "globals": {
+          "ts-jest": {
+            "isolatedModules": true
+          }
+        }
+      },
+      {
         "displayName": "design-system",
         "testMatch": [
           "<rootDir>/__tests__/design-system/**/*.test.ts"

@@ -3,14 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, LayoutChangeEvent
 import { GestureDetector, NativeGesture } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
-import { formatCurrency } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
+import { buildAmortisationDisplayRows } from '@/loans/loanDisplayContract';
 import { clampPage, getPaginationWindow } from './pagination';
 import {
   AmortisationTableItem,
-  formatAmortisationPeriodLabel,
 } from './amortisationTableUtils';
-import { formatFriendlyMonthYear } from '@/utils/date';
 
 interface Props {
   items: AmortisationTableItem[];
@@ -36,6 +34,13 @@ export const AmortisationTable = ({ items, startDate, currency, pageSize = 12, s
   const totalPages = Math.ceil(items.length / pageSize);
   const safePage = clampPage(page, totalPages);
   const pageItems = items.slice(safePage * pageSize, (safePage + 1) * pageSize);
+  const displayRows = buildAmortisationDisplayRows({
+    items,
+    startDate,
+    currency,
+    language: i18n.language,
+  });
+  const pageDisplayRows = displayRows.slice(safePage * pageSize, (safePage + 1) * pageSize);
   const visiblePages = getPaginationWindow(safePage, totalPages, 5);
   const tableWidth = Math.max(TABLE_WIDTH, containerWidth);
   const periodColumnWidth = Math.round(tableWidth * 0.21);
@@ -88,10 +93,13 @@ export const AmortisationTable = ({ items, startDate, currency, pageSize = 12, s
           {pageItems.map((item, i) => {
             const globalIndex = safePage * pageSize + i;
             const previousItem = items[globalIndex - 1];
+            const displayRow = pageDisplayRows[i];
+            const openingBalance = displayRow?.metrics.find(metric => metric.id === 'openingBalance');
+            const principal = displayRow?.metrics.find(metric => metric.id === 'principal');
+            const interest = displayRow?.metrics.find(metric => metric.id === 'interest');
+            const closingBalance = displayRow?.metrics.find(metric => metric.id === 'closingBalance');
             const showDealGroup = Boolean(item.dealId && item.dealId !== previousItem?.dealId);
-            const periodLabel = item.date
-              ? formatFriendlyMonthYear(item.date, i18n.language)
-              : formatAmortisationPeriodLabel(startDate, item.itemNo, i18n.language);
+            const periodLabel = displayRow?.period;
 
             return (
               <React.Fragment key={item.itemNo}>
@@ -109,16 +117,16 @@ export const AmortisationTable = ({ items, startDate, currency, pageSize = 12, s
                   <Text style={[styles.cell, styles.periodCell, periodColumnStyle]}>
                     {periodLabel}
                   </Text>
-                  <Text style={[styles.cell, styles.balanceCell, balanceColumnStyle]}>{formatCurrency(+item.remaining, currency)}</Text>
+                  <Text style={[styles.cell, styles.balanceCell, balanceColumnStyle]}>{openingBalance?.value}</Text>
                   <View style={[styles.paymentCell, paymentColumnStyle]}>
                     <Text style={[styles.splitAmount, styles.principalAmount]} numberOfLines={1} adjustsFontSizeToFit>
-                      {formatCurrency(+item.principal, currency)}
+                      {principal?.value}
                     </Text>
                     <Text style={[styles.splitAmount, styles.interestAmount]} numberOfLines={1} adjustsFontSizeToFit>
-                      {formatCurrency(+item.interest, currency)}
+                      {interest?.value}
                     </Text>
                   </View>
-                  <Text style={[styles.cell, styles.balanceCell, balanceColumnStyle, styles.closingCell]}>{formatCurrency(+item.ending, currency)}</Text>
+                  <Text style={[styles.cell, styles.balanceCell, balanceColumnStyle, styles.closingCell]}>{closingBalance?.value}</Text>
                 </View>
               </React.Fragment>
             );

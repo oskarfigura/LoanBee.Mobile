@@ -1,8 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency } from '@/currency/format';
-import { formatPayoffDate } from '@/loans/loanInsightSummary';
+import {
+  UserVisibleMetric,
+  buildCalculationDisplayContract,
+} from '@/loans/loanDisplayContract';
 import { LoanResult } from '@/results/loanResultRoute';
 import { CurrencyCode } from '@/currency/currencies';
 import { colours, elevation, fontFaces, fontSizes, radii, spacing } from '@/theme';
@@ -16,14 +18,6 @@ interface Props {
   shareLabel?: string;
   shareIcon?: React.ReactNode;
 }
-
-const formatTermDuration = (months: number, yrsLabel: string, moLabel: string): string => {
-  const years = Math.floor(months / 12);
-  const mo = months % 12;
-  if (years === 0) return `${mo} ${moLabel}`;
-  if (mo === 0) return `${years} ${yrsLabel}`;
-  return `${years} ${yrsLabel} ${mo} ${moLabel}`;
-};
 
 const SummaryFact = ({ label, value }: { label: string; value: string }) => (
   <View style={styles.summaryFact}>
@@ -42,13 +36,24 @@ export const CalculationSummaryPanel = ({
   shareIcon,
 }: Props) => {
   const { t, i18n } = useTranslation();
-  const totalMonths = Math.max(
-    result.tableItems.length,
-    result.termInYears * 12 + result.termInMonths,
+  const contract = buildCalculationDisplayContract({
+    result,
+    startDate,
+    currency,
+    locale: i18n.language,
+    additionalMonthlyPayment,
+    yearsLabel: t('results.years'),
+    monthsLabel: t('results.months'),
+  });
+  const keyMetrics = contract.sections.find(section => section.id === 'keyMetrics')?.metrics ?? [];
+  const loanDetails = contract.sections.find(section => section.id === 'loanDetails')?.metrics ?? [];
+  const getKeyMetric = (id: string): UserVisibleMetric | undefined => (
+    keyMetrics.find(metric => metric.id === id)
   );
-  const payoffDateFormatted = formatPayoffDate(startDate, totalMonths, i18n.language);
-  const termHelper = formatTermDuration(totalMonths, t('results.years'), t('results.months'));
-  const additionalPayment = additionalMonthlyPayment ?? 0;
+  const monthlyPayment = getKeyMetric('monthlyPayment');
+  const payoffDate = getKeyMetric('payoffDate');
+  const totalInterest = getKeyMetric('totalInterest');
+  const totalCost = getKeyMetric('totalCost');
 
   return (
     <View style={styles.panel}>
@@ -57,19 +62,19 @@ export const CalculationSummaryPanel = ({
         {/* Row 1: Monthly Payment | Payoff Date */}
         <View style={styles.metricRow}>
           <View style={styles.metricCell}>
-            <Text style={styles.metricKicker}>{t('results.monthlyPayment')}</Text>
+            <Text style={styles.metricKicker}>{monthlyPayment ? t(monthlyPayment.labelKey) : t('results.monthlyPayment')}</Text>
             <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-              {formatCurrency(result.monthlyPayments, currency)}
+              {monthlyPayment?.value}
             </Text>
           </View>
           <View style={styles.metricCellSeparator} />
           <View style={styles.metricCell}>
-            <Text style={styles.metricKicker}>{t('results.payoffDate')}</Text>
+            <Text style={styles.metricKicker}>{payoffDate ? t(payoffDate.labelKey) : t('results.payoffDate')}</Text>
             <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-              {payoffDateFormatted}
+              {payoffDate?.value}
             </Text>
-            {totalMonths > 0 ? (
-              <Text style={styles.metricHelper} numberOfLines={1}>{termHelper}</Text>
+            {contract.totalMonths > 0 ? (
+              <Text style={styles.metricHelper} numberOfLines={1}>{contract.termDuration}</Text>
             ) : null}
           </View>
         </View>
@@ -79,16 +84,16 @@ export const CalculationSummaryPanel = ({
         {/* Row 2: Total Interest | Total Cost */}
         <View style={styles.metricRow}>
           <View style={styles.metricCell}>
-            <Text style={styles.metricKicker}>{t('results.totalInterest')}</Text>
+            <Text style={styles.metricKicker}>{totalInterest ? t(totalInterest.labelKey) : t('results.totalInterest')}</Text>
             <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-              {formatCurrency(result.totalInterestPaid, currency)}
+              {totalInterest?.value}
             </Text>
           </View>
           <View style={styles.metricCellSeparator} />
           <View style={styles.metricCell}>
-            <Text style={styles.metricKicker}>{t('results.totalCost')}</Text>
+            <Text style={styles.metricKicker}>{totalCost ? t(totalCost.labelKey) : t('results.totalCost')}</Text>
             <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
-              {formatCurrency(result.totalAmountPaid, currency)}
+              {totalCost?.value}
             </Text>
           </View>
         </View>
@@ -100,20 +105,13 @@ export const CalculationSummaryPanel = ({
           <Text style={styles.summarySectionKicker}>{t('loan.loanDetails')}</Text>
         </View>
         <View style={styles.summaryFactGrid}>
-          <SummaryFact
-            label={t('calculator.loanAmount')}
-            value={formatCurrency(result.amount, currency)}
-          />
-          <SummaryFact
-            label={t('calculator.interestRate')}
-            value={`${result.interest}%`}
-          />
-          {additionalPayment > 0 ? (
+          {loanDetails.map(metric => (
             <SummaryFact
-              label={t('calculator.additionalPayment')}
-              value={formatCurrency(additionalPayment, currency)}
+              key={metric.id}
+              label={t(metric.labelKey)}
+              value={metric.value}
             />
-          ) : null}
+          ))}
         </View>
       </View>
 

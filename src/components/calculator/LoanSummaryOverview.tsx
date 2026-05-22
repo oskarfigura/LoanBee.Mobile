@@ -5,9 +5,9 @@ import { LoanInsightCard } from '@/components/loans/LoanInsightCard';
 import { SavedLoanProgressBar } from '@/components/loans/SavedLoanProgressBar';
 import { CurrencyCode } from '@/currency/currencies';
 import {
-  buildCalculationSummary,
-  buildSavedLoanSummary,
-} from '@/loans/loanInsightSummary';
+  buildCalculationDisplayContract,
+  buildSavedLoanDisplayContract,
+} from '@/loans/loanDisplayContract';
 import { LoanResult } from '@/results/loanResultRoute';
 import { colours, fontFaces, fontSizes, spacing } from '@/theme';
 import { SavedLoan } from '@/types/SavedLoan';
@@ -42,8 +42,18 @@ export const LoanSummaryOverview = ({
   const { t, i18n } = useTranslation();
   const summary = useMemo(() => (
     mode === 'saved' && savedLoan
-      ? buildSavedLoanSummary(savedLoan, result, new Date(), i18n.language)
-      : buildCalculationSummary(result, startDate, currency, i18n.language)
+      ? buildSavedLoanDisplayContract({
+        loan: savedLoan,
+        result,
+        asOf: new Date(),
+        locale: i18n.language,
+      }).summary
+      : buildCalculationDisplayContract({
+        result,
+        startDate,
+        currency,
+        locale: i18n.language,
+      }).summary
   ), [currency, i18n.language, mode, result, savedLoan, startDate]);
 
   const shareAction = onShare ? (

@@ -19,12 +19,9 @@ import { DashboardProgressGauge } from '@/components/loans/DashboardProgressGaug
 import { CalculatorIcon, EditIcon } from '@/components/loans/LoanIcons';
 import {
   LoanDashboardProgress,
-  LoanInsightMetric,
-  LoanInsightSummary,
   buildSavedLoanDisplayDetails,
-  buildSavedLoanDashboardProgress,
-  buildSavedLoanSummary,
 } from '@/loans/loanInsightSummary';
+import { UserVisibleMetric, buildSavedLoanDisplayContract } from '@/loans/loanDisplayContract';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { SavedLoan } from '@/types/SavedLoan';
 import { colours, elevation, fontFaces, fontSizes, layout, spacing } from '@/theme';
@@ -35,12 +32,6 @@ interface Props {
 }
 
 const FLOATING_ACTION_SPACE = 84;
-const DASHBOARD_METRIC_KEYS = [
-  'mortgage.currentBalance',
-  'results.monthlyPayment',
-  'results.payoffDate',
-];
-
 const getRemainingTermCaptionKey = (monthsRemaining: number) => {
   if (monthsRemaining <= 0) return 'mortgage.remainingTermComplete';
   const years = Math.floor(monthsRemaining / 12);
@@ -57,28 +48,19 @@ const getRemainingTermValues = (monthsRemaining: number) => ({
 });
 
 const DashboardMetricPanel = ({
-  summary,
+  metrics,
   progress,
 }: {
-  summary: LoanInsightSummary;
+  metrics: UserVisibleMetric[];
   progress: LoanDashboardProgress[];
 }) => {
   const { t } = useTranslation();
-  const candidates = [summary.hero, ...summary.metrics, ...(summary.progress?.metrics ?? [])];
   const timeProgress = progress.find(item => item.labelKey === 'mortgage.timeProgress');
   const elapsedMonths = Number(timeProgress?.caption.values?.elapsed ?? 0);
   const totalMonths = Number(timeProgress?.caption.values?.total ?? 0);
   const remainingMonths = Math.max(0, totalMonths - elapsedMonths);
   const remainingTermCaptionKey = getRemainingTermCaptionKey(remainingMonths);
   const remainingTermValues = getRemainingTermValues(remainingMonths);
-  const seenKeys = new Set<string>();
-  const metrics = DASHBOARD_METRIC_KEYS
-    .map(key => candidates.find(metric => metric.labelKey === key))
-    .filter((metric): metric is LoanInsightMetric => {
-      if (!metric || seenKeys.has(metric.labelKey)) return false;
-      seenKeys.add(metric.labelKey);
-      return true;
-    });
 
   return (
     <View style={styles.metricPanel}>
@@ -121,14 +103,20 @@ const LoanDashboardCard = ({
   onOpenDetails: () => void;
 }) => {
   const { t, i18n } = useTranslation();
-  const { progress, summary, dealLender } = useMemo(() => {
+  const { progress, dashboardMetrics, dealLender } = useMemo(() => {
     const result = getResultForSavedLoan(loan);
     const asOf = new Date();
     const displayDetails = buildSavedLoanDisplayDetails(loan, asOf);
+    const contract = buildSavedLoanDisplayContract({
+      loan,
+      result,
+      asOf,
+      locale: i18n.language,
+    });
 
     return {
-      progress: buildSavedLoanDashboardProgress(loan, result, asOf),
-      summary: buildSavedLoanSummary(loan, result, asOf, i18n.language),
+      progress: contract.dashboardProgress,
+      dashboardMetrics: contract.dashboardMetrics,
       dealLender: displayDetails.lender,
     };
   }, [i18n.language, loan]);
@@ -158,7 +146,7 @@ const LoanDashboardCard = ({
           </View>
 
           <DashboardProgressGauge progress={progress} />
-          <DashboardMetricPanel summary={summary} progress={progress} />
+          <DashboardMetricPanel metrics={dashboardMetrics} progress={progress} />
         </View>
       </TouchableOpacity>
     </View>
