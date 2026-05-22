@@ -211,6 +211,17 @@
     "version": "Wersja",
     "termsAndConditions": "Regulamin",
     "privacyPolicy": "Polityka Prywatności",
+    "devDataTitle": "Dane Visual QA",
+    "devDataHelp": "Tylko w trybie deweloperskim. Zastępuje zapisane kredyty stałymi danymi do zrzutów ekranu i ręcznych testów.",
+    "devDataLoad": "Wczytaj zapisane kredyty Visual QA",
+    "devDataClear": "Wyczyść zapisane kredyty",
+    "devDataReplaceWarning": "To zastąpi zapisane kredyty na tym urządzeniu danymi Visual QA.",
+    "devDataLoadedTitle": "Dane Visual QA wczytane",
+    "devDataLoadedMessage": "{{count}} zapisane kredyty są gotowe do sprawdzenia.",
+    "devDataViewSaved": "Zobacz zapisane",
+    "devDataClearedTitle": "Zapisane kredyty wyczyszczone",
+    "devDataClearedMessage": "Dane testowe zapisanych kredytów zostały usunięte z tego urządzenia.",
+    "devDataUpdated": "Dane zapisanych kredytów zostały zaktualizowane.",
     "copyright": "Copyright © 2026 THE TECH NARRATIVE LTD. All rights reserved."
   },
   "disclaimer": {

@@ -2,12 +2,15 @@ import { describe, expect, it } from '@jest/globals';
 import { DownPaymentType } from '../../src/core/DownPaymentType';
 import { LoanCalculationType } from '../../src/core/LoanCalculationType';
 import { getLoanCalculations } from '../../src/core/amortisation';
+import { CURRENCIES } from '../../src/currency/currencies';
+import { formatCurrency } from '../../src/currency/format';
 import {
   buildAmortisationDisplayRows,
   buildCalculationDisplayContract,
   buildSavedLoanDisplayContract,
 } from '../../src/loans/loanDisplayContract';
 import { buildInitialDeal, buildResultSnapshot, normaliseFormSnapshot } from '../../src/loans/loanGroupFactory';
+import { getMortgageTrackerSummary } from '../../src/mortgage/tracker';
 import { getResultForSavedLoan } from '../../src/results/loanResultRoute';
 import { LoanGroup } from '../../src/types/SavedLoan';
 
@@ -15,6 +18,10 @@ const findMetric = (
   metrics: Array<{ id: string; value: string; labelKey: string }>,
   id: string,
 ) => metrics.find(metric => metric.id === id);
+
+const parseDisplayAmount = (value: string): number => (
+  Number(value.replace(/[^\d.-]/g, ''))
+);
 
 const makeCalculationResult = ({
   currency = 'GBP',
@@ -154,6 +161,25 @@ describe('loan display contract', () => {
     });
   });
 
+  it('formats calculator figures with every supported currency symbol', () => {
+    const { result } = makeCalculationResult();
+
+    CURRENCIES.forEach(currency => {
+      const contract = buildCalculationDisplayContract({
+        result,
+        startDate: '2026-01-01',
+        currency: currency.code,
+        locale: 'en',
+      });
+      const totalCost = contract.sections
+        .flatMap(section => section.metrics)
+        .find(metric => metric.id === 'totalCost');
+
+      expect(contract.summary.hero.value.startsWith(currency.symbol)).toBe(true);
+      expect(totalCost?.value.startsWith(currency.symbol)).toBe(true);
+    });
+  });
+
   it('supports payment-mode calculations without changing the display contract shape', () => {
     const { result } = makeCalculationResult({
       calculationType: LoanCalculationType.PAYMENT,
@@ -211,6 +237,93 @@ describe('loan display contract', () => {
     ]));
   });
 
+  it('excludes draft deals from saved mortgage display metrics', () => {
+    const base = makeMortgage();
+    const loan = makeMortgage({
+      deals: [
+        {
+          ...base.deals[0],
+          id: 'active-deal',
+          status: 'active',
+          monthlyPayment: 1525,
+          interestRate: 5.1,
+        },
+        {
+          ...base.deals[0],
+          id: 'draft-deal',
+          name: 'Future draft',
+          status: 'draft',
+          startDate: '2031-06-01',
+          endDate: '2036-06-01',
+          monthlyPayment: 9999,
+          interestRate: 9.9,
+        },
+      ],
+    });
+    const contract = buildSavedLoanDisplayContract({
+      loan,
+      result: getResultForSavedLoan(loan),
+      asOf: new Date('2026-07-01T00:00:00Z'),
+      locale: 'en',
+    });
+
+    expect(contract.summary.metrics).toEqual(expect.arrayContaining([
+      { id: 'monthlyPayment', labelKey: 'results.monthlyPayment', value: '£1,525.00' },
+      { id: 'interestRate', labelKey: 'calculator.interestRate', value: '5.1%' },
+    ]));
+    expect(contract.summary.metrics).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ value: '£9,999.00' }),
+      expect.objectContaining({ value: '9.9%' }),
+    ]));
+  });
+
+  it('reflects mortgage checkpoint and skipped-payment events in current-balance display', () => {
+    const base = makeMortgage();
+    const noEventContract = buildSavedLoanDisplayContract({
+      loan: base,
+      result: getResultForSavedLoan(base),
+      asOf: new Date('2026-09-01T00:00:00Z'),
+      locale: 'en',
+    });
+    const eventLoan = makeMortgage({
+      events: [
+        {
+          id: 'checkpoint',
+          createdAt: '2026-07-01T00:00:00.000Z',
+          updatedAt: '2026-07-01T00:00:00.000Z',
+          dealId: 'deal-current',
+          type: 'balanceCheckpoint',
+          date: '2026-07-01',
+          balance: 235000,
+        },
+        {
+          id: 'holiday',
+          createdAt: '2026-08-01T00:00:00.000Z',
+          updatedAt: '2026-08-01T00:00:00.000Z',
+          dealId: 'deal-current',
+          type: 'paymentHoliday',
+          date: '2026-08-01',
+        },
+      ],
+    });
+    const eventContract = buildSavedLoanDisplayContract({
+      loan: eventLoan,
+      result: getResultForSavedLoan(eventLoan),
+      asOf: new Date('2026-09-01T00:00:00Z'),
+      locale: 'en',
+    });
+    const trackerSummary = getMortgageTrackerSummary(eventLoan, new Date('2026-09-01T00:00:00Z'));
+
+    expect(eventContract.summary.hero).toEqual({
+      id: 'currentBalance',
+      labelKey: 'mortgage.currentBalance',
+      value: formatCurrency(trackerSummary.currentBalance, eventLoan.currency),
+    });
+    expect(parseDisplayAmount(eventContract.summary.hero.value)).not.toBe(
+      parseDisplayAmount(noEventContract.summary.hero.value),
+    );
+  });
+
   it('exposes overpayment savings through the saved-loan progress contract', () => {
     const loan = makeMortgage({
       category: 'loan',
@@ -228,6 +341,51 @@ describe('loan display contract', () => {
     expect(contract.summary.progress?.metrics.map(metric => metric.id)).toEqual([
       'currentBalance',
       'paidSoFar',
+    ]);
+  });
+
+  it('omits overpayment savings and marks old paid-down loans as completed', () => {
+    const base = makeMortgage();
+    const loan = makeMortgage({
+      category: 'loan',
+      deals: [],
+      formSnapshot: {
+        ...base.formSnapshot,
+        additionalMonthlyPayment: 0,
+      },
+      resultSnapshot: {
+        ...base.resultSnapshot,
+        totalInterestPaidBaseline: base.resultSnapshot.totalInterestPaid,
+      },
+    });
+    const contract = buildSavedLoanDisplayContract({
+      loan,
+      result: getResultForSavedLoan(loan),
+      asOf: new Date('2060-01-01T00:00:00Z'),
+      locale: 'en',
+    });
+
+    expect(contract.summary.progress?.savingsAmount).toBeUndefined();
+    expect(contract.summary.progress?.interestSaved).toBeUndefined();
+    expect(contract.summary.progress?.caption.key).toBe('saved.completed');
+    expect(contract.summary.progress?.value).toBe(1);
+  });
+
+  it('falls back to current-state projection for old mortgages without published deals', () => {
+    const loan = makeMortgage({ deals: [] });
+    const contract = buildSavedLoanDisplayContract({
+      loan,
+      result: getResultForSavedLoan(loan),
+      asOf: new Date('2026-07-01T00:00:00Z'),
+      locale: 'en',
+    });
+
+    expect(contract.summary.hero.labelKey).toBe('mortgage.currentBalance');
+    expect(contract.summary.hero.value.startsWith('£')).toBe(true);
+    expect(contract.dashboardMetrics.map(metric => metric.id)).toEqual([
+      'currentBalance',
+      'monthlyPayment',
+      'payoffDate',
     ]);
   });
 
@@ -267,5 +425,35 @@ describe('loan display contract', () => {
     });
     expect(rows[1].period).toBe('February 2026');
     expect(findMetric(rows[1].metrics, 'closingBalance')?.value).toBe('£248,566.71');
+  });
+
+  it('handles amortisation rows with explicit dates and invalid schedule start dates', () => {
+    const rows = buildAmortisationDisplayRows({
+      items: [
+        {
+          itemNo: 7,
+          remaining: '1000',
+          principal: '100',
+          interest: '25',
+          ending: '900',
+        },
+        {
+          itemNo: 8,
+          date: '2026-04-01',
+          remaining: '900',
+          principal: '100',
+          interest: '20',
+          ending: '800',
+        },
+      ],
+      startDate: 'not-a-date',
+      currency: 'EUR',
+      language: 'en',
+    });
+
+    expect(rows[0].period).toBe('7');
+    expect(rows[1].period).toBe('April 2026');
+    expect(findMetric(rows[0].metrics, 'openingBalance')?.value).toBe('€1,000.00');
+    expect(findMetric(rows[1].metrics, 'closingBalance')?.value).toBe('€800.00');
   });
 });

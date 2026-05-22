@@ -223,6 +223,17 @@
     "version": "Version",
     "termsAndConditions": "Terms & Conditions",
     "privacyPolicy": "Privacy Policy",
+    "devDataTitle": "Visual QA Data",
+    "devDataHelp": "Development only. Replaces saved loans with deterministic fixtures for emulator screenshots and manual checks.",
+    "devDataLoad": "Load visual QA saved loans",
+    "devDataClear": "Clear saved loans",
+    "devDataReplaceWarning": "This will replace saved loans on this device with visual QA fixtures.",
+    "devDataLoadedTitle": "Visual QA data loaded",
+    "devDataLoadedMessage": "{{count}} saved loans are ready for visual checks.",
+    "devDataViewSaved": "View Saved",
+    "devDataClearedTitle": "Saved loans cleared",
+    "devDataClearedMessage": "The saved-loans fixture data has been removed from this device.",
+    "devDataUpdated": "Saved-loans data was updated.",
     "copyright": "Copyright © 2026 THE TECH NARRATIVE LTD. All rights reserved."
   },
   "disclaimer": {
