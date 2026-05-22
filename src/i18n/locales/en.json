@@ -99,6 +99,12 @@
     "notFound": "Loan not found",
     "viewFullCalculation": "View full calculation",
     "createNewCalculation": "Create New Calculation",
+    "intro": "Save calculations, keep a clean portfolio view, and pin the items that belong on your home dashboard.",
+    "searchPlaceholder": "Search saved loans",
+    "sortRecent": "Recent",
+    "sortName": "Name",
+    "sortPinned": "Pinned",
+    "noMatches": "No saved loans match your search.",
     "category": {
       "mortgage": "Mortgage",
       "loan": "Loan"
@@ -160,6 +166,7 @@
     "varR": "r = Monthly interest rate (annual rate ÷ 12)",
     "varN": "n = Total number of payments (term in months)",
     "disclaimer": "This calculator is for illustrative purposes only. Always consult a qualified financial advisor before making borrowing decisions.",
+    "footer": "LoanBee - Made with the calm precision of a finance workspace.",
     "faqTitle": "Frequently Asked Questions",
     "faqItems": [
       {
@@ -248,12 +255,24 @@
   "errors": {
     "loanAmount": "Loan amount must be greater than 0",
     "interest": "Interest rate must be greater than 0",
+    "interestMax": "Interest rate must be less than or equal to 100",
+    "termYearInvalid": "Term in years must be a non-negative whole number",
+    "termTooLong": "Term cannot be longer than 100 years",
+    "termMonthRange": "Term in months must be between 0 and 11",
     "termRequired": "Term in years and months cannot both be 0",
+    "downPaymentNonNegative": "Down payment must be greater than or equal to 0",
     "downPaymentPercent": "Down payment percentage cannot exceed 100%",
     "downPaymentCash": "Down payment cannot exceed the loan amount",
+    "desiredPaymentNonNegative": "Desired monthly payment must be greater than or equal to 0",
     "desiredPaymentRequired": "Desired monthly payment must be greater than 0",
     "desiredPaymentExceeds": "Desired monthly payment cannot exceed the loan balance",
-    "additionalPaymentExceeds": "Additional monthly payment cannot exceed the loan balance"
+    "desiredPaymentMinimum": "Desired monthly payment must be at least {{amount}} to reduce the balance",
+    "additionalPaymentNonNegative": "Additional monthly payment must be greater than or equal to 0",
+    "additionalPaymentExceeds": "Additional monthly payment cannot exceed the loan balance",
+    "startDate": "Please enter a valid date"
+  },
+  "ads": {
+    "advertisement": "Advertisement"
   },
   "errorBoundary": {
     "title": "Something went wrong",
@@ -264,7 +283,8 @@
     "goBack": "Go Back",
     "close": "Close",
     "more": "More",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "save": "Save"
   },
   "forms": {
     "required": "Required",
@@ -446,6 +466,8 @@
     "repaymentType": "Repayment type",
     "repayment": "Repayment",
     "interestOnly": "Interest-only",
+    "defaultFixedDeal": "Fixed deal",
+    "defaultFixedLoan": "Fixed loan",
     "saveAsDraft": "Save as draft",
     "publishDeal": "Publish deal",
     "deleteDraft": "Delete",
@@ -548,7 +570,15 @@
     "dealLumpSumsEmpty": "No lump sum payments yet",
     "dealOverpaymentDateNote": "Overpayments must fall within this deal's dates. Any lump sum after this deal ends can be added as a deposit on your next deal to reduce its opening balance.",
     "dealInterestSavedLabel": "Interest saved this deal",
-    "dealExtraRepaidLabel": "Extra principal repaid"
+    "dealExtraRepaidLabel": "Extra principal repaid",
+    "warningGapTitle": "Date gap detected",
+    "warningGapMessage": "There is a gap between one deal ending and the next deal starting.",
+    "warningOverlapTitle": "Deal dates overlap",
+    "warningOverlapMessage": "Two mortgage deals overlap. Adjust the start or end dates before publishing.",
+    "warningIncompleteActiveDealTitle": "Complete current deal",
+    "warningIncompleteActiveDealMessage": "Enter your bank-confirmed closing balance before starting the next deal.",
+    "warningDraftBlockedTitle": "Draft deal is inactive",
+    "warningDraftBlockedMessage": "Complete the current deal with lender figures before this draft can become active."
   },
   "share": {
     "button": "Share calculation",

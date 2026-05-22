@@ -774,8 +774,8 @@ export const getTimelineWarnings = (loan: LoanGroup, asOf = new Date()): Timelin
     if (start > expectedStart) {
       warnings.push({
         type: 'gap',
-        title: 'Date gap detected',
-        message: 'There is a gap between one deal ending and the next deal starting.',
+        title: 'mortgage.warningGapTitle',
+        message: 'mortgage.warningGapMessage',
         dealId: next.id,
       });
     }
@@ -783,8 +783,8 @@ export const getTimelineWarnings = (loan: LoanGroup, asOf = new Date()): Timelin
     if (start < expectedStart) {
       warnings.push({
         type: 'overlap',
-        title: 'Deal dates overlap',
-        message: 'Two mortgage deals overlap. Adjust the start or end dates before publishing.',
+        title: 'mortgage.warningOverlapTitle',
+        message: 'mortgage.warningOverlapMessage',
         dealId: next.id,
       });
     }
@@ -794,8 +794,8 @@ export const getTimelineWarnings = (loan: LoanGroup, asOf = new Date()): Timelin
   if (currentDeal && currentDeal.endDate < dateToIso(asOf) && !currentDeal.completion) {
     warnings.push({
       type: 'incompleteActiveDeal',
-      title: 'Complete current deal',
-      message: 'Enter your bank-confirmed closing balance before starting the next deal.',
+      title: 'mortgage.warningIncompleteActiveDealTitle',
+      message: 'mortgage.warningIncompleteActiveDealMessage',
       dealId: currentDeal.id,
     });
   }
@@ -804,8 +804,8 @@ export const getTimelineWarnings = (loan: LoanGroup, asOf = new Date()): Timelin
   if (draftDeal && currentDeal && !currentDeal.completion) {
     warnings.push({
       type: 'draftBlocked',
-      title: 'Draft deal is inactive',
-      message: 'Complete the current deal with lender figures before this draft can become active.',
+      title: 'mortgage.warningDraftBlockedTitle',
+      message: 'mortgage.warningDraftBlockedMessage',
       dealId: draftDeal.id,
     });
   }

@@ -1,19 +1,24 @@
 import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { BannerAd as GoogleBannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { AD_UNITS } from './adUnits';
 import { colours, fontFaces, fontSizes } from '@/theme';
 
-export const BannerAd = () => (
-  <View style={styles.container}>
-    <Text style={styles.label}>Advertisement</Text>
-    <GoogleBannerAd
-      unitId={AD_UNITS.banner}
-      size={BannerAdSize.BANNER}
-      requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-    />
-  </View>
-);
+export const BannerAd = () => {
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.label}>{t('ads.advertisement')}</Text>
+      <GoogleBannerAd
+        unitId={AD_UNITS.banner}
+        size={BannerAdSize.BANNER}
+        requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+      />
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

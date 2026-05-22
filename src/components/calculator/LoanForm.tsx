@@ -75,6 +75,16 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
   const keyboardHeightRef = useRef(0);
   const fieldRefs = useRef<Partial<Record<string, View | null>>>({});
 
+  const errorMessage = useCallback((message?: string) => {
+    if (!message) return undefined;
+    const [key, amount] = message.split('|');
+    if (key === 'errors.desiredPaymentMinimum') {
+      return t(key, { amount });
+    }
+
+    return t(key, { defaultValue: message });
+  }, [t]);
+
   const registerFieldRef = useCallback((name: string) => (node: View | null) => {
     fieldRefs.current[name] = node;
   }, []);
@@ -173,7 +183,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                 </InputSurface>
               )}
             />
-            <FieldError message={errors.loanAmount?.message} />
+            <FieldError message={errorMessage(errors.loanAmount?.message)} />
           </View>
 
           <View ref={registerFieldRef('interest')} style={styles.fieldGroup}>
@@ -198,7 +208,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                 </InputSurface>
               )}
             />
-            <FieldError message={errors.interest?.message} />
+            <FieldError message={errorMessage(errors.interest?.message)} />
           </View>
 
           <View ref={registerFieldRef('downPayment')} style={styles.fieldGroup}>
@@ -240,7 +250,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                 })}
               />
             </View>
-            <FieldError message={errors.downPayment?.message} />
+            <FieldError message={errorMessage(errors.downPayment?.message)} />
           </View>
 
           <View ref={registerFieldRef('startDate')} style={styles.fieldGroup}>
@@ -315,7 +325,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                   />
                 </View>
               </View>
-              <FieldError message={errors.termInYears?.message || errors.termInMonths?.message} />
+              <FieldError message={errorMessage(errors.termInYears?.message || errors.termInMonths?.message)} />
 
               <View ref={registerFieldRef('additionalMonthlyPayment')} style={styles.fieldGroup}>
                 <FieldLabel>{t('calculator.additionalPayment')}</FieldLabel>
@@ -339,7 +349,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                     </InputSurface>
                   )}
                 />
-                <FieldError message={errors.additionalMonthlyPayment?.message} />
+                <FieldError message={errorMessage(errors.additionalMonthlyPayment?.message)} />
               </View>
             </>
           ) : (
@@ -365,7 +375,7 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
                   </InputSurface>
                 )}
               />
-              <FieldError message={errors.desiredMonthlyPayment?.message} />
+              <FieldError message={errorMessage(errors.desiredMonthlyPayment?.message)} />
             </View>
           )}
 

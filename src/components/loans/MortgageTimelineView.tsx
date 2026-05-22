@@ -36,6 +36,7 @@ interface Props {
 }
 
 export const MortgageWarningBanners = ({ loan }: { loan: SavedLoan }) => {
+  const { t } = useTranslation();
   const warnings = useMemo(() => getTimelineWarnings(loan), [loan]);
 
   if (warnings.length === 0) return null;
@@ -44,8 +45,8 @@ export const MortgageWarningBanners = ({ loan }: { loan: SavedLoan }) => {
     <View style={styles.warningList}>
       {warnings.map(warning => (
         <Card key={`${warning.type}-${warning.dealId ?? 'group'}`} style={styles.warningCard}>
-          <Text style={styles.warningTitle}>{warning.title}</Text>
-          <Text style={styles.warningText}>{warning.message}</Text>
+          <Text style={styles.warningTitle}>{t(warning.title)}</Text>
+          <Text style={styles.warningText}>{t(warning.message)}</Text>
         </Card>
       ))}
     </View>

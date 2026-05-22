@@ -99,6 +99,12 @@
     "notFound": "Nie znaleziono kredytu",
     "viewFullCalculation": "Zobacz pełne obliczenie",
     "createNewCalculation": "Utwórz Nowe Obliczenie",
+    "intro": "Zapisuj obliczenia, utrzymuj przejrzysty widok portfela i przypinaj pozycje, które mają być widoczne w panelu Start.",
+    "searchPlaceholder": "Szukaj zapisanych kredytów",
+    "sortRecent": "Ostatnie",
+    "sortName": "Nazwa",
+    "sortPinned": "Przypięte",
+    "noMatches": "Brak zapisanych kredytów pasujących do wyszukiwania.",
     "category": {
       "mortgage": "Hipoteka",
       "loan": "Kredyt"
@@ -160,6 +166,7 @@
     "varR": "r = Miesięczna stopa procentowa (roczna ÷ 12)",
     "varN": "n = Łączna liczba płatności (okres w miesiącach)",
     "disclaimer": "Ten kalkulator służy wyłącznie celom informacyjnym. Zawsze skonsultuj się z wykwalifikowanym doradcą finansowym przed podjęciem decyzji o pożyczce.",
+    "footer": "LoanBee - stworzone ze spokojną precyzją narzędzia finansowego.",
     "faqTitle": "Najczęściej Zadawane Pytania",
     "faqItems": [
       {
@@ -236,12 +243,24 @@
   "errors": {
     "loanAmount": "Kwota kredytu musi być większa niż 0",
     "interest": "Oprocentowanie musi być większe niż 0",
+    "interestMax": "Oprocentowanie musi być mniejsze lub równe 100",
+    "termYearInvalid": "Liczba lat musi być nieujemną liczbą całkowitą",
+    "termTooLong": "Okres nie może być dłuższy niż 100 lat",
+    "termMonthRange": "Liczba miesięcy musi być od 0 do 11",
     "termRequired": "Lata i miesiące okresu nie mogą być jednocześnie zerowe",
+    "downPaymentNonNegative": "Wkład własny musi być równy zero lub większy",
     "downPaymentPercent": "Wkład własny procentowy nie może przekraczać 100%",
     "downPaymentCash": "Wkład własny nie może przekraczać kwoty kredytu",
+    "desiredPaymentNonNegative": "Żądana rata musi być równa zero lub większa",
     "desiredPaymentRequired": "Żądana rata musi być większa niż 0",
     "desiredPaymentExceeds": "Żądana rata nie może przekraczać salda kredytu",
-    "additionalPaymentExceeds": "Dodatkowa płatność nie może przekraczać salda kredytu"
+    "desiredPaymentMinimum": "Żądana rata musi wynosić co najmniej {{amount}}, aby saldo malało",
+    "additionalPaymentNonNegative": "Dodatkowa płatność musi być równa zero lub większa",
+    "additionalPaymentExceeds": "Dodatkowa płatność nie może przekraczać salda kredytu",
+    "startDate": "Wprowadź prawidłową datę"
+  },
+  "ads": {
+    "advertisement": "Reklama"
   },
   "errorBoundary": {
     "title": "Coś poszło nie tak",
@@ -252,7 +271,8 @@
     "goBack": "Wróć",
     "close": "Zamknij",
     "more": "Więcej",
-    "viewAll": "Zobacz wszystko"
+    "viewAll": "Zobacz wszystko",
+    "save": "Zapisz"
   },
   "forms": {
     "required": "Wymagane",
@@ -434,6 +454,8 @@
     "repaymentType": "Typ spłaty",
     "repayment": "Spłata kapitału",
     "interestOnly": "Tylko odsetki",
+    "defaultFixedDeal": "Umowa ze stałą stopą",
+    "defaultFixedLoan": "Kredyt ze stałą stopą",
     "saveAsDraft": "Zapisz szkic",
     "publishDeal": "Opublikuj umowę",
     "deleteDraft": "Usuń szkic",
@@ -536,7 +558,15 @@
     "dealLumpSumsEmpty": "Brak jednorazowych nadpłat",
     "dealOverpaymentDateNote": "Nadpłaty muszą mieścić się w datach tej oferty. Jednorazową nadpłatę po zakończeniu oferty możesz dodać jako wpłatę na poczet kolejnej oferty, zmniejszając jej saldo otwarcia.",
     "dealInterestSavedLabel": "Zaoszczędzone odsetki w tej ofercie",
-    "dealExtraRepaidLabel": "Dodatkowy spłacony kapitał"
+    "dealExtraRepaidLabel": "Dodatkowy spłacony kapitał",
+    "warningGapTitle": "Wykryto przerwę w datach",
+    "warningGapMessage": "Między końcem jednej umowy a początkiem następnej jest przerwa.",
+    "warningOverlapTitle": "Daty umów nakładają się",
+    "warningOverlapMessage": "Dwie umowy hipoteczne nakładają się na siebie. Dostosuj daty przed publikacją.",
+    "warningIncompleteActiveDealTitle": "Zakończ aktualną umowę",
+    "warningIncompleteActiveDealMessage": "Wpisz saldo końcowe potwierdzone przez bank przed rozpoczęciem następnej umowy.",
+    "warningDraftBlockedTitle": "Szkic umowy jest nieaktywny",
+    "warningDraftBlockedMessage": "Zakończ aktualną umowę danymi od pożyczkodawcy, zanim ten szkic stanie się aktywny."
   },
   "share": {
     "button": "Udostępnij obliczenie",

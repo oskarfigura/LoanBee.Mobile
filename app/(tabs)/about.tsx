@@ -104,7 +104,7 @@ export default function AboutScreen() {
           </View>
         </Card>
 
-        <AppText variant="helper" tone="muted" style={styles.version}>LoanBee • Made with the calm precision of a finance workspace.</AppText>
+        <AppText variant="helper" tone="muted" style={styles.version}>{t('about.footer')}</AppText>
       </ScrollView>
     </SafeAreaView>
   );

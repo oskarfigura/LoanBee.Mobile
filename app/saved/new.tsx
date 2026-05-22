@@ -89,25 +89,9 @@ export default function SaveNewLoanScreen() {
   const result = draftSession?.result ?? parseJson<LoanResult>(params.result);
   const formValues = draftSession?.formValues ?? parseJson<LoanCalculatorFormValues>(params.formValues);
 
-  if (!result || !formValues) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <ScreenHeader
-          title={t('save.title')}
-          variant="editor"
-          leftAction={<HeaderCloseAction onPress={() => router.back()} />}
-        />
-        <View style={styles.emptyState}>
-          <AppText variant="bodyLg" style={styles.emptyStateText}>
-            {t('results.notFound')}
-          </AppText>
-          <Button label={t('common.goBack')} onPress={() => router.back()} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const mortgageTermInMonths = getResultTermInMonths(result, formValues);
+  const mortgageTermInMonths = result && formValues
+    ? getResultTermInMonths(result, formValues)
+    : 12;
   const defaultDealDuration = getDefaultDealDuration(mortgageTermInMonths);
   const [nickname, setNickname] = useState('');
   const [lender, setLender] = useState('');
@@ -134,6 +118,7 @@ export default function SaveNewLoanScreen() {
   const currentDealDurationInMonths = currentDealDurationValidation.totalMonths;
 
   const handleSave = () => {
+    if (!result || !formValues) return;
     if (!nickname.trim()) return;
     if (currentDealDurationErrorKey) return;
 
@@ -154,7 +139,7 @@ export default function SaveNewLoanScreen() {
     const formSnapshot = normaliseFormSnapshot(formValues, currency);
     const resultSnapshot = buildResultSnapshot(result, baseline.totalInterestPaid);
     const hasUserDeal = category === 'mortgage' && currentDealEnabled;
-    const initialDealName = currentDealName.trim() || generateDefaultDealName(
+    const initialDealName = currentDealName.trim() || t('save.currentDealNameDefault') || generateDefaultDealName(
       Math.floor(currentDealDurationInMonths / 12),
       currentDealDurationInMonths % 12,
       repaymentType,
@@ -172,6 +157,7 @@ export default function SaveNewLoanScreen() {
       durationInMonths: currentDealDurationInMonths,
       source: 'userDeal',
     } : {
+      name: category === 'loan' ? t('mortgage.defaultFixedLoan') : t('mortgage.savedMortgageEstimate'),
       source: category === 'mortgage' ? 'estimate' : undefined,
     });
     if (hasUserDeal) {
@@ -211,6 +197,24 @@ export default function SaveNewLoanScreen() {
       params: { id: loan.id, fromSave: '1' },
     });
   };
+
+  if (!result || !formValues) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
+        <ScreenHeader
+          title={t('save.title')}
+          variant="editor"
+          leftAction={<HeaderCloseAction onPress={() => router.back()} />}
+        />
+        <View style={styles.emptyState}>
+          <AppText variant="bodyLg" style={styles.emptyStateText}>
+            {t('results.notFound')}
+          </AppText>
+          <Button label={t('common.goBack')} onPress={() => router.back()} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>

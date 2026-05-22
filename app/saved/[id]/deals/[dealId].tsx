@@ -275,6 +275,7 @@ export default function EditDealScreen() {
   const { id, dealId, correct } = useLocalSearchParams<{ id: string; dealId: string; correct?: string }>();
   const loan = savedLoansStorage.getById(id);
   const deal = loan?.deals.find(item => item.id === dealId);
+  const [deleteDialogMode, setDeleteDialogMode] = useState<'deal' | 'draft' | null>(null);
 
   if (!loan || !deal) {
     return (
@@ -303,7 +304,6 @@ export default function EditDealScreen() {
   const dealForEditor: LoanDeal = isEstimateBackedDeal(loan, deal)
     ? { ...deal, source: 'estimate' }
     : deal;
-  const [deleteDialogMode, setDeleteDialogMode] = useState<'deal' | 'draft' | null>(null);
 
   const deleteLatestDeal = () => {
     if (!canDeleteDeal(loan, deal.id)) return;

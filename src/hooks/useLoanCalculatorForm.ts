@@ -13,41 +13,41 @@ import { getEffectiveLoanAmount, getMinimumAmortisingPayment } from '@/utils/pay
 
 const schema = z.object({
   loanAmount: z.coerce
-    .number({ message: 'Loan amount must be greater than 0' })
-    .min(1, { message: 'Loan amount must be greater than 0' }),
+    .number({ message: 'errors.loanAmount' })
+    .min(1, { message: 'errors.loanAmount' }),
   interest: z.coerce
-    .number({ message: 'Interest rate must be greater than 0' })
-    .positive({ message: 'Interest rate must be greater than 0' })
-    .max(100, { message: 'Interest rate must be less than or equal to 100' }),
+    .number({ message: 'errors.interest' })
+    .positive({ message: 'errors.interest' })
+    .max(100, { message: 'errors.interestMax' }),
   termInYears: z.coerce
-    .number({ message: 'Term in years must be a non-negative integer' })
-    .min(0, { message: 'Term in years must be a non-negative integer' })
-    .max(100, { message: 'Term cannot be longer than 100 years' })
-    .int({ message: 'Term in years must be a non-negative integer' }),
+    .number({ message: 'errors.termYearInvalid' })
+    .min(0, { message: 'errors.termYearInvalid' })
+    .max(100, { message: 'errors.termTooLong' })
+    .int({ message: 'errors.termYearInvalid' }),
   termInMonths: z.coerce
-    .number({ message: 'Term in months must be between 0 and 11' })
-    .min(0, { message: 'Term in months must be between 0 and 11' })
-    .max(11, { message: 'Term in months must be between 0 and 11' })
-    .int({ message: 'Term in months must be between 0 and 11' }),
+    .number({ message: 'errors.termMonthRange' })
+    .min(0, { message: 'errors.termMonthRange' })
+    .max(11, { message: 'errors.termMonthRange' })
+    .int({ message: 'errors.termMonthRange' }),
   downPayment: z.coerce
-    .number({ message: 'Down payment must be greater than or equal to 0' })
-    .min(0, { message: 'Down payment must be greater than or equal to 0' }),
+    .number({ message: 'errors.downPaymentNonNegative' })
+    .min(0, { message: 'errors.downPaymentNonNegative' }),
   downPaymentType: z.enum(['percent', 'cash']),
   desiredMonthlyPayment: z.coerce
-    .number({ message: 'Desired monthly payment must be greater than or equal to 0' })
-    .min(0, { message: 'Desired monthly payment must be greater than or equal to 0' })
+    .number({ message: 'errors.desiredPaymentNonNegative' })
+    .min(0, { message: 'errors.desiredPaymentNonNegative' })
     .optional(),
   additionalMonthlyPayment: z.coerce
-    .number({ message: 'Additional monthly payment must be greater than or equal to 0' })
-    .min(0, { message: 'Additional monthly payment must be greater than or equal to 0' }),
-  startDate: z.string().min(1, { message: 'Please enter a valid date' }),
+    .number({ message: 'errors.additionalPaymentNonNegative' })
+    .min(0, { message: 'errors.additionalPaymentNonNegative' }),
+  startDate: z.string().min(1, { message: 'errors.startDate' }),
   calculationType: z.enum(['term', 'payment']),
   currency: z.string(),
 }).superRefine((data, ctx) => {
   if (data.downPaymentType === DownPaymentType.PERCENT && data.downPayment > 100) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Down payment percentage cannot exceed 100%',
+      message: 'errors.downPaymentPercent',
       path: ['downPayment'],
     });
   }
@@ -55,7 +55,7 @@ const schema = z.object({
   if (data.downPaymentType === DownPaymentType.CASH && data.downPayment > data.loanAmount) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Down payment cannot exceed the loan amount',
+      message: 'errors.downPaymentCash',
       path: ['downPayment'],
     });
   }
@@ -63,7 +63,7 @@ const schema = z.object({
   if (data.calculationType === LoanCalculationType.TERM && data.termInYears === 0 && data.termInMonths === 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Term in years and months cannot both be 0',
+      message: 'errors.termRequired',
       path: ['termInYears'],
     });
   }
@@ -71,7 +71,7 @@ const schema = z.object({
   if (data.calculationType === LoanCalculationType.PAYMENT && (data.desiredMonthlyPayment ?? 0) === 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Desired monthly payment must be greater than 0',
+      message: 'errors.desiredPaymentRequired',
       path: ['desiredMonthlyPayment'],
     });
   }
@@ -91,7 +91,7 @@ const schema = z.object({
   if (data.calculationType === LoanCalculationType.PAYMENT && (data.desiredMonthlyPayment ?? 0) > effectiveLoanAmount) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Desired monthly payment cannot exceed the loan balance after down payment',
+      message: 'errors.desiredPaymentExceeds',
       path: ['desiredMonthlyPayment'],
     });
   }
@@ -103,7 +103,7 @@ const schema = z.object({
   ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: `Desired monthly payment must be at least ${minimumAmortisingPayment.toFixed(2)} to reduce the balance`,
+      message: `errors.desiredPaymentMinimum|${minimumAmortisingPayment.toFixed(2)}`,
       path: ['desiredMonthlyPayment'],
     });
   }
@@ -111,7 +111,7 @@ const schema = z.object({
   if (data.calculationType === LoanCalculationType.TERM && data.additionalMonthlyPayment > effectiveLoanAmount) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'Additional monthly payment cannot exceed the loan balance after down payment',
+      message: 'errors.additionalPaymentExceeds',
       path: ['additionalMonthlyPayment'],
     });
   }

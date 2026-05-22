@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -9,8 +9,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
+import { AppTextInput, InputSurface, SegmentedControl } from '@/components/ui/FormPrimitives';
+import { SearchIcon } from '@/components/ui/Icons/SearchIcon/SearchIcon';
 import { colours, layout, spacing } from '@/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+type SortMode = 'recent' | 'name' | 'pinned';
 
 export default function SavedScreen() {
   const { t } = useTranslation();
@@ -18,6 +22,31 @@ export default function SavedScreen() {
   const params = useLocalSearchParams<{ fromDashboard?: string }>();
   const { loans, togglePinned, refresh } = useSavedLoans();
   const openedFromDashboard = params.fromDashboard === '1';
+  const [query, setQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const visibleLoans = useMemo(() => {
+    const normalisedQuery = query.trim().toLocaleLowerCase();
+    const filtered = normalisedQuery
+      ? loans.filter(loan => [
+        loan.nickname,
+        loan.lender ?? '',
+        t(`saved.category.${loan.category}`),
+      ].some(value => value.toLocaleLowerCase().includes(normalisedQuery)))
+      : loans;
+
+    return [...filtered].sort((a, b) => {
+      if (sortMode === 'name') {
+        return a.nickname.localeCompare(b.nickname);
+      }
+
+      if (sortMode === 'pinned') {
+        const pinnedDelta = Number(b.pinnedToDashboard) - Number(a.pinnedToDashboard);
+        if (pinnedDelta !== 0) return pinnedDelta;
+      }
+
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [loans, query, sortMode, t]);
 
   useFocusEffect(refresh);
 
@@ -31,16 +60,20 @@ export default function SavedScreen() {
         ) : undefined}
       />
       <FlatList
-        data={loans}
+        data={visibleLoans}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <EmptyState title={t('saved.empty')} subtitle={t('saved.emptySubtitle')} />
+          loans.length === 0 ? (
+            <EmptyState title={t('saved.empty')} subtitle={t('saved.emptySubtitle')} />
+          ) : (
+            <EmptyState title={t('saved.noMatches')} />
+          )
         }
         ListHeaderComponent={(
           <View style={styles.headerAction}>
             <AppText variant="bodyLg" tone="muted" style={styles.intro}>
-              Save calculations, keep a clean portfolio view, and pin the items that belong on your home dashboard.
+              {t('saved.intro')}
             </AppText>
             <Button
               label={t('saved.createNewCalculation')}
@@ -51,6 +84,30 @@ export default function SavedScreen() {
               variant="secondary"
               style={styles.headerButton}
             />
+            {loans.length > 0 ? (
+              <View style={styles.controls}>
+                <InputSurface>
+                  <SearchIcon size={18} color={colours.textSecondary} strokeWidth={1.9} />
+                  <AppTextInput
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder={t('saved.searchPlaceholder')}
+                    returnKeyType="search"
+                    style={styles.searchInput}
+                  />
+                </InputSurface>
+                <SegmentedControl
+                  value={sortMode}
+                  onChange={setSortMode}
+                  textVariant="labelSm"
+                  options={[
+                    { label: t('saved.sortRecent'), value: 'recent' },
+                    { label: t('saved.sortName'), value: 'name' },
+                    { label: t('saved.sortPinned'), value: 'pinned' },
+                  ]}
+                />
+              </View>
+            ) : null}
           </View>
         )}
         renderItem={({ item }) => (
@@ -79,5 +136,12 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     alignSelf: 'flex-start',
+  },
+  controls: {
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  searchInput: {
+    marginLeft: spacing.xs,
   },
 });
