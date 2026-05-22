@@ -611,6 +611,9 @@ describe('mortgage tracker', () => {
     expect(formatDealDuration(30, 'en')).toBe('2.5 years');
     expect(formatDealDuration(18, 'en')).toBe('18 months');
     expect(formatDealDuration(27, 'en')).toBe('2 years 3 months');
+    expect(formatDealDuration(1, 'pl')).toBe('1 miesiąc');
+    expect(formatDealDuration(2, 'pl')).toBe('2 miesiące');
+    expect(formatDealDuration(5, 'pl')).toBe('5 miesięcy');
   });
 
   it('reports timeline warnings for gaps, overlaps, incomplete active deals, and blocked drafts', () => {
