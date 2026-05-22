@@ -132,9 +132,9 @@ const getPolishYearUnit = (years: number): string => {
 };
 
 const getPolishMonthUnit = (months: number): string => {
-  if (months === 1) return 'miesiac';
-  if ([2, 3, 4].includes(months % 10) && ![12, 13, 14].includes(months % 100)) return 'miesiace';
-  return 'miesiecy';
+  if (months === 1) return 'miesiąc';
+  if ([2, 3, 4].includes(months % 10) && ![12, 13, 14].includes(months % 100)) return 'miesiące';
+  return 'miesięcy';
 };
 
 const orderDeals = (deals: LoanDeal[]): LoanDeal[] => (
@@ -192,7 +192,7 @@ export const formatDealDuration = (dealOrMonths: LoanDeal | number, locale?: str
     : getDealDurationInMonths(dealOrMonths);
   const polish = locale?.startsWith('pl');
 
-  if (totalMonths === 0) return polish ? '0 miesiecy' : '0 months';
+  if (totalMonths === 0) return polish ? '0 miesięcy' : '0 months';
 
   const { years, months } = splitMonths(totalMonths);
 
