@@ -27,7 +27,10 @@ describe('visual QA seed data', () => {
     expect(loans.some(loan => loan.deals.some(deal => deal.status === 'draft'))).toBe(true);
     expect(loans.some(loan => loan.deals.some(deal => deal.repaymentType === 'interestOnly'))).toBe(true);
     expect(loans.some(loan => loan.events.some(event => event.type === 'paymentHoliday'))).toBe(true);
-    expect(loans.filter(loan => loan.pinnedToDashboard)).toHaveLength(2);
+    expect(loans.filter(loan => loan.pinnedToDashboard).map(loan => loan.id)).toEqual([
+      'visual-qa-mortgage-current',
+      'visual-qa-remortgage-chain',
+    ]);
 
     const bankCheckpoints = loans
       .flatMap(loan => loan.events)
@@ -39,7 +42,8 @@ describe('visual QA seed data', () => {
     expect(bankCheckpoints.some(event => event.varianceReason === 'unloggedOverpayment')).toBe(true);
     expect(bankCheckpoints.some(event => event.varianceReason === 'lenderTiming')).toBe(true);
     expect(bankCheckpoints.some(event => event.reconciliationVariance === 0 && event.varianceReason === undefined)).toBe(true);
-    expect(bankCheckpoints.every(event => event.date <= '2026-05-27')).toBe(true);
+    const today = new Date().toISOString().split('T')[0];
+    expect(bankCheckpoints.every(event => event.date <= today)).toBe(true);
   });
 
   it('replaces saved loans with deterministic fixtures', () => {
