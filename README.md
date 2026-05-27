@@ -2,6 +2,9 @@
 
 Loan amortisation calculator for iOS and Android. Mobile companion to [TTN.loan-amortisation-calculator.web](https://github.com/oskarfigura/TTN.loan-amortisation-calculator.web).
 
+## Android Build
+eas build -p android --profile production
+
 ## Most Common Jobs
 
 Most developers will want one of these first:
