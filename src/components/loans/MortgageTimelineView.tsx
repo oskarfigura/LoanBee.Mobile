@@ -362,6 +362,12 @@ export const MortgageTimelineView = ({ loan, showFooterAction = true, onLoanUpda
               />
               <View style={styles.currentActions}>
                 <TimelineAction
+                  label={t('mortgage.addOverpayment')}
+                  onPress={() => router.push(`/saved/${loan.id}/deals/${timeline.current?.id}/overpayments`)}
+                  variant="secondary"
+                  style={styles.currentPrimaryAction}
+                />
+                <TimelineAction
                   label={t('mortgage.completeCurrentDeal')}
                   onPress={() => router.push(`/saved/${loan.id}/complete-current`)}
                   variant="primary"
