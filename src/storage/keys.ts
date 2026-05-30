@@ -5,4 +5,5 @@ export const STORAGE_KEYS = {
   USER_LANGUAGE: 'user_language',
   USER_CURRENCY: 'user_currency',
   GUIDE_SEEN: 'guide_seen_v1',
+  MORTGAGE_JOURNEY: 'mortgage_journey_v1',
 } as const;
