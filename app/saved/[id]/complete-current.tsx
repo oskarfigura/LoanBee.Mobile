@@ -254,6 +254,7 @@ export default function CompleteCurrentDealScreen() {
             {formatCurrency(predictedClosingBalance, loan.currency)}
           </AppText>
         </View>
+        <FieldHint>{t('mortgage.predictedBalanceHint')}</FieldHint>
 
         <View style={styles.field}>
           <View style={styles.feesLabelRow}>
