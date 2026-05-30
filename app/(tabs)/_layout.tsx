@@ -69,8 +69,9 @@ export default function TabLayout() {
           borderTopColor: colours.borderSoft,
           // Add the device bottom inset so the bar clears the Android system
           // navigation (e.g. Samsung S21 gesture/button bar) and the iOS home
-          // indicator instead of sitting underneath them.
-          height: 64 + insets.bottom,
+          // indicator instead of sitting underneath them. Base height stays 72 so
+          // the icon+label content area is unchanged from before.
+          height: 72 + insets.bottom,
           paddingTop: 6,
           paddingBottom: 6 + insets.bottom,
           ...elevation.nav,
