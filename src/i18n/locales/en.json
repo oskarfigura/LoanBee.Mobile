@@ -92,6 +92,7 @@
     "overpaymentSaving": "Saved {{amount}} in interest by overpaying",
     "overpaymentSavings": "Overpayment Savings",
     "savedInInterest": "saved in interest by overpaying",
+    "savedInterestBadge": "Saved {{amount}} interest",
     "loanProgress": "Loan Progress",
     "startedOn": "Started {{date}}",
     "balancePaidWithPercent": "Balance paid {{percent}}%",

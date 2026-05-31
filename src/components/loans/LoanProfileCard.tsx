@@ -73,6 +73,11 @@ export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
   const supportingMetrics = [monthlyPayment, interestRate, payoffDate]
     .filter((metric): metric is LoanInsightMetric => Boolean(metric))
     .slice(0, 3);
+  // Overpayment savings are already gated on "is the user overpaying" inside the
+  // summary builder: loans expose a formatted `savingsAmount`, mortgages surface an
+  // `estimatedSavings` metric. Either presence means we should show the badge.
+  const overpaymentSavings = summary.progress?.savingsAmount
+    ?? summary.progress?.metrics.find(metric => metric.labelKey === 'mortgage.estimatedSavings')?.value;
   const startedDate = formatFriendlyDate(loan.formSnapshot.startDate, i18n.language);
 
   return (
@@ -126,9 +131,6 @@ export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
                 {primaryMetric.value}
               </AppText>
             </View>
-            <View style={styles.detailsCue}>
-              <ChevronRightIcon color={colours.primary} size={18} />
-            </View>
           </View>
 
           {summary.progress ? (
@@ -152,9 +154,13 @@ export const LoanProfileCard = ({ loan, onPress, onTogglePinned }: Props) => {
             <AppText variant="helper" tone="muted" numberOfLines={1} style={styles.footerMeta}>
               {t('saved.startedOn', { date: startedDate })}
             </AppText>
-            <AppText variant="helper" tone="accent" numberOfLines={1}>
-              {t('saved.view')}
-            </AppText>
+            {overpaymentSavings ? (
+              <View style={styles.savingsBadge}>
+                <AppText variant="labelSm" tone="success" numberOfLines={1} adjustsFontSizeToFit>
+                  {t('saved.savedInterestBadge', { amount: overpaymentSavings })}
+                </AppText>
+              </View>
+            ) : null}
           </View>
         </View>
       </Card>
@@ -299,5 +305,14 @@ const styles = StyleSheet.create({
   footerMeta: {
     flex: 1,
     minWidth: 0,
+  },
+  savingsBadge: {
+    flexShrink: 1,
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    borderColor: colours.successBorder,
+    backgroundColor: colours.successSurface,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xxxs,
   },
 });
