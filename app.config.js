@@ -1,4 +1,4 @@
-import { withGradleProperties } from '@expo/config-plugins';
+import { withGradleProperties, withAndroidManifest } from '@expo/config-plugins';
 
 const androidSizeGradleProperties = {
   'android.enableMinifyInReleaseBuilds': 'true',
@@ -25,6 +25,27 @@ const withAndroidSizeGradleProperties = config => withGradleProperties(config, g
   });
 
   return gradleConfig;
+});
+
+// Expo's Android prebuild template injects SYSTEM_ALERT_WINDOW ("draw over other
+// apps"), which Google Play flags as a sensitive permission and surfaces in Data
+// Safety. This calculator never draws overlays, so strip it from the merged manifest.
+// The tools:node="remove" directive also blocks any dependency that re-adds it during
+// manifest merging — more durable than deleting the line from the generated manifest
+// (which is gitignored and regenerated on every prebuild).
+const withoutSystemAlertWindow = config => withAndroidManifest(config, androidConfig => {
+  const { manifest } = androidConfig.modResults;
+  manifest.$['xmlns:tools'] = manifest.$['xmlns:tools'] ?? 'http://schemas.android.com/tools';
+
+  const SYSTEM_ALERT_WINDOW = 'android.permission.SYSTEM_ALERT_WINDOW';
+  manifest['uses-permission'] = (manifest['uses-permission'] ?? []).filter(
+    permission => permission.$['android:name'] !== SYSTEM_ALERT_WINDOW,
+  );
+  manifest['uses-permission'].push({
+    $: { 'android:name': SYSTEM_ALERT_WINDOW, 'tools:node': 'remove' },
+  });
+
+  return androidConfig;
 });
 
 // AdMob unit IDs flow in via env vars (see src/ads/adUnits.ts). When unset the app
@@ -64,7 +85,7 @@ export default () => ({
   expo: {
     name: 'LoanBee',
     slug: 'loanbee-odr6tdznqbl20no30tw0',
-    version: '1.0.0',
+    version: '2.2.0',
     orientation: 'default',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
@@ -85,6 +106,12 @@ export default () => ({
       requireFullScreen: true,
       bundleIdentifier: 'com.thetechnarrative.loanbee',
       buildNumber: '1',
+      infoPlist: {
+        // MMKV encrypts at rest but uses only standard/exempt cryptography, so the app
+        // qualifies for the export-compliance exemption. Declaring this stops App Store
+        // Connect blocking every submission with the encryption-compliance prompt.
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       adaptiveIcon: {
@@ -100,6 +127,7 @@ export default () => ({
     },
     plugins: [
       withAndroidSizeGradleProperties,
+      withoutSystemAlertWindow,
       'expo-router',
       'expo-font',
       'expo-localization',
@@ -141,6 +169,11 @@ export default () => ({
           iosAppId:
             process.env.ADMOB_IOS_ID ??
             'ca-app-pub-3940256099942544~1458002511',
+          // Writes NSUserTrackingUsageDescription into the iOS Info.plist. Required for
+          // App Store review because the app presents the UMP consent form and serves
+          // AdMob; the plugin also injects Google's SKAdNetwork identifier automatically.
+          userTrackingUsageDescription:
+            'This identifier will be used to deliver personalised ads to you.',
         },
       ],
     ],
