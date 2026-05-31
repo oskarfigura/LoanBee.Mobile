@@ -10,7 +10,7 @@ import {
 } from '@/loans/loanInsightSummary';
 import { LoanResult } from '@/results/loanResultRoute';
 import { SavedLoan } from '@/types/SavedLoan';
-import { formatFriendlyMonthYear, parseDateLabelValue } from '@/utils/date';
+import { formatFriendlyMonthYear, formatIsoDate, parseDateLabelValue } from '@/utils/date';
 
 export type UserVisibleMetric = {
   id: string;
@@ -233,7 +233,7 @@ const formatAmortisationPeriodLabel = (
 
   date.setMonth(date.getMonth() + periodNumber - 1);
 
-  return formatFriendlyMonthYear(date.toISOString().split('T')[0], language);
+  return formatFriendlyMonthYear(formatIsoDate(date), language);
 };
 
 export const buildAmortisationDisplayRows = ({

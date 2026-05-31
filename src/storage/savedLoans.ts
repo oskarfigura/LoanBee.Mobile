@@ -11,6 +11,7 @@ import {
   SavedLoan,
 } from '@/types/SavedLoan';
 import { getEffectiveLoanAmount } from '@/utils/paymentValidation';
+import { formatIsoDate } from '@/utils/date';
 
 export class SavedLoanStorageError extends Error {
   constructor(message: string, readonly cause?: unknown) {
@@ -60,7 +61,7 @@ const addMonths = (dateString: string, months: number): string => {
   const date = new Date(`${dateString}T00:00:00`);
   if (Number.isNaN(date.getTime())) return dateString;
   date.setMonth(date.getMonth() + months);
-  return date.toISOString().split('T')[0];
+  return formatIsoDate(date);
 };
 
 const getEffectiveOpeningBalance = (loan: LegacySavedLoan): number => (

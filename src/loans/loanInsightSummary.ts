@@ -4,7 +4,7 @@ import { buildMortgageProjection } from '@/mortgage/projection';
 import { getMortgageTrackerSummary, getPublishedDeals } from '@/mortgage/tracker';
 import { LoanResult } from '@/results/loanResultRoute';
 import { LoanDeal, SavedLoan } from '@/types/SavedLoan';
-import { formatFriendlyDate, monthsBetween, parseDateLabelValue } from '@/utils/date';
+import { formatFriendlyDate, formatIsoDate, monthsBetween, parseDateLabelValue } from '@/utils/date';
 
 export type LoanInsightContext = 'saved' | 'calculation';
 
@@ -58,7 +58,7 @@ export const formatPayoffDate = (startDate: string, totalMonths: number, locale?
 
   date.setMonth(date.getMonth() + Math.max(totalMonths, 0));
 
-  return formatFriendlyDate(date.toISOString().split('T')[0], locale);
+  return formatFriendlyDate(formatIsoDate(date), locale);
 };
 
 const getPrincipalAmount = (result: LoanResult) => Math.max(result.amount - result.downPayment, 0);
