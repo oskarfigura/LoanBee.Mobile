@@ -1,4 +1,6 @@
-import { formatFriendlyMonthYear, parseDateLabelValue } from '@/utils/date';
+import { formatAmortisationPeriodLabel, formatFriendlyMonthYear } from '@/utils/date';
+
+export { formatAmortisationPeriodLabel };
 
 export interface AmortisationTableItem {
   itemNo: number;
@@ -12,19 +14,6 @@ export interface AmortisationTableItem {
   interest: string;
   ending: string;
 }
-
-export const formatAmortisationPeriodLabel = (
-  startDate: string,
-  periodNumber: number,
-  language: string,
-) => {
-  const date = parseDateLabelValue(startDate);
-  if (!date) return String(periodNumber);
-
-  date.setMonth(date.getMonth() + periodNumber - 1);
-
-  return formatFriendlyMonthYear(date.toISOString().split('T')[0], language);
-};
 
 const formatCsvNumber = (value: string) => {
   const numericValue = Number(value);

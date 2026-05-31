@@ -2,6 +2,7 @@ import { CurrencyCode } from '@/currency/currencies';
 import { generateDefaultDealName } from '@/mortgage/tracker';
 import { LoanDeal, LoanFormSnapshot, LoanGroup, LoanResultSnapshot } from '@/types/SavedLoan';
 import { getEffectiveLoanAmount as computeEffectiveLoanAmount } from '@/utils/paymentValidation';
+import { formatIsoDate } from '@/utils/date';
 
 type RawFormValues = {
   loanAmount: number;
@@ -35,7 +36,7 @@ const addMonths = (dateString: string, months: number): string => {
   const date = new Date(`${dateString}T00:00:00`);
   if (Number.isNaN(date.getTime())) return dateString;
   date.setMonth(date.getMonth() + months);
-  return date.toISOString().split('T')[0];
+  return formatIsoDate(date);
 };
 
 export const getEffectiveLoanAmount = (form: Pick<LoanFormSnapshot, 'loanAmount' | 'downPayment' | 'downPaymentType'>): number => (
