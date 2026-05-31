@@ -98,9 +98,9 @@ describe('mortgage journey steps', () => {
     const steps = buildJourneySteps(loan);
     expect(steps.map(s => s.id)).toEqual([
       'intro',
-      'loan.currency',
       'loan.nickname',
       'loan.lender',
+      'loan.currency',
       'loan.openingBalance',
       'loan.startDate',
       'loan.totalTerm',
