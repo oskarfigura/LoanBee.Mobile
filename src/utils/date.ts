@@ -123,3 +123,20 @@ export const monthsBetween = (
   if (!start || !end) return 0;
   return Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()));
 };
+
+// Amortisation rows often carry no explicit date; derive the month label from the
+// loan start date plus the 1-based period number. formatIsoDate keeps the month
+// correct across timezone boundaries (toISOString would shift to UTC and could
+// roll a month-start date back into the previous month in positive offsets).
+export const formatAmortisationPeriodLabel = (
+  startDate: string,
+  periodNumber: number,
+  language: string,
+): string => {
+  const date = parseDateLabelValue(startDate);
+  if (!date) return String(periodNumber);
+
+  date.setMonth(date.getMonth() + periodNumber - 1);
+
+  return formatFriendlyMonthYear(formatIsoDate(date), language);
+};

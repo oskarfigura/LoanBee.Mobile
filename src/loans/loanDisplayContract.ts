@@ -10,7 +10,7 @@ import {
 } from '@/loans/loanInsightSummary';
 import { LoanResult } from '@/results/loanResultRoute';
 import { SavedLoan } from '@/types/SavedLoan';
-import { formatFriendlyMonthYear, formatIsoDate, parseDateLabelValue } from '@/utils/date';
+import { formatAmortisationPeriodLabel, formatFriendlyMonthYear } from '@/utils/date';
 
 export type UserVisibleMetric = {
   id: string;
@@ -221,19 +221,6 @@ export const buildSavedLoanDisplayContract = ({
     dashboardProgress: buildSavedLoanDashboardProgress(loan, result, asOf),
     dashboardMetrics,
   };
-};
-
-const formatAmortisationPeriodLabel = (
-  startDate: string,
-  periodNumber: number,
-  language: string,
-) => {
-  const date = parseDateLabelValue(startDate);
-  if (!date) return String(periodNumber);
-
-  date.setMonth(date.getMonth() + periodNumber - 1);
-
-  return formatFriendlyMonthYear(formatIsoDate(date), language);
 };
 
 export const buildAmortisationDisplayRows = ({
