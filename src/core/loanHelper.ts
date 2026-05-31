@@ -44,10 +44,16 @@ export const getLoanEndDate = (
     timeInYears: number,
     timeInMonths: number
 ) => {
-    let date = new Date(startDate);
     let overallTimeInMonths = getOverallTermInMonths(timeInYears, timeInMonths);
-    let endDate = new Date(date.setMonth(date.getMonth() + overallTimeInMonths));
-    return endDate;
+    // Parse ISO YYYY-MM-DD as local midnight. `new Date('2024-01-01')` parses as
+    // UTC midnight, so in non-UTC timezones the local calendar day (and the month
+    // callers read via getMonth/getFullYear) can land on the wrong day.
+    let isoParts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(startDate);
+    let date = isoParts
+        ? new Date(Number(isoParts[1]), Number(isoParts[2]) - 1, Number(isoParts[3]))
+        : new Date(startDate);
+    date.setMonth(date.getMonth() + overallTimeInMonths);
+    return date;
 };
 
 export const convertToWholeNumber = (value: string | number | undefined): number => {
