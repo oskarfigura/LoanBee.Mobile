@@ -65,13 +65,18 @@ export const LumpSumSheet = ({
 
   const amountValidation = validateMoneyText(amount);
   const canSave = amountValidation.isValid;
+  const liveAmount = amountValidation.isValid ? amountValidation.numeric : 0;
 
   const rows = useMemo(() => {
+    // Gate visibility on the live amount so the card hides instantly when the
+    // field is cleared (or the sheet is reopened to add), but run the expensive
+    // amortisation only off the debounced value.
+    if (liveAmount <= 0) return null;
     const parsed = validateMoneyText(debouncedText, { required: false });
     const debouncedAmount = parsed.isValid ? parsed.numeric : 0;
     if (debouncedAmount <= 0) return null;
     return computeImpactRows(debouncedAmount, debouncedDate);
-  }, [debouncedText, debouncedDate, computeImpactRows]);
+  }, [liveAmount, debouncedText, debouncedDate, computeImpactRows]);
 
   const handleDelete = () => {
     if (!event) return;

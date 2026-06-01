@@ -49,13 +49,18 @@ export const MonthlyOverpaymentSheet = ({
 
   const amountValidation = validateMoneyText(value);
   const amount = amountValidation.numeric;
+  const liveAmount = amountValidation.isValid ? amount : 0;
 
   const rows = useMemo(() => {
+    // Gate visibility on the live amount so the card hides instantly when the
+    // field is cleared (or the sheet is reopened), but run the expensive
+    // amortisation only off the debounced value.
+    if (liveAmount <= 0) return null;
     const parsed = validateMoneyText(debouncedText, { required: false });
     const debouncedAmount = parsed.isValid ? parsed.numeric : 0;
     if (debouncedAmount <= 0) return null;
     return computeImpactRows(debouncedAmount);
-  }, [debouncedText, computeImpactRows]);
+  }, [liveAmount, debouncedText, computeImpactRows]);
 
   const isUnchanged = amount === current;
   const canSave = amountValidation.isValid && !isUnchanged;
