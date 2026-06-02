@@ -1,0 +1,108 @@
+import { describe, expect, it } from '@jest/globals';
+import { buildTrackedMortgageFromForm, TrackMortgageFormValues } from '../../src/mortgage/trackBuilder';
+import { buildMortgageProjection } from '../../src/mortgage/projection';
+import { getCurrentDeal, getPublishedDeals } from '../../src/mortgage/tracker';
+import { monthsBetween } from '../../src/utils/date';
+
+const baseValues = (overrides: Partial<TrackMortgageFormValues> = {}): TrackMortgageFormValues => ({
+  nickname: 'Family home',
+  lender: 'Halifax',
+  currency: 'GBP',
+  currentBalance: 180000,
+  interestRate: 4.5,
+  repaymentType: 'repayment',
+  remainingTermInMonths: 264, // 22 years
+  startDate: '2026-06-01',
+  ...overrides,
+});
+
+describe('buildTrackedMortgageFromForm', () => {
+  it('anchors a single active, tracked, pinned deal at the current balance', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues());
+
+    expect(loan.status).toBe('tracked');
+    expect(loan.pinnedToDashboard).toBe(true);
+    expect(loan.category).toBe('mortgage');
+    expect(loan.currency).toBe('GBP');
+    expect(loan.deals).toHaveLength(1);
+
+    const [deal] = loan.deals;
+    expect(deal.status).toBe('active');
+    expect(deal.source).toBe('userDeal');
+    expect(deal.openingBalance).toBe(180000);
+    expect(deal.startDate).toBe('2026-06-01');
+    expect(getCurrentDeal(loan)?.id).toBe(deal.id);
+  });
+
+  it('maps the remaining term onto the loan term and a derived monthly payment', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues());
+
+    expect(loan.mortgageTermInMonths).toBe(264);
+    expect(loan.formSnapshot.termInYears).toBe(22);
+    expect(loan.formSnapshot.termInMonths).toBe(0);
+    expect(loan.deals[0].monthlyPayment).toBeGreaterThan(0);
+    // current balance is the input, never derived
+    expect(loan.formSnapshot.loanAmount).toBe(180000);
+  });
+
+  it('amortises an interest-only deal as balance * monthly rate', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({ repaymentType: 'interestOnly' }));
+    const expected = +(180000 * (4.5 / 100 / 12)).toFixed(2);
+    expect(loan.deals[0].monthlyPayment).toBeCloseTo(expected, 2);
+  });
+
+  it('uses the deal-end date for the fixed period when provided', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({ dealEndDate: '2028-06-01' }));
+    expect(loan.deals[0].endDate).toBe('2028-06-01');
+    expect(monthsBetween(loan.deals[0].startDate, loan.deals[0].endDate)).toBe(24);
+    // term to payoff is unchanged by the fixed-deal window
+    expect(loan.mortgageTermInMonths).toBe(264);
+  });
+
+  it('runs the deal to payoff when no deal-end date is given', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({ dealEndDate: undefined }));
+    expect(monthsBetween(loan.deals[0].startDate, loan.deals[0].endDate)).toBe(264);
+  });
+
+  it('records prior overpayments as events and a regular monthly overpayment', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({
+      regularOverpayment: 150,
+      lumpOverpayments: [
+        { date: '2026-07-01', amount: 5000 },
+        { date: 'not-a-date', amount: 1000 }, // dropped
+        { date: '2026-08-01', amount: 0 }, // dropped
+      ],
+    }));
+
+    expect(loan.deals[0].regularOverpayment).toBe(150);
+    expect(loan.formSnapshot.additionalMonthlyPayment).toBe(150);
+    const lumpEvents = loan.events.filter(e => e.type === 'lumpOverpayment');
+    expect(lumpEvents).toHaveLength(1);
+    expect(lumpEvents[0]).toMatchObject({ amount: 5000, date: '2026-07-01', dealId: loan.deals[0].id });
+  });
+
+  it('populates a result snapshot from the projection', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues());
+
+    expect(loan.resultSnapshot.totalTermInMonths).toBe(264);
+    expect(loan.resultSnapshot.monthlyPayments).toBeGreaterThan(0);
+    expect(loan.resultSnapshot.totalInterestPaid).toBeGreaterThan(0);
+    expect(loan.resultSnapshot.totalAmountPaid).toBeGreaterThan(loan.resultSnapshot.totalInterestPaid);
+  });
+
+  it('produces a deal the tracker treats as published and projectable', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues());
+    expect(getPublishedDeals(loan)).toHaveLength(1);
+
+    const projection = buildMortgageProjection(loan);
+    expect(projection.currentBalance).toBeGreaterThan(0);
+    expect(projection.currentBalance).toBeLessThanOrEqual(180000);
+    expect(projection.totalInterestPaid).toBeGreaterThan(0);
+  });
+
+  it('reuses a supplied id and createdAt (resume/finalise a draft in place)', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues(), { id: 'fixed-id', createdAt: '2020-01-01T00:00:00.000Z' });
+    expect(loan.id).toBe('fixed-id');
+    expect(loan.createdAt).toBe('2020-01-01T00:00:00.000Z');
+  });
+});
