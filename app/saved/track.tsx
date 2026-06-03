@@ -95,6 +95,17 @@ export default function TrackMortgageScreen() {
   const durationValidation = validateDurationText(termYears, termMonths);
   const regularValidation = validateMoneyText(regularOverpayment, { required: false, allowZero: true });
 
+  // Surface whichever duration problem actually blocks the save: an out-of-range
+  // sub-field (e.g. 15 months) or the combined "total term must be positive"
+  // guard. Empty sub-fields are not errors — they count as zero.
+  const durationErrorKey = (!durationValidation.months.isEmpty && durationValidation.months.errorKey)
+    || (!durationValidation.years.isEmpty && durationValidation.years.errorKey)
+    || (durationValidation.errorKey
+      && (!durationValidation.years.isEmpty || !durationValidation.months.isEmpty)
+      ? durationValidation.errorKey
+      : undefined)
+    || undefined;
+
   const canSave = nickname.trim().length > 0
     && balanceValidation.isValid
     && rateValidation.isValid
@@ -290,7 +301,7 @@ export default function TrackMortgageScreen() {
             </View>
           </View>
           <FieldHint>{t('track.remainingTermHint')}</FieldHint>
-          <FieldError message={durationValidation.errorKey && !durationValidation.years.isEmpty ? t(durationValidation.errorKey) : undefined} />
+          <FieldError message={durationErrorKey ? t(durationErrorKey) : undefined} />
         </View>
       </FormSection>
 

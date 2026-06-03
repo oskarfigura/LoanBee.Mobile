@@ -733,7 +733,7 @@
     "dealFixed": "Stała/promocyjna",
     "dealNone": "Bez końca",
     "dealEndDate": "Oferta kończy się",
-    "dealEndDateHint": "Przypomnimy Ci, zanim nadejdzie czas na refinansowanie.",
+    "dealEndDateHint": "Będziemy pokazywać datę zakończenia umowy, abyś mógł w porę zaplanować refinansowanie.",
     "sectionOverpayments": "Nadpłaty",
     "overpaymentsHelp": "Opcjonalnie — zobacz, jak nadpłaty przyspieszają spłatę.",
     "regularOverpayment": "Regularna nadpłata",
