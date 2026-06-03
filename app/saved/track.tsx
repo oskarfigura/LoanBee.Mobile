@@ -28,8 +28,10 @@ import {
 import { SaveIcon } from '@/components/ui/Icons/SaveIcon/SaveIcon';
 import {
   buildTrackedMortgageFromForm,
+  deriveTrackSeedFromLoan,
   TrackMortgageFormValues,
 } from '@/mortgage/trackBuilder';
+import { buildMortgageProjection } from '@/mortgage/projection';
 import { calculateDealMonthlyPayment } from '@/mortgage/tracker';
 import { MortgageRepaymentType } from '@/types/SavedLoan';
 import { createLocalId } from '@/utils/id';
@@ -42,45 +44,48 @@ const numberText = (value?: number): string =>
   value === undefined || !Number.isFinite(value) || value <= 0 ? '' : String(value);
 
 export default function TrackMortgageScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { add, update } = useSavedLoans();
   const { recordUsefulAction, requestReview } = useStoreReview();
 
-  // Resume path: an existing (legacy) draft is finalised in place rather than
-  // duplicated. New mortgages never pre-create a draft, so this is rare.
-  const existing = useMemo(() => (id ? savedLoansStorage.getById(id) : undefined), [id]);
-  const existingDeal = existing?.deals[0];
-  const defaultCurrency = (storage.getString(STORAGE_KEYS.USER_CURRENCY) as CurrencyCode) ?? 'GBP';
-
   const today = useMemo(() => formatIsoDate(new Date()), []);
 
-  const [nickname, setNickname] = useState(existing?.nickname ?? '');
-  const [lender, setLender] = useState(existing?.lender ?? '');
-  const [currency, setCurrency] = useState<CurrencyCode>(existing?.currency ?? defaultCurrency);
-  const [balance, setBalance] = useState(numberText(existing?.formSnapshot.loanAmount));
-  const [rate, setRate] = useState(numberText(existing?.formSnapshot.interest));
-  const [repaymentType, setRepaymentType] = useState<MortgageRepaymentType>(
-    existingDeal?.repaymentType ?? 'repayment',
+  // Resume path: an existing (legacy) draft is finalised in place rather than
+  // duplicated. New mortgages never pre-create a draft, so this is rare. The
+  // form is today-anchored, so seed values are derived from the loan's current
+  // state (projected balance, current deal, remaining term) — not its original
+  // figures. See deriveTrackSeedFromLoan.
+  const existing = useMemo(() => (id ? savedLoansStorage.getById(id) : undefined), [id]);
+  const seed = useMemo(
+    () => (existing ? deriveTrackSeedFromLoan(existing, today) : undefined),
+    [existing, today],
   );
-  const initialTermMonths = existing?.mortgageTermInMonths ?? 0;
+  const defaultCurrency = (storage.getString(STORAGE_KEYS.USER_CURRENCY) as CurrencyCode) ?? 'GBP';
+
+  const [nickname, setNickname] = useState(seed?.nickname ?? '');
+  const [lender, setLender] = useState(seed?.lender ?? '');
+  const [currency, setCurrency] = useState<CurrencyCode>(seed?.currency ?? defaultCurrency);
+  const [balance, setBalance] = useState(numberText(seed?.currentBalance));
+  const [rate, setRate] = useState(numberText(seed?.interestRate));
+  const [repaymentType, setRepaymentType] = useState<MortgageRepaymentType>(
+    seed?.repaymentType ?? 'repayment',
+  );
+  const initialTermMonths = seed?.remainingTermInMonths ?? 0;
   const [termYears, setTermYears] = useState(initialTermMonths ? String(Math.floor(initialTermMonths / 12)) : '');
   const [termMonths, setTermMonths] = useState(initialTermMonths ? String(initialTermMonths % 12) : '');
 
-  const [hasDealEnd, setHasDealEnd] = useState(
-    Boolean(existingDeal && existingDeal.endDate && existingDeal.endDate > today),
-  );
-  const [dealEndDate, setDealEndDate] = useState(existingDeal?.endDate ?? addMonthsToIsoDate(today, 24));
+  const [hasDealEnd, setHasDealEnd] = useState(Boolean(seed?.dealEndDate));
+  const [dealEndDate, setDealEndDate] = useState(seed?.dealEndDate ?? addMonthsToIsoDate(today, 24));
 
   const [enrichmentOpen, setEnrichmentOpen] = useState(false);
   const [regularOverpayment, setRegularOverpayment] = useState(
-    numberText(existingDeal?.regularOverpayment),
+    numberText(seed?.regularOverpayment),
   );
   const [lumpRows, setLumpRows] = useState<OverpaymentRow[]>(() => (
-    (existing?.events ?? [])
-      .filter(event => event.type === 'lumpOverpayment')
-      .map(event => ({ id: createLocalId('op'), date: event.date, amount: String(event.amount ?? '') }))
+    (seed?.lumpOverpayments ?? [])
+      .map(op => ({ id: createLocalId('op'), date: op.date, amount: String(op.amount) }))
   ));
 
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
@@ -95,8 +100,10 @@ export default function TrackMortgageScreen() {
     && rateValidation.isValid
     && durationValidation.isValid;
 
-  // Cheap live summary — a single payment formula, no full projection — so it can
-  // recompute on every keystroke without debouncing.
+  // Live summary. The monthly payment is a single cheap formula. The payoff date
+  // is the plain term end unless overpayments are in play — those shorten the
+  // real payoff, so only then is the (cheap, single-deal) projection run to get
+  // the true date rather than overstating it.
   const summary = useMemo(() => {
     if (!balanceValidation.isValid || !rateValidation.isValid || !durationValidation.isValid) {
       return null;
@@ -107,11 +114,30 @@ export default function TrackMortgageScreen() {
       durationValidation.totalMonths,
       repaymentType,
     );
-    return {
-      monthly,
-      payoffDate: addMonthsToIsoDate(today, durationValidation.totalMonths),
-    };
-  }, [balanceValidation, rateValidation, durationValidation, repaymentType, today]);
+
+    const regular = regularValidation.isValid ? regularValidation.numeric : 0;
+    const lumps = lumpRows
+      .map(row => ({ date: row.date, amount: validateMoneyText(row.amount).numeric }))
+      .filter(row => isValidIsoDate(row.date) && row.amount > 0);
+
+    let payoffDate = addMonthsToIsoDate(today, durationValidation.totalMonths);
+    if (regular > 0 || lumps.length > 0) {
+      const projection = buildMortgageProjection(buildTrackedMortgageFromForm({
+        nickname,
+        currency,
+        currentBalance: balanceValidation.numeric,
+        interestRate: rateValidation.numeric,
+        repaymentType,
+        remainingTermInMonths: durationValidation.totalMonths,
+        regularOverpayment: regular,
+        lumpOverpayments: lumps,
+        startDate: today,
+      }));
+      payoffDate = projection.projectedEndDate ?? payoffDate;
+    }
+
+    return { monthly, payoffDate };
+  }, [balanceValidation, rateValidation, durationValidation, repaymentType, regularValidation, lumpRows, nickname, currency, today]);
 
   const buildValues = (): TrackMortgageFormValues => ({
     nickname,

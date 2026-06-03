@@ -9,9 +9,21 @@ import {
   MortgageRepaymentType,
 } from '@/types/SavedLoan';
 import { buildMortgageProjection } from '@/mortgage/projection';
-import { calculateDealMonthlyPayment, generateDefaultDealName } from '@/mortgage/tracker';
+import {
+  calculateDealMonthlyPayment,
+  generateDefaultDealName,
+  getChronologicalDeals,
+  getCurrentDeal,
+  getRemainingMortgageTermInMonths,
+} from '@/mortgage/tracker';
 import { createLocalId } from '@/utils/id';
-import { addMonthsToIsoDate, formatIsoDate, isValidIsoDate, monthsBetween } from '@/utils/date';
+import {
+  addMonthsToIsoDate,
+  formatIsoDate,
+  isValidIsoDate,
+  monthsBetween,
+  parseDateLabelValue,
+} from '@/utils/date';
 
 // A single lump overpayment the user has already made on the current deal.
 export interface TrackOverpaymentInput {
@@ -184,4 +196,73 @@ export const buildTrackedMortgageFromForm = (
   };
 
   return { ...base, resultSnapshot };
+};
+
+/** Today-anchored seed values for the track form, derived from an existing loan. */
+export interface TrackMortgageSeed {
+  nickname: string;
+  /** Empty string (not undefined) so it drops straight into the lender text input. */
+  lender: string;
+  currency: CurrencyCode;
+  currentBalance: number;
+  interestRate: number;
+  repaymentType: MortgageRepaymentType;
+  remainingTermInMonths: number;
+  dealEndDate?: string;
+  regularOverpayment: number;
+  lumpOverpayments: TrackOverpaymentInput[];
+}
+
+/**
+ * Derive today-anchored form seed values from an existing (legacy) loan when
+ * resuming/finalising it in place.
+ *
+ * The new model anchors on *today*, so the current balance is read from the
+ * loan's projection (its balance as of `asOfIso`) rather than the original
+ * opening balance, and the deal-level fields come from the deal the user is on
+ * now — the current deal, falling back to the most recent one — instead of the
+ * chronologically first deal. The remaining term is likewise measured from today
+ * to payoff, not the full original mortgage term.
+ */
+export const deriveTrackSeedFromLoan = (loan: LoanGroup, asOfIso: string): TrackMortgageSeed => {
+  const deals = getChronologicalDeals(loan);
+  const asOf = parseDateLabelValue(asOfIso) ?? new Date();
+  const currentDeal = getCurrentDeal(loan, asOf) ?? deals[deals.length - 1];
+  const hasDeals = deals.length > 0;
+
+  // Current balance is the anchor of the new model. For a loan with deals it is
+  // today's projected balance; a pristine draft (no deals) has nothing to
+  // project, so fall back to whatever opening balance was captured.
+  const currentBalance = hasDeals
+    ? buildMortgageProjection(loan).currentBalance
+    : loan.formSnapshot.loanAmount;
+
+  const remainingTermInMonths = hasDeals
+    ? getRemainingMortgageTermInMonths(loan, asOfIso)
+    : (loan.mortgageTermInMonths ?? 0);
+
+  // Past deals' overpayments are already baked into the projected balance, so
+  // only carry forward the current deal's one-off overpayments.
+  const lumpOverpayments = loan.events
+    .filter(event => (
+      event.type === 'lumpOverpayment'
+      && (!currentDeal || event.dealId === currentDeal.id)
+      && isValidIsoDate(event.date)
+      && (event.amount ?? 0) > 0
+    ))
+    .map(event => ({ date: event.date, amount: event.amount ?? 0 }));
+
+  return {
+    nickname: loan.nickname,
+    lender: loan.lender ?? '',
+    currency: loan.currency,
+    currentBalance,
+    interestRate: currentDeal?.interestRate ?? loan.formSnapshot.interest,
+    repaymentType: currentDeal?.repaymentType ?? 'repayment',
+    remainingTermInMonths,
+    // Only surface a still-future deal end; a past one is no longer the current deal.
+    dealEndDate: currentDeal && currentDeal.endDate > asOfIso ? currentDeal.endDate : undefined,
+    regularOverpayment: currentDeal?.regularOverpayment ?? 0,
+    lumpOverpayments,
+  };
 };

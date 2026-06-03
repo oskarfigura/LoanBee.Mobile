@@ -1,8 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
-import { buildTrackedMortgageFromForm, TrackMortgageFormValues } from '../../src/mortgage/trackBuilder';
+import {
+  buildTrackedMortgageFromForm,
+  deriveTrackSeedFromLoan,
+  TrackMortgageFormValues,
+} from '../../src/mortgage/trackBuilder';
 import { buildMortgageProjection } from '../../src/mortgage/projection';
 import { getCurrentDeal, getPublishedDeals } from '../../src/mortgage/tracker';
 import { monthsBetween } from '../../src/utils/date';
+import { LOAN_GROUP_SCHEMA_VERSION, LoanGroup } from '../../src/types/SavedLoan';
 
 const baseValues = (overrides: Partial<TrackMortgageFormValues> = {}): TrackMortgageFormValues => ({
   nickname: 'Family home',
@@ -104,5 +109,98 @@ describe('buildTrackedMortgageFromForm', () => {
     const loan = buildTrackedMortgageFromForm(baseValues(), { id: 'fixed-id', createdAt: '2020-01-01T00:00:00.000Z' });
     expect(loan.id).toBe('fixed-id');
     expect(loan.createdAt).toBe('2020-01-01T00:00:00.000Z');
+  });
+});
+
+describe('deriveTrackSeedFromLoan', () => {
+  it('seeds today-anchored values from the loan projection and current deal', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({ startDate: '2026-06-01' }));
+    const seed = deriveTrackSeedFromLoan(loan, '2026-06-01');
+
+    // Current balance is the loan's projected balance, not the original opening figure.
+    expect(seed.currentBalance).toBe(buildMortgageProjection(loan).currentBalance);
+    expect(seed.nickname).toBe('Family home');
+    expect(seed.lender).toBe('Halifax');
+    expect(seed.currency).toBe('GBP');
+    expect(seed.interestRate).toBe(4.5);
+    expect(seed.repaymentType).toBe('repayment');
+  });
+
+  it('measures remaining term from today and amortises the balance for a past-dated loan', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({ startDate: '2020-06-01', remainingTermInMonths: 264 }));
+    const seed = deriveTrackSeedFromLoan(loan, '2026-06-01');
+
+    // Remaining-from-today, not the full original term…
+    expect(seed.remainingTermInMonths).toBeGreaterThan(0);
+    expect(seed.remainingTermInMonths).toBeLessThan(264);
+    // …and the balance has amortised down from the original opening balance.
+    expect(seed.currentBalance).toBeGreaterThan(0);
+    expect(seed.currentBalance).toBeLessThan(180000);
+  });
+
+  it('carries the current deal overpayments into the seed', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({
+      startDate: '2026-06-01',
+      regularOverpayment: 150,
+      lumpOverpayments: [{ date: '2026-07-01', amount: 5000 }],
+    }));
+    const seed = deriveTrackSeedFromLoan(loan, '2026-06-01');
+
+    expect(seed.regularOverpayment).toBe(150);
+    expect(seed.lumpOverpayments).toEqual([{ date: '2026-07-01', amount: 5000 }]);
+  });
+
+  it('surfaces a still-future deal end date but drops one already in the past', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({ startDate: '2026-06-01', dealEndDate: '2028-06-01' }));
+
+    expect(deriveTrackSeedFromLoan(loan, '2026-06-01').dealEndDate).toBe('2028-06-01');
+    expect(deriveTrackSeedFromLoan(loan, '2030-01-01').dealEndDate).toBeUndefined();
+  });
+
+  it('falls back to captured figures and zeros for a pristine draft with no deals', () => {
+    const pristineDraft: LoanGroup = {
+      schemaVersion: LOAN_GROUP_SCHEMA_VERSION,
+      id: 'draft-1',
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
+      nickname: 'WIP',
+      category: 'mortgage',
+      currency: 'GBP',
+      status: 'draft',
+      pinnedToDashboard: false,
+      deals: [],
+      events: [],
+      formSnapshot: {
+        loanAmount: 0,
+        interest: 0,
+        termInYears: 0,
+        termInMonths: 0,
+        downPayment: 0,
+        downPaymentType: 'CASH',
+        desiredMonthlyPayment: null,
+        additionalMonthlyPayment: null,
+        startDate: '2026-06-01',
+        calculationType: 'TERM',
+        currency: 'GBP',
+      },
+      resultSnapshot: {
+        monthlyPayments: 0,
+        totalAmountPaid: 0,
+        totalInterestPaid: 0,
+        totalInterestPaidBaseline: 0,
+        termInYears: 0,
+        termInMonths: 0,
+        totalTermInMonths: 0,
+      },
+    };
+
+    const seed = deriveTrackSeedFromLoan(pristineDraft, '2026-06-01');
+
+    expect(seed.currentBalance).toBe(0);
+    expect(seed.interestRate).toBe(0);
+    expect(seed.remainingTermInMonths).toBe(0);
+    expect(seed.repaymentType).toBe('repayment');
+    expect(seed.dealEndDate).toBeUndefined();
+    expect(seed.lumpOverpayments).toEqual([]);
   });
 });
