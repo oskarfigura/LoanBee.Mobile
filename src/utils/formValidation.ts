@@ -86,8 +86,12 @@ export const validateDurationText = (
   monthsRaw: string,
   options: { maxTotalMonths?: number } = {},
 ): DurationValidation => {
-  const years = validateNonNegativeIntegerText(yearsRaw);
+  // Years and months are individually optional: a blank sub-field counts as 0
+  // so "20 years" (months left blank) or "6 months" (years left blank) both
+  // validate. The totalMonths <= 0 guard below catches the genuinely-empty case.
+  const years = validateNonNegativeIntegerText(yearsRaw, { required: false });
   const months = validateNonNegativeIntegerText(monthsRaw, {
+    required: false,
     max: 11,
     maxErrorKey: 'forms.monthRange',
   });
