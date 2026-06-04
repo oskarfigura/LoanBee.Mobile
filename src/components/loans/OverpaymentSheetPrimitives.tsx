@@ -172,6 +172,10 @@ const styles = StyleSheet.create({
     borderColor: colours.successBorder,
     backgroundColor: colours.successSurface,
     gap: spacing.sm,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   impactRows: {
     gap: spacing.xs,
