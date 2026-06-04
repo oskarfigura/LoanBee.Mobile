@@ -41,7 +41,6 @@ type ResultParams = {
   result?: string;
   formValues?: string;
   currency?: string;
-  category?: string;
   mode?: string;
   recentId?: string;
   savedLoan?: string;
@@ -91,7 +90,6 @@ export default function ResultScreen() {
     ?? parseJson<Record<string, unknown>>(params.formValues)
   ), [draftSession?.formValues, params.formValues, recentCalculation?.formValues, savedLoan]);
   const currency = ((savedLoan?.currency ?? draftSession?.currency ?? recentCalculation?.currency ?? params.currency) as CurrencyCode | undefined) ?? 'GBP';
-  const category = savedLoan?.category ?? recentCalculation?.category ?? params.category;
   const additionalMonthlyPayment =
     typeof (formValues as Record<string, unknown>)?.additionalMonthlyPayment === 'number'
       ? (formValues as Record<string, unknown>).additionalMonthlyPayment as number
@@ -128,11 +126,10 @@ export default function ResultScreen() {
         draftId: params.draftId,
         recentId: params.recentId,
         currency,
-        category,
         returnToResult: '1',
       },
     });
-  }, [category, currency, formValues, params.draftId, params.formValues, params.recentId, params.result, result, router]);
+  }, [currency, formValues, params.draftId, params.formValues, params.recentId, params.result, result, router]);
 
   const handleShare = useCallback(async () => {
     if (!result || !formValues) return;

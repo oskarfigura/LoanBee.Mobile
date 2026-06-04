@@ -22,10 +22,8 @@ import { buildDraftResultParams } from '@/results/loanResultRoute';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { hasSeenGuide } from '@/onboarding/guideState';
 import { whenConsentFlowComplete } from '@/onboarding/firstRunGate';
-import type { LoanCategory } from '@/types/SavedLoan';
 
-type JourneyMode = 'scenario' | 'track';
-type JourneyStep = 'borrowingType' | 'intent' | 'mortgageTrack' | 'form';
+type JourneyStep = 'intent' | 'form';
 
 interface JourneyOptionProps {
   title: string;
@@ -61,9 +59,7 @@ export default function CalculatorScreen() {
   const params = useLocalSearchParams<{ calculator?: string; dashboard?: string }>();
   const form = useLoanCalculatorForm();
   const { loans, refresh } = useSavedLoans();
-  const [category, setCategory] = useState<LoanCategory>('mortgage');
-  const [journeyMode, setJourneyMode] = useState<JourneyMode>('scenario');
-  const [journeyStep, setJourneyStep] = useState<JourneyStep>('borrowingType');
+  const [journeyStep, setJourneyStep] = useState<JourneyStep>('intent');
   const [showCalculator, setShowCalculator] = useState(false);
   const firstRunChecked = useRef(false);
 
@@ -95,9 +91,7 @@ export default function CalculatorScreen() {
   useEffect(() => {
     if (params.calculator === '1') {
       setShowCalculator(true);
-      setCategory('mortgage');
-      setJourneyMode('scenario');
-      setJourneyStep('borrowingType');
+      setJourneyStep('intent');
     }
   }, [params.calculator]);
 
@@ -120,9 +114,7 @@ export default function CalculatorScreen() {
 
   const openCalculator = useCallback(() => {
     setShowCalculator(true);
-    setCategory('mortgage');
-    setJourneyMode('scenario');
-    setJourneyStep('borrowingType');
+    setJourneyStep('intent');
   }, []);
 
   const returnToDashboard = useCallback(() => {
@@ -130,34 +122,21 @@ export default function CalculatorScreen() {
   }, []);
 
   const handleJourneyBack = useCallback(() => {
-    if (journeyStep === 'borrowingType') {
-      returnToDashboard();
-      return;
-    }
-
     if (journeyStep === 'intent') {
-      setJourneyStep('borrowingType');
+      returnToDashboard();
       return;
     }
 
     setJourneyStep('intent');
   }, [journeyStep, returnToDashboard]);
 
-  const selectCategory = useCallback((nextCategory: LoanCategory) => {
-    setCategory(nextCategory);
-    setJourneyMode('scenario');
-    setJourneyStep('intent');
+  const openPlanForm = useCallback(() => {
+    setJourneyStep('form');
   }, []);
 
-  const selectJourneyMode = useCallback((nextMode: JourneyMode) => {
-    setJourneyMode(nextMode);
-    if (nextMode === 'track' && category === 'mortgage') {
-      setJourneyStep('mortgageTrack');
-      return;
-    }
-
-    setJourneyStep('form');
-  }, [category]);
+  const openTrackForm = useCallback(() => {
+    router.push('/saved/track');
+  }, [router]);
 
   const handleSubmit = (values: LoanCalculatorFormValues) => {
     const result = getLoanCalculations(
@@ -175,11 +154,11 @@ export default function CalculatorScreen() {
 
     router.push({
       pathname: '/result' as never,
-      params: buildDraftResultParams(result, values, values.currency as CurrencyCode, category),
+      params: buildDraftResultParams(result, values, values.currency as CurrencyCode),
     });
   };
 
-  const canGoBackInJourney = pinnedLoans.length > 0 || journeyStep !== 'borrowingType';
+  const canGoBackInJourney = pinnedLoans.length > 0 || journeyStep !== 'intent';
   const journeyBackAction = canGoBackInJourney ? (
     <HeaderBackAction onPress={handleJourneyBack} />
   ) : undefined;
@@ -193,92 +172,37 @@ export default function CalculatorScreen() {
   }
 
   if (journeyStep !== 'form') {
-    const isBorrowingStep = journeyStep === 'borrowingType';
-    const isTrackMortgageStep = journeyStep === 'mortgageTrack';
-    const headerTitle = isTrackMortgageStep ? t('journey.trackMortgageTitle') : t('journey.title');
-    const stepLabel = isBorrowingStep
-      ? t('journey.stepBorrowing')
-      : isTrackMortgageStep
-        ? t('journey.stepTrackMortgage')
-        : t('journey.stepIntent');
-    const screenTitle = isBorrowingStep
-      ? t('journey.borrowingTypeTitle')
-      : isTrackMortgageStep
-        ? t('journey.trackMortgageTitle')
-        : t('journey.intentTitle', {
-          category: category === 'mortgage'
-            ? t('journey.mortgageOptionTitle')
-            : t('journey.loanOptionTitle'),
-        });
-    const screenBody = isBorrowingStep
-      ? t('journey.borrowingTypeHelp')
-      : isTrackMortgageStep
-        ? t('journey.trackMortgageHelp')
-        : t('journey.intentHelp');
-
     return (
       <SafeAreaView style={styles.safe} edges={[]}>
         <ScreenHeader
-          title={headerTitle}
+          title={t('journey.title')}
           variant="top-level"
           leftAction={journeyBackAction}
         />
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
           <View style={styles.journeyIntro}>
             <AppText variant="labelSm" tone="accent" style={styles.kicker}>
-              {stepLabel}
+              {t('journey.stepIntent')}
             </AppText>
             <AppText variant="title1" style={styles.journeyTitle}>
-              {screenTitle}
+              {t('journey.intentTitle')}
             </AppText>
             <AppText variant="bodyLg" tone="muted" style={styles.journeyBody}>
-              {screenBody}
+              {t('journey.intentHelp')}
             </AppText>
           </View>
 
           <View style={styles.optionList}>
-            {isBorrowingStep ? (
-              <>
-                <JourneyOption
-                  title={t('journey.mortgageOptionTitle')}
-                  body={t('journey.mortgageOptionBody')}
-                  onPress={() => selectCategory('mortgage')}
-                />
-                <JourneyOption
-                  title={t('journey.loanOptionTitle')}
-                  body={t('journey.loanOptionBody')}
-                  onPress={() => selectCategory('loan')}
-                />
-              </>
-            ) : isTrackMortgageStep ? (
-              <>
-                <JourneyOption
-                  title={t('journey.trackFromToday')}
-                  body={t('journey.trackFromTodayHelp')}
-                  meta={t('journey.simpleSetup')}
-                  onPress={() => router.push('/saved/track')}
-                />
-                <JourneyOption
-                  title={t('journey.buildHistory')}
-                  body={t('journey.buildHistoryHelp')}
-                  meta={t('journey.advancedSetup')}
-                  onPress={() => router.push('/saved/history')}
-                />
-              </>
-            ) : (
-              <>
-                <JourneyOption
-                  title={t('journey.exploreScenario')}
-                  body={t('journey.scenarioHelp')}
-                  onPress={() => selectJourneyMode('scenario')}
-                />
-                <JourneyOption
-                  title={t('journey.trackBorrowing')}
-                  body={t('journey.trackHelp')}
-                  onPress={() => selectJourneyMode('track')}
-                />
-              </>
-            )}
+            <JourneyOption
+              title={t('journey.planTitle')}
+              body={t('journey.scenarioHelp')}
+              onPress={openPlanForm}
+            />
+            <JourneyOption
+              title={t('journey.trackBorrowing')}
+              body={t('journey.trackHelp')}
+              onPress={openTrackForm}
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -296,12 +220,10 @@ export default function CalculatorScreen() {
       <LoanForm
         form={form}
         onSubmit={handleSubmit}
-        category={category}
-        submitLabel={journeyMode === 'track' ? t('journey.calculateToTrack') : undefined}
         topContent={(
           <View style={styles.pageIntro}>
             <AppText variant="bodyLg" tone="muted" style={styles.pageSubtitle}>
-              {category === 'mortgage' ? t('calculator.subtitleMortgage') : t('calculator.subtitleLoan')}
+              {t('calculator.subtitle')}
             </AppText>
           </View>
         )}

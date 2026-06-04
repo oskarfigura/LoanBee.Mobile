@@ -83,12 +83,6 @@ export default function RootLayout() {
                   presentation: 'modal',
                 }}
               />
-              <Stack.Screen
-                name="saved/history"
-                options={{
-                  presentation: 'modal',
-                }}
-              />
               <Stack.Screen name="saved/[id]/edit" />
               <Stack.Screen name="saved/[id]/overpayments/index" />
               <Stack.Screen

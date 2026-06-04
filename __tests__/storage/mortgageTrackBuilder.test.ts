@@ -64,9 +64,50 @@ describe('buildTrackedMortgageFromForm', () => {
     expect(loan.mortgageTermInMonths).toBe(264);
   });
 
+  it('anchors a past-dated mortgage as one active historic deal', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({
+      currentBalance: 250000,
+      startDate: '2019-06-01',
+      dealEndDate: '2021-06-01',
+      remainingTermInMonths: 300,
+    }));
+
+    expect(loan.category).toBe('mortgage');
+    expect(loan.deals).toHaveLength(1);
+    expect(loan.deals[0]).toMatchObject({
+      status: 'active',
+      startDate: '2019-06-01',
+      endDate: '2021-06-01',
+      openingBalance: 250000,
+      source: 'userDeal',
+    });
+    expect(getCurrentDeal(loan)?.id).toBe(loan.deals[0].id);
+
+    const projection = buildMortgageProjection(loan);
+    expect(projection.totalAmountPaid).toBeGreaterThan(0);
+    expect(projection.currentBalance).toBeGreaterThanOrEqual(0);
+  });
+
   it('runs the deal to payoff when no deal-end date is given', () => {
     const loan = buildTrackedMortgageFromForm(baseValues({ dealEndDate: undefined }));
     expect(monthsBetween(loan.deals[0].startDate, loan.deals[0].endDate)).toBe(264);
+  });
+
+  it('builds a tracked loan as one repayment deal without a fixed-deal period', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({
+      category: 'loan',
+      dealEndDate: '2028-06-01',
+      regularOverpayment: 75,
+      lumpOverpayments: [{ date: '2026-07-01', amount: 500 }],
+    }));
+
+    expect(loan.category).toBe('loan');
+    expect(loan.deals).toHaveLength(1);
+    expect(monthsBetween(loan.deals[0].startDate, loan.deals[0].endDate)).toBe(264);
+    expect(loan.deals[0].source).toBeUndefined();
+    expect(loan.events).toHaveLength(1);
+    expect(loan.events[0].dealId).toBeUndefined();
+    expect(loan.formSnapshot.additionalMonthlyPayment).toBe(75);
   });
 
   it('records prior overpayments as events and a regular monthly overpayment', () => {

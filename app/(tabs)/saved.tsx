@@ -39,7 +39,7 @@ const RecentCalculationCard = ({
         <View style={styles.recentCardHeader}>
           <View style={styles.recentCardCopy}>
             <AppText variant="labelSm" tone="muted" style={styles.kicker}>
-              {t(`saved.category.${item.category}`)}
+              {item.category ? t(`saved.category.${item.category}`) : t('recent.calculation')}
             </AppText>
             <AppText variant="title3">
               {formatCurrency(result.monthlyPayments, item.currency)}
@@ -113,7 +113,6 @@ export default function SavedScreen() {
       pathname: '/saved/new' as never,
       params: {
         recentId: item.id,
-        category: item.category,
         currency: item.currency,
       },
     });

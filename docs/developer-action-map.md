@@ -19,8 +19,7 @@ For detailed mortgage-tracker behaviour, validation, and edge cases, also read [
 | `/guide` | Onboarding walkthrough | Mark guide seen, jump into calculator |
 | `/calculator/share` | Shared-calculation entrypoint | Parse deep link / share URL and route into Result |
 | `/saved/new` | Save flow | Name a calculation, choose category/currency, create initial deal |
-| `/saved/track` | Current/future mortgage setup | Track from latest balance or a future start date |
-| `/saved/history` | Mortgage history setup | Create the original mortgage and first real deal before completing/adding later deals |
+| `/saved/track` | Loan/mortgage tracking setup | Track borrowing from a past, current, or future deal start date |
 | `/saved/[id]` | Saved loan detail | Review loan or mortgage, rename, delete, pin, open child flows |
 | `/saved/[id]/edit` | Saved loan editor | Edit metadata and jump back to calculator for recalculation |
 | `/saved/[id]/overpayments` | Loan overpayment editor | Adjust simple saved-loan overpayment inputs |
@@ -34,7 +33,7 @@ For detailed mortgage-tracker behaviour, validation, and edge cases, also read [
 
 `app/_layout.tsx` owns the root stack and registers the non-tab routes. The current stack shape matters because several actions rely on modal presentation or hidden routes:
 
-- `saved/new`, `saved/track`, `saved/history`, `saved/[id]/deals/new`, `saved/[id]/events/new`, and `saved/[id]/complete-current` open as modals.
+- `saved/new`, `saved/track`, `saved/[id]/deals/new`, `saved/[id]/events/new`, and `saved/[id]/complete-current` open as modals.
 - The Results screen lives inside the tab navigator as `/(tabs)/result`, but it is hidden from the tab bar with `href: null`.
 - `/about` sits above the tab shell and is entered from Settings.
 - `guide` and all `saved/*` detail routes sit above the tab shell and can be entered from multiple tabs.
@@ -47,10 +46,9 @@ The first tab is Home. `app/(tabs)/index.tsx` restores the pinned dashboard as t
 |---|---|---|
 | First-run onboarding | `guide_seen_v1` not set and the consent gate has completed | `/guide?firstRun=1` is pushed |
 | Dashboard mode | One or more loans are pinned and no calculator override is active | Home dashboard carousel with pinned tracked loans/mortgages |
-| Borrowing step | No pinned loans, dashboard CTA, or `calculator=1` param | Mortgage vs personal-loan choice as the first guided step |
-| Intent step | User chooses a borrowing type | Explore scenario vs track borrowing choice as the second guided step |
-| Scenario mode | User chooses "Explore scenario" | Category-aware calculator form without the upfront choices pinned above it |
-| Track mode | User chooses "Track borrowing" | Mortgage setup-path choice, or loan calculation-to-track flow |
+| Intent step | No pinned loans, dashboard CTA, or `calculator=1` param | Plan a new one vs Track one I have, with no Loan/Mortgage choice up front |
+| Plan mode | User chooses "Plan a new one" | Type-agnostic calculator form; Loan/Mortgage is chosen later in `/saved/new` |
+| Track mode | User chooses "Track one I have" | `/saved/track`, where Loan/Mortgage and the deal start date are chosen |
 
 Related behaviours:
 
@@ -90,26 +88,20 @@ Related behaviours:
   - auto-pins the new loan with `dashboardOrder = getMaxDashboardOrder() + 1`
   - routes to `/saved/[id]?fromSave=1`
 
-### 4. Track a mortgage from today or future start
+### 4. Track borrowing from one start-date-driven form
 
-- Entry: Home → Calculate → borrowing type → Track borrowing → Track from latest statement
+- Entry: Home → Track one I have
 - Files: `app/saved/track.tsx`, `src/mortgage/trackBuilder.ts`, `src/storage/savedLoans.ts`
 - State changes:
-  - creates a `LoanGroup` with one `userDeal` active deal
-  - if the start date is in the future, progress/activity are hidden until that date
-  - auto-pins the tracked mortgage with `dashboardOrder = getMaxDashboardOrder() + 1`
+  - user chooses Loan or Mortgage inside the Track form
+  - creates a `LoanGroup` with one active deal anchored at the chosen deal start date
+  - today means current balance / remaining term; future or past means starting balance / term length
+  - a past mortgage start date seeds the first historic deal; the existing Complete current deal → Add next deal lifecycle builds the chain forward
+  - loans are single-deal tracked items with no fixed-deal end section
+  - auto-pins tracked borrowing with `dashboardOrder = getMaxDashboardOrder() + 1`
   - routes to `/saved/[id]?fromSave=1`
 
-### 5. Build mortgage history
-
-- Entry: Home → Calculate → borrowing type → Track borrowing → Build mortgage history
-- Files: `app/saved/history.tsx`, `app/saved/[id]/complete-current.tsx`, `app/saved/[id]/deals/new.tsx`
-- State changes:
-  - creates the original mortgage plus first real deal from the historic start date
-  - user then completes that deal with closing balance and historic overpayments
-  - later deals are added through the existing deal lifecycle
-
-### 6. Review and manage a saved loan
+### 5. Review and manage a saved loan
 
 - Entry: Tracked tab, or post-save redirect
 - Files: `app/saved/[id].tsx`, `src/components/loans/MortgageDetailView.tsx`
@@ -125,7 +117,7 @@ Related behaviours:
   - add and edit mortgage events
   - correct the latest completed deal
 
-### 7. Shared link / deep link
+### 6. Shared link / deep link
 
 - Entry: `/calculator/share`
 - Files: `app/calculator/share.tsx`, `src/share/calculationShareLink.ts`

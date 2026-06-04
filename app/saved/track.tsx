@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -33,7 +33,7 @@ import {
 } from '@/mortgage/trackBuilder';
 import { buildMortgageProjection } from '@/mortgage/projection';
 import { calculateDealMonthlyPayment } from '@/mortgage/tracker';
-import { MortgageRepaymentType } from '@/types/SavedLoan';
+import { LoanCategory, MortgageRepaymentType } from '@/types/SavedLoan';
 import { createLocalId } from '@/utils/id';
 import { addMonthsToIsoDate, formatIsoDate, isValidIsoDate, parseDateLabelValue } from '@/utils/date';
 import { validateDurationText, validateMoneyText } from '@/utils/formValidation';
@@ -67,7 +67,7 @@ export default function TrackMortgageScreen() {
   const [nickname, setNickname] = useState(seed?.nickname ?? '');
   const [lender, setLender] = useState(seed?.lender ?? '');
   const [currency, setCurrency] = useState<CurrencyCode>(seed?.currency ?? defaultCurrency);
-  const [setupTiming, setSetupTiming] = useState<'active' | 'future'>('active');
+  const [category, setCategory] = useState<LoanCategory>(existing?.category ?? 'mortgage');
   const [startDate, setStartDate] = useState(today);
   const [balance, setBalance] = useState(numberText(seed?.currentBalance));
   const [rate, setRate] = useState(numberText(seed?.interestRate));
@@ -91,6 +91,20 @@ export default function TrackMortgageScreen() {
   ));
 
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
+  const isMortgage = category === 'mortgage';
+  const startDatePosition = startDate < today ? 'past' : startDate > today ? 'future' : 'today';
+  const balanceLabel = startDatePosition === 'today' ? t('track.currentBalance') : t('track.startingBalance');
+  const balanceHint = startDatePosition === 'today' ? t('track.currentBalanceHint') : t('track.startingBalanceHint');
+  const termLabel = startDatePosition === 'today'
+    ? t('track.remainingTerm')
+    : startDatePosition === 'past'
+      ? t('track.originalTerm')
+      : t('track.termLength');
+  const termHint = startDatePosition === 'today'
+    ? t('track.remainingTermHint')
+    : startDatePosition === 'past'
+      ? t('track.originalTermHint')
+      : t('track.termLengthHint');
 
   const balanceValidation = validateMoneyText(balance);
   const rateValidation = validateMoneyText(rate, { max: 100, maxErrorKey: 'forms.interestMax' });
@@ -113,6 +127,12 @@ export default function TrackMortgageScreen() {
     && balanceValidation.isValid
     && rateValidation.isValid
     && durationValidation.isValid;
+
+  useEffect(() => {
+    if (category !== 'loan') return;
+    setRepaymentType('repayment');
+    setHasDealEnd(false);
+  }, [category]);
 
   // Live summary. The monthly payment is a single cheap formula. The payoff date
   // is the plain term end unless overpayments are in play — those shorten the
@@ -139,6 +159,7 @@ export default function TrackMortgageScreen() {
       const projection = buildMortgageProjection(buildTrackedMortgageFromForm({
         nickname,
         currency,
+        category,
         currentBalance: balanceValidation.numeric,
         interestRate: rateValidation.numeric,
         repaymentType,
@@ -151,17 +172,18 @@ export default function TrackMortgageScreen() {
     }
 
     return { monthly, payoffDate };
-  }, [balanceValidation, rateValidation, durationValidation, repaymentType, regularValidation, lumpRows, nickname, currency, startDate]);
+  }, [balanceValidation, rateValidation, durationValidation, repaymentType, regularValidation, lumpRows, nickname, currency, category, startDate]);
 
   const buildValues = (): TrackMortgageFormValues => ({
     nickname,
     lender: lender.trim() || undefined,
     currency,
+    category,
     currentBalance: balanceValidation.numeric,
     interestRate: rateValidation.numeric,
     repaymentType,
     remainingTermInMonths: durationValidation.totalMonths,
-    dealEndDate: hasDealEnd && isValidIsoDate(dealEndDate) ? dealEndDate : undefined,
+    dealEndDate: isMortgage && hasDealEnd && isValidIsoDate(dealEndDate) ? dealEndDate : undefined,
     regularOverpayment: regularValidation.isValid ? regularValidation.numeric : 0,
     lumpOverpayments: lumpRows
       .map(row => ({ date: row.date, amount: validateMoneyText(row.amount).numeric }))
@@ -247,39 +269,30 @@ export default function TrackMortgageScreen() {
           <CurrencyPicker value={currency} onChange={setCurrency} />
         </View>
 
-        {!existing ? (
-          <View style={styles.fieldGroup}>
-            <FieldLabel>{t('track.setupTiming')}</FieldLabel>
-            <SegmentedControl
-              value={setupTiming}
-              onChange={value => {
-                const nextTiming = value as 'active' | 'future';
-                setSetupTiming(nextTiming);
-                if (nextTiming === 'active') setStartDate(today);
-              }}
-              options={[
-                { label: t('track.activeNow'), value: 'active' },
-                { label: t('track.futureStart'), value: 'future' },
-              ]}
-            />
-          </View>
-        ) : null}
-
-        {setupTiming === 'future' ? (
-          <DatePickerField
-            label={t('track.startDate')}
-            value={startDate}
-            onChange={value => {
-              setStartDate(value);
-              if (!seed?.dealEndDate) setDealEndDate(addMonthsToIsoDate(value, 24));
-            }}
-            hint={t('track.startDateHint')}
-            minimumDate={parseDateLabelValue(today) ?? undefined}
+        <View style={styles.fieldGroup}>
+          <FieldLabel>{t('save.category')}</FieldLabel>
+          <SegmentedControl
+            value={category}
+            onChange={setCategory}
+            options={[
+              { label: t('save.loan'), value: 'loan' },
+              { label: t('save.mortgage'), value: 'mortgage' },
+            ]}
           />
-        ) : null}
+        </View>
+
+        <DatePickerField
+          label={t('track.dealStartDate')}
+          value={startDate}
+          onChange={value => {
+            setStartDate(value);
+            if (!seed?.dealEndDate) setDealEndDate(addMonthsToIsoDate(value, 24));
+          }}
+          hint={t('track.dealStartDateHint')}
+        />
 
         <View style={styles.fieldGroup}>
-          <FieldLabel>{setupTiming === 'future' ? t('track.startingBalance') : t('track.currentBalance')}</FieldLabel>
+          <FieldLabel>{balanceLabel}</FieldLabel>
           <InputSurface error={!balanceValidation.isValid && !balanceValidation.isEmpty}>
             <InputAffix>{currencySymbol}</InputAffix>
             <AppTextInput
@@ -289,7 +302,7 @@ export default function TrackMortgageScreen() {
               placeholder="0"
             />
           </InputSurface>
-          <FieldHint>{setupTiming === 'future' ? t('track.startingBalanceHint') : t('track.currentBalanceHint')}</FieldHint>
+          <FieldHint>{balanceHint}</FieldHint>
           <FieldError message={!balanceValidation.isEmpty && balanceValidation.errorKey ? t(balanceValidation.errorKey) : undefined} />
         </View>
 
@@ -307,20 +320,22 @@ export default function TrackMortgageScreen() {
           <FieldError message={!rateValidation.isEmpty && rateValidation.errorKey ? t(rateValidation.errorKey) : undefined} />
         </View>
 
-        <View style={styles.fieldGroup}>
-          <FieldLabel>{t('track.repaymentType')}</FieldLabel>
-          <SegmentedControl
-            value={repaymentType}
-            onChange={setRepaymentType}
-            options={[
-              { label: t('mortgage.repayment'), value: 'repayment' },
-              { label: t('mortgage.interestOnly'), value: 'interestOnly' },
-            ]}
-          />
-        </View>
+        {isMortgage ? (
+          <View style={styles.fieldGroup}>
+            <FieldLabel>{t('track.repaymentType')}</FieldLabel>
+            <SegmentedControl
+              value={repaymentType}
+              onChange={setRepaymentType}
+              options={[
+                { label: t('mortgage.repayment'), value: 'repayment' },
+                { label: t('mortgage.interestOnly'), value: 'interestOnly' },
+              ]}
+            />
+          </View>
+        ) : null}
 
         <View style={styles.fieldGroup}>
-          <FieldLabel>{t('track.remainingTerm')}</FieldLabel>
+          <FieldLabel>{termLabel}</FieldLabel>
           <View style={styles.row}>
             <View style={styles.half}>
               <InputSurface>
@@ -335,33 +350,35 @@ export default function TrackMortgageScreen() {
               </InputSurface>
             </View>
           </View>
-          <FieldHint>{t('track.remainingTermHint')}</FieldHint>
+          <FieldHint>{termHint}</FieldHint>
           <FieldError message={durationErrorKey ? t(durationErrorKey) : undefined} />
         </View>
       </FormSection>
 
-      <FormSection title={t('track.sectionDeal')}>
-        <AppText variant="bodySm" tone="muted" style={styles.sectionIntro}>
-          {t('track.dealHelp')}
-        </AppText>
-        <SegmentedControl
-          value={hasDealEnd ? 'fixed' : 'none'}
-          onChange={value => setHasDealEnd(value === 'fixed')}
-          options={[
-            { label: t('track.dealFixed'), value: 'fixed' },
-            { label: t('track.dealNone'), value: 'none' },
-          ]}
-        />
-        {hasDealEnd ? (
-          <DatePickerField
-            label={t('track.dealEndDate')}
-            value={dealEndDate}
-            onChange={setDealEndDate}
-            hint={t('track.dealEndDateHint')}
-            minimumDate={parseDateLabelValue(startDate) ?? undefined}
+      {isMortgage ? (
+        <FormSection title={t('track.sectionDeal')}>
+          <AppText variant="bodySm" tone="muted" style={styles.sectionIntro}>
+            {t('track.dealHelp')}
+          </AppText>
+          <SegmentedControl
+            value={hasDealEnd ? 'fixed' : 'none'}
+            onChange={value => setHasDealEnd(value === 'fixed')}
+            options={[
+              { label: t('track.dealFixed'), value: 'fixed' },
+              { label: t('track.dealNone'), value: 'none' },
+            ]}
           />
-        ) : null}
-      </FormSection>
+          {hasDealEnd ? (
+            <DatePickerField
+              label={t('track.dealEndDate')}
+              value={dealEndDate}
+              onChange={setDealEndDate}
+              hint={t('track.dealEndDateHint')}
+              minimumDate={parseDateLabelValue(startDate) ?? undefined}
+            />
+          ) : null}
+        </FormSection>
+      ) : null}
 
       <View>
         <TouchableOpacity

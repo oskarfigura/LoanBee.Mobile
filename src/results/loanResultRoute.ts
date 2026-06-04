@@ -4,7 +4,7 @@ import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { CurrencyCode } from '@/currency/currencies';
 import type { LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
 import { recentCalculationsStorage } from '@/storage/recentCalculations';
-import type { LoanCategory, SavedLoan } from '@/types/SavedLoan';
+import type { SavedLoan } from '@/types/SavedLoan';
 import { createDraftResultSession } from './draftResultStore';
 
 export type LoanResult = ReturnType<typeof getLoanCalculations>;
@@ -52,7 +52,6 @@ export const buildDraftResultParams = (
   result: LoanResult,
   formValues: LoanCalculatorFormValues,
   currency: CurrencyCode,
-  category: LoanCategory = 'loan',
 ) => ({
   mode: 'draft',
   draftId: createDraftResultSession(result, formValues, currency).id,
@@ -60,10 +59,8 @@ export const buildDraftResultParams = (
     result,
     formValues,
     currency,
-    category,
   }).id,
   currency,
-  category,
 });
 
 export const buildRecentResultParams = (recentId: string) => ({

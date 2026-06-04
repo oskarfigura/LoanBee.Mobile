@@ -9,7 +9,7 @@ export interface RecentCalculation {
   id: string;
   createdAt: string;
   updatedAt: string;
-  category: LoanCategory;
+  category?: LoanCategory;
   currency: CurrencyCode;
   formValues: LoanCalculatorFormValues;
   resultSnapshot: LoanResultSnapshot;
@@ -38,7 +38,7 @@ const readAll = (): RecentCalculation[] => {
       typeof item?.id === 'string'
       && typeof item?.createdAt === 'string'
       && typeof item?.updatedAt === 'string'
-      && (item?.category === 'mortgage' || item?.category === 'loan')
+      && (item?.category === undefined || item?.category === 'mortgage' || item?.category === 'loan')
       && typeof item?.currency === 'string'
       && item?.formValues
       && item?.resultSnapshot
@@ -81,7 +81,7 @@ export const recentCalculationsStorage = {
     result,
     formValues,
     currency,
-    category = 'loan',
+    category,
     sourceLabel,
   }: {
     result: RawResultValues;
@@ -95,7 +95,7 @@ export const recentCalculationsStorage = {
       id: createLocalId('recent'),
       createdAt: now,
       updatedAt: now,
-      category,
+      ...(category ? { category } : {}),
       currency,
       formValues,
       resultSnapshot: buildRecentResultSnapshot(result),

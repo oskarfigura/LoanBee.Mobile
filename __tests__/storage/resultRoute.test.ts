@@ -91,13 +91,12 @@ describe('saved loan result params', () => {
       calculationType: 'term' as const,
     };
 
-    const params = buildDraftResultParams(result, formValues, 'USD', 'mortgage');
+    const params = buildDraftResultParams(result, formValues, 'USD');
     const session = getDraftResultSession<typeof formValues>(params.draftId);
     const recent = recentCalculationsStorage.getById(params.recentId);
 
     expect(params.mode).toBe('draft');
     expect(params.currency).toBe('USD');
-    expect(params.category).toBe('mortgage');
     expect(params.draftId).toMatch(/^draft_/);
     expect(params.recentId).toMatch(/^recent_/);
     expect(session).toMatchObject({
@@ -108,10 +107,10 @@ describe('saved loan result params', () => {
     });
     expect(recent).toMatchObject({
       id: params.recentId,
-      category: 'mortgage',
       currency: 'USD',
       formValues,
     });
+    expect(recent?.category).toBeUndefined();
     expect(typeof session?.createdAt).toBe('number');
   });
 });

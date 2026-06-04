@@ -44,7 +44,6 @@ const addRecent = (overrides: Partial<LoanCalculatorFormValues> = {}) => {
     result,
     formValues,
     currency: formValues.currency as CurrencyCode,
-    category: 'mortgage',
   });
 };
 

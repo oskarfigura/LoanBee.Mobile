@@ -1,6 +1,7 @@
 import { CurrencyCode } from '@/currency/currencies';
 import {
   LOAN_GROUP_SCHEMA_VERSION,
+  LoanCategory,
   LoanDeal,
   LoanFormSnapshot,
   LoanGroup,
@@ -25,28 +26,27 @@ import {
   parseDateLabelValue,
 } from '@/utils/date';
 
-// A single lump overpayment the user has already made on the current deal.
+// A single lump overpayment captured against the seeded deal.
 export interface TrackOverpaymentInput {
   date: string;
   amount: number;
 }
 
 /**
- * Today-anchored "track your mortgage" form values. The model is deliberately
- * anchored on the present: the user enters what they owe *now* and the terms of
- * the deal they're on *now*, rather than reconstructing the original loan and
- * every past remortgage. Current balance is therefore an input, not a figure
- * derived (and compounded with error) from a historic chain.
+ * Start-date-driven "track your borrowing" form values. The selected date is
+ * the anchor: today means current state, a past date means the opening state of
+ * that original deal, and a future date means a projected setup.
  */
 export interface TrackMortgageFormValues {
   nickname: string;
   lender?: string;
   currency: CurrencyCode;
-  /** What you owe today — the anchor of the whole model. */
+  category?: LoanCategory;
+  /** Balance at the selected start date. */
   currentBalance: number;
   interestRate: number;
   repaymentType: MortgageRepaymentType;
-  /** Months from today until the mortgage is fully repaid. */
+  /** Months from the selected start date until the borrowing is fully repaid. */
   remainingTermInMonths: number;
   /** When the current fixed/tracker deal ends. Optional; powers the remortgage reminder. */
   dealEndDate?: string;
@@ -81,16 +81,17 @@ const resolveDealDurationMonths = (
 };
 
 /**
- * Build a fully-tracked mortgage from today-anchored form values. Produces one
- * active deal anchored at `startDate` with `openingBalance` set to the current
- * balance, then runs the shared projection to populate the result snapshot the
- * dashboard reads.
+ * Build a fully tracked loan or mortgage from start-date-driven form values.
+ * Produces one active deal anchored at `startDate`, then runs the shared
+ * projection to populate the result snapshot the dashboard reads.
  */
 export const buildTrackedMortgageFromForm = (
   values: TrackMortgageFormValues,
   options: { id?: string; createdAt?: string } = {},
 ): LoanGroup => {
   const timestamp = new Date().toISOString();
+  const category = values.category ?? 'mortgage';
+  const isMortgage = category === 'mortgage';
   const startDate = values.startDate ?? formatIsoDate(new Date());
   const remainingTermInMonths = Math.max(1, Math.round(values.remainingTermInMonths));
   const term = splitMonths(remainingTermInMonths);
@@ -99,7 +100,7 @@ export const buildTrackedMortgageFromForm = (
   const dealDurationMonths = resolveDealDurationMonths(
     startDate,
     remainingTermInMonths,
-    values.dealEndDate,
+    isMortgage ? values.dealEndDate : undefined,
   );
   const dealDuration = splitMonths(dealDurationMonths);
   const endDate = addMonthsToIsoDate(startDate, dealDurationMonths);
@@ -128,7 +129,7 @@ export const buildTrackedMortgageFromForm = (
     additionalBorrowing: 0,
     remainingTermInYears: term.years,
     remainingTermInMonths: term.months,
-    source: 'userDeal',
+    source: isMortgage ? 'userDeal' : undefined,
   };
 
   const events: MortgageEvent[] = (values.lumpOverpayments ?? [])
@@ -137,7 +138,7 @@ export const buildTrackedMortgageFromForm = (
       id: createLocalId('ev'),
       createdAt: timestamp,
       updatedAt: timestamp,
-      dealId,
+      ...(isMortgage ? { dealId } : {}),
       type: 'lumpOverpayment',
       date: row.date,
       amount: row.amount,
@@ -164,7 +165,7 @@ export const buildTrackedMortgageFromForm = (
     updatedAt: timestamp,
     nickname: values.nickname.trim(),
     lender: values.lender || undefined,
-    category: 'mortgage',
+    category,
     currency: values.currency,
     mortgageTermInMonths: remainingTermInMonths,
     status: 'tracked',

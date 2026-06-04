@@ -73,7 +73,6 @@ export default function SaveNewLoanScreen() {
     result?: string;
     formValues?: string;
     currency?: string;
-    category?: LoanCategory;
     returnToResult?: string;
   }>();
   const { add } = useSavedLoans();
@@ -88,7 +87,7 @@ export default function SaveNewLoanScreen() {
     : 12;
   const [nickname, setNickname] = useState('');
   const [lender, setLender] = useState('');
-  const [category, setCategory] = useState<LoanCategory>(params.category ?? recentCalculation?.category ?? 'loan');
+  const [category, setCategory] = useState<LoanCategory>(recentCalculation?.category ?? 'loan');
   const [currency, setCurrency] = useState<CurrencyCode>((params.currency as CurrencyCode) ?? recentCalculation?.currency ?? 'GBP');
 
   const isMortgage = category === 'mortgage';
