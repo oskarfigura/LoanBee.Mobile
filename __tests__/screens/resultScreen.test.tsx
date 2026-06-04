@@ -56,8 +56,12 @@ jest.mock('../../src/ads/BannerAd', () => ({
   BannerAd: () => React.createElement('BannerAd'),
 }));
 
-jest.mock('../../src/components/calculator/CalculationSummaryPanel', () => ({
-  CalculationSummaryPanel: () => React.createElement('CalculationSummaryPanel'),
+jest.mock('../../src/components/calculator/LoanSummaryPanel', () => ({
+  LoanSummaryPanel: () => React.createElement('LoanSummaryPanel'),
+}));
+
+jest.mock('../../src/loans/loanGroupFactory', () => ({
+  buildDraftLoanPreview: () => ({ id: 'draft-preview' }),
 }));
 
 jest.mock('../../src/components/calculator/LoanCalculationView', () => ({

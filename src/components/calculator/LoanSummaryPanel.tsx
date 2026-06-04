@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
@@ -16,8 +16,18 @@ import { SavedLoan } from '@/types/SavedLoan';
 interface Props {
   loan: SavedLoan;
   result: LoanResult;
-  onTogglePinned: () => void;
-  onTryOverpayments: () => void;
+  onTogglePinned?: () => void;
+  onTryOverpayments?: () => void;
+  /**
+   * 'draft' renders the same summary for an unsaved calculation: no header/pin and
+   * no progress gauge (nothing to track yet), a Share action instead of the
+   * try-overpayments nudge, but the overpayment savings card still shows when the
+   * calculation includes an additional payment.
+   */
+  mode?: 'saved' | 'draft';
+  onShare?: () => void;
+  shareLabel?: string;
+  shareIcon?: ReactNode;
 }
 
 const getRemainingTermCaptionKey = (monthsRemaining: number) => {
@@ -53,8 +63,18 @@ const formatTermDuration = (months: number, yrsLabel: string, moLabel: string): 
   return `${years} ${yrsLabel} ${mo} ${moLabel}`;
 };
 
-export const LoanSummaryPanel = ({ loan, result, onTogglePinned, onTryOverpayments }: Props) => {
+export const LoanSummaryPanel = ({
+  loan,
+  result,
+  onTogglePinned,
+  onTryOverpayments,
+  mode = 'saved',
+  onShare,
+  shareLabel,
+  shareIcon,
+}: Props) => {
   const { t, i18n } = useTranslation();
+  const isDraft = mode === 'draft';
   const asOf = useMemo(() => new Date(), []);
   const insightSummary = useMemo(
     () => buildSavedLoanSummary(loan, result, asOf, i18n.language),
@@ -89,30 +109,34 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned, onTryOverpaymen
 
   return (
     <View style={styles.panel}>
-      {/* Header */}
-      <View style={styles.summaryHeader}>
-        <View style={styles.summaryHeaderCopy}>
-          <Text
-            style={styles.summaryTitle}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-          >
-            {loan.nickname}
-          </Text>
-          <Text style={styles.summarySubtitle} numberOfLines={1}>
-            {loan.lender || t('saved.category.loan')}
-          </Text>
-        </View>
-        <DashboardPinButton
-          pinned={loan.pinnedToDashboard}
-          onPress={onTogglePinned}
-          style={styles.summaryPinButton}
-        />
-      </View>
+      {/* Header + progress gauge: only for a saved loan (a draft has no name to
+          show, nothing to pin, and ~0% elapsed so the gauge is meaningless). */}
+      {!isDraft ? (
+        <>
+          <View style={styles.summaryHeader}>
+            <View style={styles.summaryHeaderCopy}>
+              <Text
+                style={styles.summaryTitle}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+              >
+                {loan.nickname}
+              </Text>
+              <Text style={styles.summarySubtitle} numberOfLines={1}>
+                {loan.lender || t('saved.category.loan')}
+              </Text>
+            </View>
+            <DashboardPinButton
+              pinned={loan.pinnedToDashboard}
+              onPress={() => onTogglePinned?.()}
+              style={styles.summaryPinButton}
+            />
+          </View>
 
-      {/* Progress gauge */}
-      <DashboardProgressGauge progress={dashboardProgress} />
+          <DashboardProgressGauge progress={dashboardProgress} />
+        </>
+      ) : null}
 
       {/* Key metrics panel */}
       <View style={styles.summaryRaisedPanel}>
@@ -166,7 +190,7 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned, onTryOverpaymen
             </View>
           ) : null}
         </View>
-      ) : (
+      ) : isDraft ? null : (
         <View style={styles.nudgeCard}>
           <Text style={styles.nudgeTitle}>{t('loan.nudgeTitle')}</Text>
           <Text style={styles.nudgeBody}>{t('loan.nudgeBody')}</Text>
@@ -212,6 +236,21 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned, onTryOverpaymen
         </View>
       </View>
 
+      {/* Share action — only on the draft (calculation) surface; the saved view
+          shares from the screen header instead. */}
+      {isDraft && onShare ? (
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={onShare}
+          activeOpacity={0.82}
+          accessibilityRole="button"
+        >
+          {shareIcon ? <View style={styles.shareIcon}>{shareIcon}</View> : null}
+          <Text style={styles.shareButtonText} numberOfLines={1}>
+            {shareLabel ?? t('share.short')}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 };
@@ -376,6 +415,26 @@ const styles = StyleSheet.create({
   nudgeCtaText: {
     ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
+    color: colours.primary,
+  },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    borderColor: colours.border,
+    backgroundColor: colours.white,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.xs,
+  },
+  shareIcon: {
+    marginRight: 2,
+  },
+  shareButtonText: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.sm,
     color: colours.primary,
   },
 });

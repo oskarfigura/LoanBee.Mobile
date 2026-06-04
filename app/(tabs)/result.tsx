@@ -29,7 +29,8 @@ import { useStoreReview } from '@/review';
 import { shareCalculation } from '@/share/shareCalculation';
 import { UnsavedResultModal } from '@/components/results/UnsavedResultModal';
 import { EditIcon } from '@/components/loans/LoanIcons';
-import { CalculationSummaryPanel } from '@/components/calculator/CalculationSummaryPanel';
+import { LoanSummaryPanel } from '@/components/calculator/LoanSummaryPanel';
+import { buildDraftLoanPreview, RawFormValues } from '@/loans/loanGroupFactory';
 import { SaveIcon } from '@/components/ui/Icons/SaveIcon/SaveIcon';
 import { ShareIcon } from '@/components/ui/Icons/ShareIcon/ShareIcon';
 
@@ -87,10 +88,14 @@ export default function ResultScreen() {
     ?? parseJson<Record<string, unknown>>(params.formValues)
   ), [draftSession?.formValues, params.formValues, recentCalculation?.formValues, savedLoan]);
   const currency = ((savedLoan?.currency ?? draftSession?.currency ?? recentCalculation?.currency ?? params.currency) as CurrencyCode | undefined) ?? 'GBP';
-  const additionalMonthlyPayment =
-    typeof (formValues as Record<string, unknown>)?.additionalMonthlyPayment === 'number'
-      ? (formValues as Record<string, unknown>).additionalMonthlyPayment as number
-      : 0;
+  // Preview an unsaved calculation through the same summary surface the saved-loan
+  // detail uses, by building a transient draft loan from the calculation inputs.
+  const draftLoan = useMemo(
+    () => (!isSavedMode && result && formValues
+      ? buildDraftLoanPreview(formValues as unknown as RawFormValues, result, currency)
+      : null),
+    [currency, formValues, isSavedMode, result],
+  );
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const shareIcon = useMemo(() => <ShareIcon color={colours.primary} />, []);
 
@@ -239,12 +244,11 @@ export default function ResultScreen() {
         tabStyle="underline"
         showFinancialDisclaimer
         ownsScroll
-        summaryContent={!isSavedMode ? (
-          <CalculationSummaryPanel
+        summaryContent={!isSavedMode && draftLoan ? (
+          <LoanSummaryPanel
+            loan={draftLoan}
             result={result}
-            currency={currency}
-            startDate={String(formValues.startDate)}
-            additionalMonthlyPayment={additionalMonthlyPayment}
+            mode="draft"
             onShare={handleShare}
             shareLabel={t('share.short')}
             shareIcon={shareIcon}

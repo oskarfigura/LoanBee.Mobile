@@ -1,10 +1,13 @@
 import { CurrencyCode } from '@/currency/currencies';
+import { getLoanCalculations } from '@/core/amortisation';
+import { LoanCalculationType } from '@/core/LoanCalculationType';
+import { DownPaymentType } from '@/core/DownPaymentType';
 import { generateDefaultDealName } from '@/mortgage/tracker';
-import { LoanDeal, LoanFormSnapshot, LoanGroup, LoanResultSnapshot } from '@/types/SavedLoan';
+import { LOAN_GROUP_SCHEMA_VERSION, LoanDeal, LoanFormSnapshot, LoanGroup, LoanResultSnapshot } from '@/types/SavedLoan';
 import { getEffectiveLoanAmount as computeEffectiveLoanAmount } from '@/utils/paymentValidation';
 import { formatIsoDate } from '@/utils/date';
 
-type RawFormValues = {
+export type RawFormValues = {
   loanAmount: number;
   interest: number;
   termInYears?: number | null;
@@ -112,5 +115,61 @@ export const buildInitialDeal = (
     remainingTermInYears: years,
     remainingTermInMonths: months,
     source: loan.category === 'mortgage' ? options.source ?? 'estimate' : undefined,
+  };
+};
+
+/**
+ * Build an in-memory, unsaved `LoanGroup` for previewing a fresh calculation with
+ * the same summary surface the saved-loan detail uses. It mirrors the save-time
+ * assembly (factory snapshot + initial deal + baseline interest) but stays a draft:
+ * `status: 'draft'`, not pinned, no nickname. Always loan-shaped — a calculation has
+ * no mortgage tracking yet. Not persisted; built per render for display only.
+ */
+export const buildDraftLoanPreview = (
+  formValues: RawFormValues,
+  result: RawResultValues,
+  currency: CurrencyCode,
+): LoanGroup => {
+  const baseline = getLoanCalculations(
+    formValues.loanAmount,
+    formValues.interest,
+    formValues.termInYears ?? 0,
+    formValues.termInMonths ?? 0,
+    formValues.desiredMonthlyPayment ?? 0,
+    formValues.calculationType.toUpperCase() as LoanCalculationType,
+    formValues.downPayment,
+    formValues.downPaymentType.toUpperCase() as DownPaymentType,
+    0,
+    formValues.startDate,
+  );
+  const now = new Date().toISOString();
+  const formSnapshot = normaliseFormSnapshot(formValues, currency);
+  const resultSnapshot = buildResultSnapshot(result, baseline.totalInterestPaid);
+  const base = {
+    category: 'loan' as const,
+    lender: undefined,
+    createdAt: now,
+    updatedAt: now,
+    mortgageTermInMonths: undefined,
+    formSnapshot,
+    resultSnapshot,
+  };
+  const initialDeal = buildInitialDeal('draft-deal', base);
+
+  return {
+    schemaVersion: LOAN_GROUP_SCHEMA_VERSION,
+    id: 'draft-preview',
+    createdAt: now,
+    updatedAt: now,
+    nickname: '',
+    lender: undefined,
+    category: 'loan',
+    currency,
+    status: 'draft',
+    pinnedToDashboard: false,
+    deals: [initialDeal],
+    events: [],
+    formSnapshot,
+    resultSnapshot,
   };
 };
