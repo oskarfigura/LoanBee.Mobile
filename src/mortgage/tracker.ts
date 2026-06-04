@@ -548,14 +548,19 @@ export const getDealOverpaymentImpact = (
   const actual = projectDeal(dealForImpact, events, projectionEnd, true);
   const baseline = projectDeal(dealForImpact, events, projectionEnd, false);
 
-  const dealEvents = events.filter(event => event.dealId === deal.id);
-  const lumpOverpaymentTotal = dealEvents
+  const isProjectedEvent = (event: MortgageEvent): boolean => (
+    event.date >= dealForImpact.startDate
+    && monthsBetween(dealForImpact.startDate, event.date) < actual.monthsProjected
+  );
+  const projectedDealEvents = events
+    .filter(event => event.dealId === deal.id && isProjectedEvent(event));
+  const lumpOverpaymentTotal = projectedDealEvents
     .filter(event => event.type === 'lumpOverpayment')
     .reduce((sum, event) => sum + (event.amount ?? 0), 0);
   // projectDeal skips regularOverpayment for any month with a missedPayment or
   // paymentHoliday event, so the regular total must reflect the same exclusion.
   const skippedMonthKeys = new Set(
-    dealEvents
+    projectedDealEvents
       .filter(event => event.type === 'missedPayment' || event.type === 'paymentHoliday')
       .map(event => event.date.slice(0, 7)),
   );

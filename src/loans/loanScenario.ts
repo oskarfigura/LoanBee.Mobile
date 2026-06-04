@@ -20,7 +20,7 @@ export const computeLoanWithEvents = (
   const overpayment = monthlyOverpayment ?? (form.additionalMonthlyPayment ?? 0);
 
   const lumpSums: LumpSumEntry[] = loan.events
-    .filter(e => e.type === 'lumpOverpayment' && (e.amount ?? 0) > 0)
+    .filter(e => e.type === 'lumpOverpayment' && !e.dealId && (e.amount ?? 0) > 0)
     .map(e => ({ date: e.date, amount: e.amount ?? 0 }));
 
   const baseResult = getLoanCalculations(
