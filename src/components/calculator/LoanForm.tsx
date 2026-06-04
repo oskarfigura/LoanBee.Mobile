@@ -76,6 +76,15 @@ export const LoanForm = ({ form, onSubmit, topContent }: Props) => {
   const keyboardHeightRef = useRef(0);
   const fieldRefs = useRef<Partial<Record<string, View | null>>>({});
 
+  // The calculator lives on a persistent tab, so arriving here (e.g. Edit on a recent
+  // calculation) would otherwise keep whatever scroll position was left behind. Reset
+  // to the top of the form on every focus so editing always starts from the first field.
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+    }, []),
+  );
+
   const errorMessage = useCallback((message?: string) => {
     if (!message) return undefined;
     const [key, amount] = message.split('|');
