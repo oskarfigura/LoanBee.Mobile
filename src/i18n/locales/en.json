@@ -750,6 +750,7 @@
     "currency": "Currency",
     "dealStartDate": "Deal start date",
     "dealStartDateHint": "Tracking an older mortgage? Set the date your original deal started.",
+    "dealStartDateHintLoan": "Tracking an older loan? Set the date your original loan started.",
     "currentBalance": "Current balance",
     "currentBalanceHint": "What you owe right now — check your latest statement or banking app.",
     "startingBalance": "Starting balance",

@@ -288,7 +288,7 @@ export default function TrackMortgageScreen() {
             setStartDate(value);
             if (!seed?.dealEndDate) setDealEndDate(addMonthsToIsoDate(value, 24));
           }}
-          hint={t('track.dealStartDateHint')}
+          hint={t(isMortgage ? 'track.dealStartDateHint' : 'track.dealStartDateHintLoan')}
         />
 
         <View style={styles.fieldGroup}>

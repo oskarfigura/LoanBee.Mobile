@@ -750,6 +750,7 @@
     "currency": "Waluta",
     "dealStartDate": "Data rozpoczęcia umowy",
     "dealStartDateHint": "Śledzisz starszą hipotekę? Ustaw datę rozpoczęcia pierwotnej umowy.",
+    "dealStartDateHintLoan": "Śledzisz starszy kredyt? Ustaw datę rozpoczęcia pierwotnego kredytu.",
     "currentBalance": "Aktualne saldo",
     "currentBalanceHint": "Ile jesteś teraz winien — sprawdź ostatni wyciąg lub aplikację bankową.",
     "startingBalance": "Saldo początkowe",
