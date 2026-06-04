@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
-  Share,
   View,
   StyleSheet,
 } from 'react-native';
@@ -28,8 +26,7 @@ import { savedLoansStorage } from '@/storage/savedLoans';
 import { recentCalculationsStorage } from '@/storage/recentCalculations';
 import { setResultLeaveGuard } from '@/navigation/resultLeaveGuard';
 import { useStoreReview } from '@/review';
-import { formatCurrency } from '@/currency/format';
-import { getCalculationWebShareUrl, ShareableCalculationValues } from '@/share/calculationShareLink';
+import { shareCalculation } from '@/share/shareCalculation';
 import { UnsavedResultModal } from '@/components/results/UnsavedResultModal';
 import { EditIcon } from '@/components/loans/LoanIcons';
 import { CalculationSummaryPanel } from '@/components/calculator/CalculationSummaryPanel';
@@ -134,33 +131,12 @@ export default function ResultScreen() {
   const handleShare = useCallback(async () => {
     if (!result || !formValues) return;
 
-    const shareValues = {
-      ...(formValues as Partial<ShareableCalculationValues>),
+    await shareCalculation({
+      result,
+      formValues,
       currency,
-    } as ShareableCalculationValues;
-    const shareUrl = getCalculationWebShareUrl(shareValues);
-    const monthlyPayment = formatCurrency(result.monthlyPayments, currency);
-    const totalInterest = formatCurrency(result.totalInterestPaid, currency);
-    const totalCost = formatCurrency(result.totalAmountPaid, currency);
-
-    try {
-      await Share.share({
-        title: t('share.title'),
-        message: [
-          t('share.intro'),
-          '',
-          t('share.monthlyPayment', { amount: monthlyPayment }),
-          t('share.totalInterest', { amount: totalInterest }),
-          t('share.totalCost', { amount: totalCost }),
-          '',
-          t('share.viewCalculation'),
-          shareUrl,
-        ].join('\n'),
-        url: shareUrl,
-      });
-    } catch {
-      Alert.alert(t('share.errorTitle'), t('share.errorMessage'));
-    }
+      t,
+    });
   }, [currency, formValues, result, t]);
 
   const handleBack = useCallback(() => {

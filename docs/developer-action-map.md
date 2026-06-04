@@ -20,7 +20,7 @@ For detailed mortgage-tracker behaviour, validation, and edge cases, also read [
 | `/calculator/share` | Shared-calculation entrypoint | Parse deep link / share URL and route into Result |
 | `/saved/new` | Save flow | Name a calculation, choose category/currency, create initial deal |
 | `/saved/track` | Loan/mortgage tracking setup | Track borrowing from a past, current, or future deal start date |
-| `/saved/[id]` | Saved loan detail | Review loan or mortgage, rename, delete, pin, open child flows |
+| `/saved/[id]` | Saved loan detail | Review loan or mortgage, share, rename, delete, pin, open child flows |
 | `/saved/[id]/edit` | Saved loan editor | Edit metadata and jump back to calculator for recalculation |
 | `/saved/[id]/overpayments` | Loan overpayment editor | Adjust simple saved-loan overpayment inputs |
 | `/saved/[id]/deals/new` | Mortgage deal creator | Start first/current/next deal draft |
@@ -107,6 +107,7 @@ Related behaviours:
 - Entry: Tracked tab, or post-save redirect
 - Files: `app/saved/[id].tsx`, `src/components/loans/MortgageDetailView.tsx`
 - Shared actions:
+  - share the original calculation URL
   - rename
   - delete
   - edit metadata

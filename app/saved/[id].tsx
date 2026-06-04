@@ -13,6 +13,7 @@ import { QuickActionTile } from '@/components/ui/QuickActionTile';
 import { AppTextInput, FieldLabel, InputSurface } from '@/components/ui/FormPrimitives';
 import { colours, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
+import { shareCalculation } from '@/share/shareCalculation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MortgageDetailView } from '@/components/loans/MortgageDetailView';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
@@ -21,6 +22,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { getCurrentDeal } from '@/mortgage/tracker';
 import { CoinsStackedIcon } from '@/components/ui/Icons/CoinsStackedIcon/CoinsStackedIcon';
 import { EditIcon as UiEditIcon } from '@/components/ui/Icons/EditIcon/EditIcon';
+import { ShareIcon } from '@/components/ui/Icons/ShareIcon/ShareIcon';
 import { TrashIcon } from '@/components/ui/Icons/TrashIcon/TrashIcon';
 
 export default function LoanDetailScreen() {
@@ -100,6 +102,20 @@ export default function LoanDetailScreen() {
     setRenameModalVisible(true);
   }, [loan]);
 
+  const handleShare = useCallback(async () => {
+    if (!loan || !result) return;
+
+    setMortgageMenuVisible(false);
+    setLoanMenuVisible(false);
+    setLoanMoreDrawerVisible(false);
+    await shareCalculation({
+      result,
+      formValues: loan.formSnapshot,
+      currency: loan.currency,
+      t,
+    });
+  }, [loan, result, t]);
+
   const navigateFromMortgageMenu = useCallback((href: string) => {
     setMortgageMenuVisible(false);
     router.push(href as Parameters<typeof router.push>[0]);
@@ -146,6 +162,11 @@ export default function LoanDetailScreen() {
           label={t('overpayments.title')}
           icon={<CoinsStackedIcon size={21} color={colours.primary} strokeWidth={1.9} />}
           onPress={() => router.push(`/saved/${id}/overpayments`)}
+        />
+        <QuickActionTile
+          label={t('share.short')}
+          icon={<ShareIcon size={21} color={colours.primary} strokeWidth={1.9} />}
+          onPress={handleShare}
         />
         <QuickActionTile
           label={t('saved.edit')}
@@ -276,6 +297,9 @@ export default function LoanDetailScreen() {
                 >
                   <Text style={styles.actionMenuText}>{t('mortgage.manageDetails')}</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.actionMenuRow} onPress={handleShare} activeOpacity={0.84}>
+                  <Text style={styles.actionMenuText}>{t('share.short')}</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.actionMenuRow} onPress={openRenameModal} activeOpacity={0.84}>
                   <Text style={styles.actionMenuText}>{t('mortgage.renameMortgage')}</Text>
                 </TouchableOpacity>
@@ -348,6 +372,9 @@ export default function LoanDetailScreen() {
       >
         <Pressable style={styles.modalScrim} onPress={() => setLoanMenuVisible(false)}>
           <Pressable style={styles.actionMenu}>
+            <TouchableOpacity style={styles.actionMenuRow} onPress={handleShare} activeOpacity={0.84}>
+              <Text style={styles.actionMenuText}>{t('share.short')}</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.actionMenuRow} onPress={openRenameModal} activeOpacity={0.84}>
               <Text style={styles.actionMenuText}>{t('loan.renameLoan')}</Text>
             </TouchableOpacity>
@@ -372,6 +399,15 @@ export default function LoanDetailScreen() {
                 <Text style={styles.drawerCloseText}>{t('common.close')}</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity style={styles.drawerOptionRow} onPress={handleShare} activeOpacity={0.84}>
+              <View style={styles.drawerOptionIcon}>
+                <ShareIcon size={20} color={colours.primary} strokeWidth={1.9} />
+              </View>
+              <View style={styles.drawerOptionCopy}>
+                <Text style={styles.drawerOptionTitle}>{t('share.short')}</Text>
+                <Text style={styles.drawerOptionDescription}>{t('share.button')}</Text>
+              </View>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.drawerOptionRow} onPress={openRenameModal} activeOpacity={0.84}>
               <View style={styles.drawerOptionIcon}>
                 <UiEditIcon size={20} color={colours.primary} strokeWidth={1.9} />

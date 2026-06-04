@@ -36,7 +36,7 @@ Most developers will want one of these first:
 - **Tracked borrowing** — MMKV-backed saved loans and mortgages, dashboard pinning, deal chains, events, and progress views
 - **Recent calculations** — automatic calculation history kept separate from tracked borrowing until the user saves it
 - **Pinned home dashboard** — carousel of pinned loans and mortgages on the Home tab when the user has tracked borrowing
-- **Shareable calculations** — web URL + native deep link entry through `/calculator/share`
+- **Shareable calculations** — Results and saved-detail views share the same web URL format, with native deep link entry through `/calculator/share`
 - **Bilingual** — English and Polish, device-detected with manual override
 - **AdMob** — adaptive banner ads with GDPR consent flow; isolated in `src/ads/`
 
