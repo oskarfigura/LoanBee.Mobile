@@ -56,14 +56,20 @@ export default function CompleteCurrentDealScreen() {
   const feesAutoApplied = feesOverride === null;
   const feesAdded = feesAutoApplied ? String(autoFees) : feesOverride;
 
+  // A deal that hasn't started yet has no history to settle, so completion is blocked
+  // even if the screen is reached directly (the detail view also hides the entry point).
+  const dealNotStarted = Boolean(currentDeal && currentDeal.startDate > formatIsoDate(new Date()));
+
   const completionAmounts = validateCompletionAmounts(closingBalance, feesAdded);
   const completedAtErrorKey: string | undefined = currentDeal
     ? (
-      !isValidIsoDate(completedAt)
-        ? 'mortgage.invalidEventDate'
-        : completedAt < currentDeal.startDate
-          ? 'mortgage.eventOutsideDealDates'
-          : undefined
+      dealNotStarted
+        ? 'mortgage.dealNotStartedError'
+        : !isValidIsoDate(completedAt)
+          ? 'mortgage.invalidEventDate'
+          : completedAt < currentDeal.startDate
+            ? 'mortgage.eventOutsideDealDates'
+            : undefined
     )
     : undefined;
   const overpaymentValidations = useMemo(() => {

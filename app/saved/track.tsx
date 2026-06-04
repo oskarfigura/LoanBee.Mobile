@@ -78,7 +78,6 @@ export default function TrackMortgageScreen() {
   const [termYears, setTermYears] = useState(initialTermMonths ? String(Math.floor(initialTermMonths / 12)) : '');
   const [termMonths, setTermMonths] = useState(initialTermMonths ? String(initialTermMonths % 12) : '');
 
-  const [hasDealEnd, setHasDealEnd] = useState(Boolean(seed?.dealEndDate));
   const [dealEndDate, setDealEndDate] = useState(seed?.dealEndDate ?? addMonthsToIsoDate(startDate, 24));
 
   const [enrichmentOpen, setEnrichmentOpen] = useState(false);
@@ -122,16 +121,28 @@ export default function TrackMortgageScreen() {
       : undefined)
     || undefined;
 
+  // A mortgage's current deal must declare when the fixed/tracker period ends, so
+  // the deal is labelled by its real term (e.g. "5-year Fixed") rather than the
+  // whole remaining mortgage term. It must land after the start and within payoff.
+  const payoffDateIso = durationValidation.isValid
+    ? addMonthsToIsoDate(startDate, durationValidation.totalMonths)
+    : undefined;
+  const dealEndInvalid = isMortgage && (
+    !isValidIsoDate(dealEndDate)
+    || dealEndDate <= startDate
+    || (payoffDateIso !== undefined && dealEndDate > payoffDateIso)
+  );
+
   const canSave = nickname.trim().length > 0
     && isValidIsoDate(startDate)
     && balanceValidation.isValid
     && rateValidation.isValid
-    && durationValidation.isValid;
+    && durationValidation.isValid
+    && !dealEndInvalid;
 
   useEffect(() => {
     if (category !== 'loan') return;
     setRepaymentType('repayment');
-    setHasDealEnd(false);
   }, [category]);
 
   // Live summary. The monthly payment is a single cheap formula. The payoff date
@@ -183,7 +194,7 @@ export default function TrackMortgageScreen() {
     interestRate: rateValidation.numeric,
     repaymentType,
     remainingTermInMonths: durationValidation.totalMonths,
-    dealEndDate: isMortgage && hasDealEnd && isValidIsoDate(dealEndDate) ? dealEndDate : undefined,
+    dealEndDate: isMortgage && isValidIsoDate(dealEndDate) ? dealEndDate : undefined,
     regularOverpayment: regularValidation.isValid ? regularValidation.numeric : 0,
     lumpOverpayments: lumpRows
       .map(row => ({ date: row.date, amount: validateMoneyText(row.amount).numeric }))
@@ -360,23 +371,14 @@ export default function TrackMortgageScreen() {
           <AppText variant="bodySm" tone="muted" style={styles.sectionIntro}>
             {t('track.dealHelp')}
           </AppText>
-          <SegmentedControl
-            value={hasDealEnd ? 'fixed' : 'none'}
-            onChange={value => setHasDealEnd(value === 'fixed')}
-            options={[
-              { label: t('track.dealFixed'), value: 'fixed' },
-              { label: t('track.dealNone'), value: 'none' },
-            ]}
+          <DatePickerField
+            label={t('track.dealEndDate')}
+            value={dealEndDate}
+            onChange={setDealEndDate}
+            hint={t('track.dealEndDateHint')}
+            minimumDate={parseDateLabelValue(startDate) ?? undefined}
           />
-          {hasDealEnd ? (
-            <DatePickerField
-              label={t('track.dealEndDate')}
-              value={dealEndDate}
-              onChange={setDealEndDate}
-              hint={t('track.dealEndDateHint')}
-              minimumDate={parseDateLabelValue(startDate) ?? undefined}
-            />
-          ) : null}
+          <FieldError message={dealEndInvalid ? t('track.dealEndDateError') : undefined} />
         </FormSection>
       ) : null}
 

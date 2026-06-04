@@ -67,3 +67,14 @@ export const buildRecentResultParams = (recentId: string) => ({
   mode: 'recent',
   recentId,
 });
+
+// Reopen a calculation in the calculator with its inputs pre-filled, so "Edit" on a
+// draft or recent result lets the user change the figures and recalculate rather
+// than just bouncing back to wherever they came from.
+export const buildEditCalculatorParams = (
+  formValues: LoanCalculatorFormValues,
+  currency: CurrencyCode,
+) => ({
+  editValues: JSON.stringify(formValues),
+  currency,
+});

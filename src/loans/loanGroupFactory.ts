@@ -136,9 +136,12 @@ export const buildDraftLoanPreview = (
     formValues.termInYears ?? 0,
     formValues.termInMonths ?? 0,
     formValues.desiredMonthlyPayment ?? 0,
-    formValues.calculationType.toUpperCase() as LoanCalculationType,
+    // The core engine compares lowercase enum values ('term', 'percent'); the
+    // persisted snapshot below intentionally stores uppercase. Send lowercase here
+    // so a term/percent draft baseline isn't computed down the payment/cash path.
+    formValues.calculationType.toLowerCase() as LoanCalculationType,
     formValues.downPayment,
-    formValues.downPaymentType.toUpperCase() as DownPaymentType,
+    formValues.downPaymentType.toLowerCase() as DownPaymentType,
     0,
     formValues.startDate,
   );

@@ -93,6 +93,16 @@ describe('buildTrackedMortgageFromForm', () => {
     expect(monthsBetween(loan.deals[0].startDate, loan.deals[0].endDate)).toBe(264);
   });
 
+  it('names the current deal by its fixed period, not the whole mortgage term', () => {
+    const loan = buildTrackedMortgageFromForm(baseValues({
+      startDate: '2026-06-01',
+      dealEndDate: '2031-06-01', // 5-year fix
+      remainingTermInMonths: 264, // 22-year term
+    }));
+
+    expect(loan.deals[0].name).toBe('5-year Fixed');
+  });
+
   it('builds a tracked loan as one repayment deal without a fixed-deal period', () => {
     const loan = buildTrackedMortgageFromForm(baseValues({
       category: 'loan',

@@ -102,11 +102,6 @@ export const MortgageDetailView = ({
   const dashboardProgress = useMemo(() => (
     buildSavedLoanDashboardProgress(loan, result, asOf)
   ), [asOf, loan, result]);
-  const tabs: Array<{ value: MortgageDetailTab; label: string }> = [
-    { value: 'overview', label: t('mortgage.overview') },
-    { value: 'projection', label: t('mortgage.projection') },
-    { value: 'timeline', label: t('mortgage.timeline') },
-  ];
   const currentDeal = trackerSummary.currentDeal;
   const activeDeal = getCurrentDeal(loan, asOf);
   const publishedDeals = getPublishedDeals(loan);
@@ -114,7 +109,17 @@ export const MortgageDetailView = ({
   const canPlanNextDeal = !draftDeal;
   const overpaymentDeal = activeDeal ?? publishedDeals[publishedDeals.length - 1];
   const todayIso = formatIsoDate(asOf);
+  // Borrowing that hasn't started yet has no real history to record or complete, so
+  // the timeline tab and the event/history/completion actions are hidden until it begins.
   const isFutureStart = Boolean(activeDeal && activeDeal.startDate > todayIso);
+  const tabs: Array<{ value: MortgageDetailTab; label: string }> = [
+    { value: 'overview', label: t('mortgage.overview') },
+    { value: 'projection', label: t('mortgage.projection') },
+    ...(isFutureStart ? [] : [{ value: 'timeline' as const, label: t('mortgage.timeline') }]),
+  ];
+  const tabOrder: MortgageDetailTab[] = isFutureStart
+    ? ['overview', 'projection']
+    : ['overview', 'projection', 'timeline'];
   const switchTab = useCallback((nextTab: MortgageDetailTab) => {
     setActiveTab(nextTab);
     requestAnimationFrame(() => {
@@ -122,7 +127,11 @@ export const MortgageDetailView = ({
     });
   }, []);
 
-  const tabOrder: MortgageDetailTab[] = ['overview', 'projection', 'timeline'];
+  // A future-start mortgage can't sit on the (now hidden) timeline tab.
+  useEffect(() => {
+    if (isFutureStart && activeTab === 'timeline') setActiveTab('overview');
+  }, [isFutureStart, activeTab]);
+
   const stateRef = useRef({ activeTab, switchTab });
   stateRef.current = { activeTab, switchTab };
 
@@ -398,6 +407,7 @@ export const MortgageDetailView = ({
         activeDeal={activeDeal}
         draftDeal={draftDeal}
         canPlanNextDeal={canPlanNextDeal}
+        isFutureStart={isFutureStart}
         mode="add"
         onClose={() => setAddDrawerVisible(false)}
         onNavigate={navigateFromActions}
@@ -410,6 +420,7 @@ export const MortgageDetailView = ({
         activeDeal={activeDeal}
         draftDeal={draftDeal}
         canPlanNextDeal={canPlanNextDeal}
+        isFutureStart={isFutureStart}
         mode="more"
         onClose={() => setActionDrawerVisible(false)}
         onNavigate={navigateFromActions}
@@ -1155,6 +1166,7 @@ const QuickActionsDrawer = ({
   activeDeal,
   draftDeal,
   canPlanNextDeal,
+  isFutureStart,
   mode,
   onClose,
   onNavigate,
@@ -1166,6 +1178,7 @@ const QuickActionsDrawer = ({
   activeDeal?: LoanDeal;
   draftDeal?: LoanDeal;
   canPlanNextDeal: boolean;
+  isFutureStart: boolean;
   mode: 'add' | 'more';
   onClose: () => void;
   onNavigate: (href: string) => void;
@@ -1190,7 +1203,7 @@ const QuickActionsDrawer = ({
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={styles.drawerOptionList}>
-            {mode === 'add' && activeDeal ? (
+            {mode === 'add' && activeDeal && !isFutureStart ? (
               <>
                 <Text style={styles.drawerGroupTitle}>{t('mortgage.eventGroup')}</Text>
                 <QuickActionOption
@@ -1255,7 +1268,7 @@ const QuickActionsDrawer = ({
                     onPress={() => onNavigate(`/saved/${loan.id}/deals/${draftDeal.id}`)}
                   />
                 ) : null}
-                {activeDeal?.status === 'active' ? (
+                {activeDeal?.status === 'active' && !isFutureStart ? (
                   <QuickActionOption
                     title={t('mortgage.completeCurrentDeal')}
                     description={t('mortgage.completeCurrentDealHelp')}

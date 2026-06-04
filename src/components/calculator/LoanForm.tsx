@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Controller, UseFormReturn } from 'react-hook-form';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {

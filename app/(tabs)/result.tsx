@@ -20,7 +20,9 @@ import {
   LoanResult,
   getResultForSavedLoan,
   getResultForFormValues,
+  buildEditCalculatorParams,
 } from '@/results/loanResultRoute';
+import { LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
 import { getDraftResultSession } from '@/results/draftResultStore';
 import { savedLoansStorage } from '@/storage/savedLoans';
 import { recentCalculationsStorage } from '@/storage/recentCalculations';
@@ -150,10 +152,16 @@ export default function ResultScreen() {
   }, [router]);
 
   const handleEdit = useCallback(() => {
-    // Editing means going back to the calculator to change inputs — bypass the
-    // unsaved-result guard so the user isn't prompted to save or discard first.
-    continueWithoutGuard(() => router.back());
-  }, [continueWithoutGuard, router]);
+    if (!formValues) return;
+    // Editing means reopening the calculator with these inputs pre-filled. Bypass the
+    // unsaved-result guard (the user is deliberately leaving the result), and replace
+    // the result in the stack so editing supersedes it. Works whether this result came
+    // from the calculator (draft) or the Recent list — both carry the form values.
+    continueWithoutGuard(() => router.replace({
+      pathname: '/calculate',
+      params: buildEditCalculatorParams(formValues as unknown as LoanCalculatorFormValues, currency),
+    }));
+  }, [continueWithoutGuard, currency, formValues, router]);
 
   const confirmLeave = useCallback((continueNavigation: () => void) => {
     pendingLeaveRef.current = continueNavigation;

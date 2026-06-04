@@ -60,9 +60,14 @@ interface BorrowingJourneyScreenProps {
 export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreenProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ calculator?: string; dashboard?: string }>();
+  const params = useLocalSearchParams<{
+    calculator?: string;
+    dashboard?: string;
+    editValues?: string;
+  }>();
   const isCalculateTab = mode === 'calculate';
   const form = useLoanCalculatorForm();
+  const consumedEditRef = useRef<string | null>(null);
   const { loans, refresh } = useSavedLoans();
   const [journeyStep, setJourneyStep] = useState<JourneyStep>('intent');
   const [showCalculator, setShowCalculator] = useState(isCalculateTab);
@@ -106,15 +111,35 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
     }
   }, [isCalculateTab, params.dashboard]);
 
+  // Reopen for editing: hydrate the form from the calc's inputs and jump straight to
+  // the form step. Clear the param once consumed so a later plain visit to the tab
+  // starts fresh. Runs after the focus effect below, so the parsed currency wins.
+  useEffect(() => {
+    const editValues = params.editValues;
+    if (!editValues || consumedEditRef.current === editValues) return;
+    consumedEditRef.current = editValues;
+    try {
+      const parsed = JSON.parse(editValues) as Partial<LoanCalculatorFormValues>;
+      form.reset(parsed);
+      setShowCalculator(true);
+      setJourneyStep('form');
+    } catch {
+      // Ignore a malformed edit payload — fall back to a normal calculator visit.
+    }
+    router.setParams({ editValues: '' });
+  }, [params.editValues, form, router]);
+
   useFocusEffect(
     useCallback(() => {
       refresh();
+      // Don't clobber an edited calc's currency while we're hydrating it.
+      if (params.editValues) return;
       form.setValue('currency', getDefaultCurrency(), {
         shouldDirty: false,
         shouldTouch: false,
         shouldValidate: false,
       });
-    }, [form, refresh])
+    }, [form, refresh, params.editValues])
   );
 
   const openCalculator = useCallback(() => {
