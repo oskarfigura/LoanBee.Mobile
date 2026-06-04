@@ -59,7 +59,7 @@ import {
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { LoanDeal, SavedLoan } from '@/types/SavedLoan';
 import { colours, elevation, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
-import { formatFriendlyDate, formatFriendlyDateRange } from '@/utils/date';
+import { formatFriendlyDate, formatFriendlyDateRange, formatIsoDate } from '@/utils/date';
 
 type MortgageDetailTab = 'overview' | 'projection' | 'timeline';
 type ProjectionPreview = 'repayment' | 'cumulative' | 'schedule';
@@ -113,6 +113,8 @@ export const MortgageDetailView = ({
   const draftDeal = trackerSummary.nextDraftDeal;
   const canPlanNextDeal = !draftDeal;
   const overpaymentDeal = activeDeal ?? publishedDeals[publishedDeals.length - 1];
+  const todayIso = formatIsoDate(asOf);
+  const isFutureStart = Boolean(activeDeal && activeDeal.startDate > todayIso);
   const switchTab = useCallback((nextTab: MortgageDetailTab) => {
     setActiveTab(nextTab);
     requestAnimationFrame(() => {
@@ -255,6 +257,7 @@ export const MortgageDetailView = ({
             publishedDeals={publishedDeals}
             projection={projection}
             asOf={asOf}
+            isFutureStart={isFutureStart}
             onTogglePinned={onTogglePinned}
             onAddDeal={() => router.push(`/saved/${loan.id}/deals/new`)}
             onEditDraft={() => {
@@ -492,6 +495,7 @@ const MortgageSummaryPanel = ({
   publishedDeals,
   projection,
   asOf,
+  isFutureStart,
   onTogglePinned,
   onAddDeal,
   onEditDraft,
@@ -506,6 +510,7 @@ const MortgageSummaryPanel = ({
   publishedDeals: LoanDeal[];
   projection: MortgageProjection;
   asOf: Date;
+  isFutureStart: boolean;
   onTogglePinned: () => void;
   onAddDeal: () => void;
   onEditDraft: () => void;
@@ -536,19 +541,51 @@ const MortgageSummaryPanel = ({
         />
       </View>
 
-      <DashboardProgressGauge progress={dashboardProgress} />
-      <MortgageSummaryMetrics summary={summary} progress={dashboardProgress} />
+      {isFutureStart && currentDeal ? (
+        <FutureStartPanel loan={loan} deal={currentDeal} />
+      ) : (
+        <>
+          <DashboardProgressGauge progress={dashboardProgress} />
+          <MortgageSummaryMetrics summary={summary} progress={dashboardProgress} />
+        </>
+      )}
       <CurrentDealSummaryPanel loan={loan} currentDeal={currentDeal} asOf={asOf} />
-      <CompactTimelineSummary
-        loan={loan}
-        currentDeal={currentDeal}
-        draftDeal={draftDeal}
-        publishedDeals={publishedDeals}
-        projection={projection}
-        onAddDeal={onAddDeal}
-        onEditDraft={onEditDraft}
-        onOpenTimeline={onOpenTimeline}
-      />
+      {!isFutureStart ? (
+        <CompactTimelineSummary
+          loan={loan}
+          currentDeal={currentDeal}
+          draftDeal={draftDeal}
+          publishedDeals={publishedDeals}
+          projection={projection}
+          onAddDeal={onAddDeal}
+          onEditDraft={onEditDraft}
+          onOpenTimeline={onOpenTimeline}
+        />
+      ) : null}
+    </View>
+  );
+};
+
+const FutureStartPanel = ({ loan, deal }: { loan: SavedLoan; deal: LoanDeal }) => {
+  const { t, i18n } = useTranslation();
+
+  return (
+    <View style={styles.summaryRaisedPanel}>
+      <View style={styles.summaryMetricRow}>
+        <Text style={styles.summaryMetricLabel}>{t('mortgage.futureStartsOn')}</Text>
+        <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
+          {formatFriendlyDate(deal.startDate, i18n.language)}
+        </Text>
+      </View>
+      <View style={styles.summaryMetricRow}>
+        <Text style={styles.summaryMetricLabel}>{t('mortgage.startingBalance')}</Text>
+        <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
+          {formatCurrency(deal.openingBalance, loan.currency)}
+        </Text>
+      </View>
+      <AppText variant="bodySm" tone="muted" style={styles.futureStartHelp}>
+        {t('mortgage.futureStartHelp')}
+      </AppText>
     </View>
   );
 };
@@ -1364,6 +1401,9 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     lineHeight: 16,
     color: colours.textSecondary,
+  },
+  futureStartHelp: {
+    marginTop: spacing.xs,
   },
   summarySectionHeader: {
     flexDirection: 'row',

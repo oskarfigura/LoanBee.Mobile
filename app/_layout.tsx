@@ -68,6 +68,7 @@ export default function RootLayout() {
           <AdProvider>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="about" />
               <Stack.Screen name="guide" />
               <Stack.Screen
                 name="saved/new"
@@ -78,6 +79,12 @@ export default function RootLayout() {
               <Stack.Screen name="saved/[id]" />
               <Stack.Screen
                 name="saved/track"
+                options={{
+                  presentation: 'modal',
+                }}
+              />
+              <Stack.Screen
+                name="saved/history"
                 options={{
                   presentation: 'modal',
                 }}

@@ -1,10 +1,11 @@
-import { describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from '@jest/globals';
 import { getDraftResultSession } from '../../src/results/draftResultStore';
 import {
   buildDraftResultParams,
   buildSavedLoanResultParams,
   getResultForSavedLoan,
 } from '../../src/results/loanResultRoute';
+import { recentCalculationsStorage } from '../../src/storage/recentCalculations';
 import { SavedLoan } from '../../src/types/SavedLoan';
 
 const loan: SavedLoan = {
@@ -60,6 +61,10 @@ const loan: SavedLoan = {
   },
 };
 
+beforeEach(() => {
+  recentCalculationsStorage.clear();
+});
+
 describe('saved loan result params', () => {
   it('passes a saved loan snapshot into result routing', () => {
     const params = buildSavedLoanResultParams(loan);
@@ -75,20 +80,37 @@ describe('saved loan result params', () => {
     const formValues = {
       currency: 'USD',
       loanAmount: 180000,
+      interest: 4.2,
+      termInYears: 10,
+      termInMonths: 0,
+      downPayment: 0,
+      downPaymentType: 'cash' as const,
+      desiredMonthlyPayment: 0,
       additionalMonthlyPayment: 250,
+      startDate: '2026-01-01',
+      calculationType: 'term' as const,
     };
 
-    const params = buildDraftResultParams(result, formValues, 'USD');
+    const params = buildDraftResultParams(result, formValues, 'USD', 'mortgage');
     const session = getDraftResultSession<typeof formValues>(params.draftId);
+    const recent = recentCalculationsStorage.getById(params.recentId);
 
     expect(params.mode).toBe('draft');
     expect(params.currency).toBe('USD');
+    expect(params.category).toBe('mortgage');
     expect(params.draftId).toMatch(/^draft_/);
+    expect(params.recentId).toMatch(/^recent_/);
     expect(session).toMatchObject({
       id: params.draftId,
       result,
       formValues,
       currency: 'USD',
+    });
+    expect(recent).toMatchObject({
+      id: params.recentId,
+      category: 'mortgage',
+      currency: 'USD',
+      formValues,
     });
     expect(typeof session?.createdAt).toBe('number');
   });

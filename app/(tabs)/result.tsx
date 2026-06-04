@@ -21,9 +21,11 @@ import { SavedLoan } from '@/types/SavedLoan';
 import {
   LoanResult,
   getResultForSavedLoan,
+  getResultForFormValues,
 } from '@/results/loanResultRoute';
 import { getDraftResultSession } from '@/results/draftResultStore';
 import { savedLoansStorage } from '@/storage/savedLoans';
+import { recentCalculationsStorage } from '@/storage/recentCalculations';
 import { setResultLeaveGuard } from '@/navigation/resultLeaveGuard';
 import { useStoreReview } from '@/review';
 import { formatCurrency } from '@/currency/format';
@@ -39,7 +41,9 @@ type ResultParams = {
   result?: string;
   formValues?: string;
   currency?: string;
+  category?: string;
   mode?: string;
+  recentId?: string;
   savedLoan?: string;
   savedLoanId?: string;
 };
@@ -68,20 +72,26 @@ export default function ResultScreen() {
     if (fromParams) return fromParams;
     return params.savedLoanId ? savedLoansStorage.getById(params.savedLoanId) ?? null : null;
   }, [params.savedLoan, params.savedLoanId]);
+  const recentCalculation = useMemo(() => (
+    params.recentId ? recentCalculationsStorage.getById(params.recentId) ?? null : null
+  ), [params.recentId]);
   const isSavedMode = params.mode === 'saved' && savedLoan !== null;
   const draftSession = useMemo(() => getDraftResultSession(params.draftId), [params.draftId]);
 
   const result = useMemo(() => {
     if (savedLoan) return getResultForSavedLoan(savedLoan);
     if (draftSession) return draftSession.result;
+    if (recentCalculation) return getResultForFormValues(recentCalculation.formValues);
     return parseJson<LoanResult>(params.result);
-  }, [draftSession, params.result, savedLoan]);
+  }, [draftSession, params.result, recentCalculation, savedLoan]);
   const formValues = useMemo(() => (
     savedLoan?.formSnapshot
     ?? draftSession?.formValues
+    ?? recentCalculation?.formValues
     ?? parseJson<Record<string, unknown>>(params.formValues)
-  ), [draftSession?.formValues, params.formValues, savedLoan]);
-  const currency = ((savedLoan?.currency ?? draftSession?.currency ?? params.currency) as CurrencyCode | undefined) ?? 'GBP';
+  ), [draftSession?.formValues, params.formValues, recentCalculation?.formValues, savedLoan]);
+  const currency = ((savedLoan?.currency ?? draftSession?.currency ?? recentCalculation?.currency ?? params.currency) as CurrencyCode | undefined) ?? 'GBP';
+  const category = savedLoan?.category ?? recentCalculation?.category ?? params.category;
   const additionalMonthlyPayment =
     typeof (formValues as Record<string, unknown>)?.additionalMonthlyPayment === 'number'
       ? (formValues as Record<string, unknown>).additionalMonthlyPayment as number
@@ -116,11 +126,13 @@ export default function ResultScreen() {
         result: params.result ?? JSON.stringify(result),
         formValues: params.formValues ?? JSON.stringify(formValues),
         draftId: params.draftId,
+        recentId: params.recentId,
         currency,
+        category,
         returnToResult: '1',
       },
     });
-  }, [currency, formValues, params.draftId, params.formValues, params.result, result, router]);
+  }, [category, currency, formValues, params.draftId, params.formValues, params.recentId, params.result, result, router]);
 
   const handleShare = useCallback(async () => {
     if (!result || !formValues) return;

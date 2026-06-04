@@ -11,14 +11,16 @@ For detailed mortgage-tracker behaviour, validation, and edge cases, also read [
 
 | Route | Purpose | Main actions |
 |---|---|---|
-| `/(tabs)/index` | Home tab entrypoint | Show first-run guide, pinned dashboard, or calculator form |
-| `/(tabs)/result` | Hidden result tab | Review calculation, save, share, leave with unsaved-result guard |
-| `/(tabs)/saved` | Saved loans list | Open saved loan, toggle pin, jump to new calculation |
-| `/(tabs)/about` | Formula/about tab | Read product explanation, reopen guide |
-| `/(tabs)/settings` | Settings tab | Change language and currency, reopen guide |
+| `/(tabs)/index` | Home tab | Show the pinned mortgage dashboard, or open the guided calculator/tracking setup |
+| `/(tabs)/result` | Hidden result tab | Review calculation, save/track, share, leave with unsaved-result guard |
+| `/(tabs)/saved` | Tracked and recent list | Open tracked loan/mortgage, manage recent calculations, toggle pin, jump back into the Home calculation journey |
+| `/(tabs)/settings` | Settings tab | Change language/currency, reopen guide/about, manage data |
+| `/about` | Formula/about route | Read product explanation, FAQ, and disclaimer from Settings |
 | `/guide` | Onboarding walkthrough | Mark guide seen, jump into calculator |
 | `/calculator/share` | Shared-calculation entrypoint | Parse deep link / share URL and route into Result |
 | `/saved/new` | Save flow | Name a calculation, choose category/currency, create initial deal |
+| `/saved/track` | Current/future mortgage setup | Track from latest balance or a future start date |
+| `/saved/history` | Mortgage history setup | Create the original mortgage and first real deal before completing/adding later deals |
 | `/saved/[id]` | Saved loan detail | Review loan or mortgage, rename, delete, pin, open child flows |
 | `/saved/[id]/edit` | Saved loan editor | Edit metadata and jump back to calculator for recalculation |
 | `/saved/[id]/overpayments` | Loan overpayment editor | Adjust simple saved-loan overpayment inputs |
@@ -32,25 +34,29 @@ For detailed mortgage-tracker behaviour, validation, and edge cases, also read [
 
 `app/_layout.tsx` owns the root stack and registers the non-tab routes. The current stack shape matters because several actions rely on modal presentation or hidden routes:
 
-- `saved/new`, `saved/[id]/deals/new`, `saved/[id]/events/new`, and `saved/[id]/complete-current` open as modals.
+- `saved/new`, `saved/track`, `saved/history`, `saved/[id]/deals/new`, `saved/[id]/events/new`, and `saved/[id]/complete-current` open as modals.
 - The Results screen lives inside the tab navigator as `/(tabs)/result`, but it is hidden from the tab bar with `href: null`.
+- `/about` sits above the tab shell and is entered from Settings.
 - `guide` and all `saved/*` detail routes sit above the tab shell and can be entered from multiple tabs.
 
 ## Home tab modes
 
-The Home tab is not "just the calculator". `app/(tabs)/index.tsx` has three mutually exclusive modes:
+The first tab is Home. `app/(tabs)/index.tsx` restores the pinned dashboard as the default logged-in surface, then opens the guided calculator when requested:
 
 | Mode | Trigger | What the user sees |
 |---|---|---|
 | First-run onboarding | `guide_seen_v1` not set and the consent gate has completed | `/guide?firstRun=1` is pushed |
-| Dashboard mode | At least one `SavedLoan` has `pinnedToDashboard: true` and there is no `calculator=1` param | Mortgage dashboard carousel |
-| Calculator mode | No pinned loans, or `calculator=1` has been passed explicitly | Loan calculator form |
+| Dashboard mode | One or more loans are pinned and no calculator override is active | Home dashboard carousel with pinned tracked loans/mortgages |
+| Borrowing step | No pinned loans, dashboard CTA, or `calculator=1` param | Mortgage vs personal-loan choice as the first guided step |
+| Intent step | User chooses a borrowing type | Explore scenario vs track borrowing choice as the second guided step |
+| Scenario mode | User chooses "Explore scenario" | Category-aware calculator form without the upfront choices pinned above it |
+| Track mode | User chooses "Track borrowing" | Mortgage setup-path choice, or loan calculation-to-track flow |
 
 Related behaviours:
 
-- Pressing the Home tab forces a return to dashboard mode by navigating to `index` with a `dashboard` param.
+- Tapping the Home tab sends a fresh `dashboard` param so the calculator collapses back to the pinned dashboard when one exists.
 - Leaving the hidden Result route is guarded while the result is unsaved.
-- Returning from Saved/About/Settings with `fromDashboard=1` should route back to `/`, not deeper into nested history.
+- Returning from Tracked/Settings with `fromDashboard=1` should route back to `/`, not deeper into nested history.
 
 ## Core action flows
 
@@ -65,12 +71,12 @@ Related behaviours:
 
 ### 2. Calculate -> review result -> save/share
 
-- Entry: Home calculator form
-- Files: `app/(tabs)/index.tsx`, `app/(tabs)/result.tsx`, `app/saved/new.tsx`
+- Entry: Home tab, scenario mode
+- Files: `app/(tabs)/index.tsx`, `app/(tabs)/result.tsx`, `app/(tabs)/saved.tsx`, `app/saved/new.tsx`
 - State changes:
   - calculator submits pure-TS `getLoanCalculations(...)`
-  - draft result params are passed into the hidden Result route
-  - Result can either share the calculation URL or open `/saved/new`
+  - draft result params are passed into the hidden Result route and a `RecentCalculation` is persisted
+  - Result can share the calculation URL, reopen from Tracked → Recent calculations, or open `/saved/new`
   - unsaved results set a leave guard until the user saves or discards
 
 ### 3. Save a calculation
@@ -84,9 +90,28 @@ Related behaviours:
   - auto-pins the new loan with `dashboardOrder = getMaxDashboardOrder() + 1`
   - routes to `/saved/[id]?fromSave=1`
 
-### 4. Review and manage a saved loan
+### 4. Track a mortgage from today or future start
 
-- Entry: Saved tab, dashboard card, or post-save redirect
+- Entry: Home → Calculate → borrowing type → Track borrowing → Track from latest statement
+- Files: `app/saved/track.tsx`, `src/mortgage/trackBuilder.ts`, `src/storage/savedLoans.ts`
+- State changes:
+  - creates a `LoanGroup` with one `userDeal` active deal
+  - if the start date is in the future, progress/activity are hidden until that date
+  - auto-pins the tracked mortgage with `dashboardOrder = getMaxDashboardOrder() + 1`
+  - routes to `/saved/[id]?fromSave=1`
+
+### 5. Build mortgage history
+
+- Entry: Home → Calculate → borrowing type → Track borrowing → Build mortgage history
+- Files: `app/saved/history.tsx`, `app/saved/[id]/complete-current.tsx`, `app/saved/[id]/deals/new.tsx`
+- State changes:
+  - creates the original mortgage plus first real deal from the historic start date
+  - user then completes that deal with closing balance and historic overpayments
+  - later deals are added through the existing deal lifecycle
+
+### 6. Review and manage a saved loan
+
+- Entry: Tracked tab, or post-save redirect
 - Files: `app/saved/[id].tsx`, `src/components/loans/MortgageDetailView.tsx`
 - Shared actions:
   - rename
@@ -100,7 +125,7 @@ Related behaviours:
   - add and edit mortgage events
   - correct the latest completed deal
 
-### 5. Shared link / deep link
+### 7. Shared link / deep link
 
 - Entry: `/calculator/share`
 - Files: `app/calculator/share.tsx`, `src/share/calculationShareLink.ts`
@@ -118,10 +143,12 @@ Related behaviours:
 | `MortgageEvent` | nested in `SavedLoan.events` | One-off overpayment, checkpoint, holiday, note, missed payment |
 | `formSnapshot` | nested in `SavedLoan` | Original calculator inputs |
 | `resultSnapshot` | nested in `SavedLoan` | Original calculation summary and baseline-interest values |
+| `RecentCalculation` | `recent_calculations_v1` | User-visible automatic calculation history, separate from tracked borrowing |
 
 Important persistence rules:
 
 - `saved_loans_v2` is the current MMKV key.
+- `recent_calculations_v1` stores the capped newest-first recent-calculation list.
 - `saved_loans_v1` is the legacy key still migrated by `savedLoansStorage`.
 - Legacy records are upgraded into the deal-based model on read.
 - `pinnedToDashboard` plus `dashboardOrder` controls the home dashboard carousel.

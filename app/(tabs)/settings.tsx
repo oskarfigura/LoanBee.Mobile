@@ -214,6 +214,14 @@ export default function SettingsScreen() {
           <View style={styles.divider} />
           <TouchableOpacity
             style={styles.linkRow}
+            onPress={() => router.push('/about')}
+          >
+            <AppText variant="bodyMd" tone="accent">{t('settings.about')}</AppText>
+            <AppText variant="title2" tone="muted">›</AppText>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.linkRow}
             onPress={() => WebBrowser.openBrowserAsync('https://thetechnarrative.com/terms')}
           >
             <AppText variant="bodyMd" tone="accent">{t('settings.termsAndConditions')}</AppText>

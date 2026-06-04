@@ -1,0 +1,115 @@
+import type { CurrencyCode } from '@/currency/currencies';
+import type { LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
+import type { LoanResultSnapshot, LoanCategory } from '@/types/SavedLoan';
+import { createLocalId } from '@/utils/id';
+import { storage } from './mmkv';
+import { STORAGE_KEYS } from './keys';
+
+export interface RecentCalculation {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  category: LoanCategory;
+  currency: CurrencyCode;
+  formValues: LoanCalculatorFormValues;
+  resultSnapshot: LoanResultSnapshot;
+  sourceLabel?: string;
+}
+
+type RawResultValues = {
+  monthlyPayments: number;
+  totalAmountPaid: number;
+  totalInterestPaid: number;
+  termInYears: number;
+  termInMonths: number;
+  tableItems: unknown[];
+};
+
+const MAX_RECENT_CALCULATIONS = 12;
+
+const readAll = (): RecentCalculation[] => {
+  const raw = storage.getString(STORAGE_KEYS.RECENT_CALCULATIONS);
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(item => (
+      typeof item?.id === 'string'
+      && typeof item?.createdAt === 'string'
+      && typeof item?.updatedAt === 'string'
+      && (item?.category === 'mortgage' || item?.category === 'loan')
+      && typeof item?.currency === 'string'
+      && item?.formValues
+      && item?.resultSnapshot
+    )) as RecentCalculation[];
+  } catch {
+    return [];
+  }
+};
+
+const writeAll = (items: RecentCalculation[]): void => {
+  const ordered = [...items]
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .slice(0, MAX_RECENT_CALCULATIONS);
+  storage.set(STORAGE_KEYS.RECENT_CALCULATIONS, JSON.stringify(ordered));
+};
+
+export const buildRecentResultSnapshot = (
+  result: RawResultValues,
+  totalInterestPaidBaseline = result.totalInterestPaid,
+): LoanResultSnapshot => ({
+  monthlyPayments: result.monthlyPayments,
+  totalAmountPaid: result.totalAmountPaid,
+  totalInterestPaid: result.totalInterestPaid,
+  totalInterestPaidBaseline,
+  termInYears: result.termInYears,
+  termInMonths: result.termInMonths,
+  totalTermInMonths: result.tableItems.length,
+});
+
+export const recentCalculationsStorage = {
+  getAll(): RecentCalculation[] {
+    return readAll();
+  },
+
+  getById(id: string): RecentCalculation | undefined {
+    return readAll().find(item => item.id === id);
+  },
+
+  addFromResult({
+    result,
+    formValues,
+    currency,
+    category = 'loan',
+    sourceLabel,
+  }: {
+    result: RawResultValues;
+    formValues: LoanCalculatorFormValues;
+    currency: CurrencyCode;
+    category?: LoanCategory;
+    sourceLabel?: string;
+  }): RecentCalculation {
+    const now = new Date().toISOString();
+    const item: RecentCalculation = {
+      id: createLocalId('recent'),
+      createdAt: now,
+      updatedAt: now,
+      category,
+      currency,
+      formValues,
+      resultSnapshot: buildRecentResultSnapshot(result),
+      sourceLabel,
+    };
+    writeAll([item, ...readAll()]);
+    return item;
+  },
+
+  remove(id: string): void {
+    writeAll(readAll().filter(item => item.id !== id));
+  },
+
+  clear(): void {
+    storage.remove(STORAGE_KEYS.RECENT_CALCULATIONS);
+  },
+};

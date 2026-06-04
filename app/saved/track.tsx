@@ -67,6 +67,8 @@ export default function TrackMortgageScreen() {
   const [nickname, setNickname] = useState(seed?.nickname ?? '');
   const [lender, setLender] = useState(seed?.lender ?? '');
   const [currency, setCurrency] = useState<CurrencyCode>(seed?.currency ?? defaultCurrency);
+  const [setupTiming, setSetupTiming] = useState<'active' | 'future'>('active');
+  const [startDate, setStartDate] = useState(today);
   const [balance, setBalance] = useState(numberText(seed?.currentBalance));
   const [rate, setRate] = useState(numberText(seed?.interestRate));
   const [repaymentType, setRepaymentType] = useState<MortgageRepaymentType>(
@@ -77,7 +79,7 @@ export default function TrackMortgageScreen() {
   const [termMonths, setTermMonths] = useState(initialTermMonths ? String(initialTermMonths % 12) : '');
 
   const [hasDealEnd, setHasDealEnd] = useState(Boolean(seed?.dealEndDate));
-  const [dealEndDate, setDealEndDate] = useState(seed?.dealEndDate ?? addMonthsToIsoDate(today, 24));
+  const [dealEndDate, setDealEndDate] = useState(seed?.dealEndDate ?? addMonthsToIsoDate(startDate, 24));
 
   const [enrichmentOpen, setEnrichmentOpen] = useState(false);
   const [regularOverpayment, setRegularOverpayment] = useState(
@@ -107,6 +109,7 @@ export default function TrackMortgageScreen() {
     || undefined;
 
   const canSave = nickname.trim().length > 0
+    && isValidIsoDate(startDate)
     && balanceValidation.isValid
     && rateValidation.isValid
     && durationValidation.isValid;
@@ -131,7 +134,7 @@ export default function TrackMortgageScreen() {
       .map(row => ({ date: row.date, amount: validateMoneyText(row.amount).numeric }))
       .filter(row => isValidIsoDate(row.date) && row.amount > 0);
 
-    let payoffDate = addMonthsToIsoDate(today, durationValidation.totalMonths);
+    let payoffDate = addMonthsToIsoDate(startDate, durationValidation.totalMonths);
     if (regular > 0 || lumps.length > 0) {
       const projection = buildMortgageProjection(buildTrackedMortgageFromForm({
         nickname,
@@ -142,13 +145,13 @@ export default function TrackMortgageScreen() {
         remainingTermInMonths: durationValidation.totalMonths,
         regularOverpayment: regular,
         lumpOverpayments: lumps,
-        startDate: today,
+        startDate,
       }));
       payoffDate = projection.projectedEndDate ?? payoffDate;
     }
 
     return { monthly, payoffDate };
-  }, [balanceValidation, rateValidation, durationValidation, repaymentType, regularValidation, lumpRows, nickname, currency, today]);
+  }, [balanceValidation, rateValidation, durationValidation, repaymentType, regularValidation, lumpRows, nickname, currency, startDate]);
 
   const buildValues = (): TrackMortgageFormValues => ({
     nickname,
@@ -163,6 +166,7 @@ export default function TrackMortgageScreen() {
     lumpOverpayments: lumpRows
       .map(row => ({ date: row.date, amount: validateMoneyText(row.amount).numeric }))
       .filter(row => isValidIsoDate(row.date) && row.amount > 0),
+    startDate,
   });
 
   const handleSave = () => {
@@ -199,7 +203,7 @@ export default function TrackMortgageScreen() {
 
   const addLumpRow = () => setLumpRows(prev => [
     ...prev,
-    { id: createLocalId('op'), date: today, amount: '' },
+    { id: createLocalId('op'), date: startDate, amount: '' },
   ]);
 
   return (
@@ -243,8 +247,39 @@ export default function TrackMortgageScreen() {
           <CurrencyPicker value={currency} onChange={setCurrency} />
         </View>
 
+        {!existing ? (
+          <View style={styles.fieldGroup}>
+            <FieldLabel>{t('track.setupTiming')}</FieldLabel>
+            <SegmentedControl
+              value={setupTiming}
+              onChange={value => {
+                const nextTiming = value as 'active' | 'future';
+                setSetupTiming(nextTiming);
+                if (nextTiming === 'active') setStartDate(today);
+              }}
+              options={[
+                { label: t('track.activeNow'), value: 'active' },
+                { label: t('track.futureStart'), value: 'future' },
+              ]}
+            />
+          </View>
+        ) : null}
+
+        {setupTiming === 'future' ? (
+          <DatePickerField
+            label={t('track.startDate')}
+            value={startDate}
+            onChange={value => {
+              setStartDate(value);
+              if (!seed?.dealEndDate) setDealEndDate(addMonthsToIsoDate(value, 24));
+            }}
+            hint={t('track.startDateHint')}
+            minimumDate={parseDateLabelValue(today) ?? undefined}
+          />
+        ) : null}
+
         <View style={styles.fieldGroup}>
-          <FieldLabel>{t('track.currentBalance')}</FieldLabel>
+          <FieldLabel>{setupTiming === 'future' ? t('track.startingBalance') : t('track.currentBalance')}</FieldLabel>
           <InputSurface error={!balanceValidation.isValid && !balanceValidation.isEmpty}>
             <InputAffix>{currencySymbol}</InputAffix>
             <AppTextInput
@@ -254,7 +289,7 @@ export default function TrackMortgageScreen() {
               placeholder="0"
             />
           </InputSurface>
-          <FieldHint>{t('track.currentBalanceHint')}</FieldHint>
+          <FieldHint>{setupTiming === 'future' ? t('track.startingBalanceHint') : t('track.currentBalanceHint')}</FieldHint>
           <FieldError message={!balanceValidation.isEmpty && balanceValidation.errorKey ? t(balanceValidation.errorKey) : undefined} />
         </View>
 
@@ -323,7 +358,7 @@ export default function TrackMortgageScreen() {
             value={dealEndDate}
             onChange={setDealEndDate}
             hint={t('track.dealEndDateHint')}
-            minimumDate={parseDateLabelValue(today) ?? undefined}
+            minimumDate={parseDateLabelValue(startDate) ?? undefined}
           />
         ) : null}
       </FormSection>
@@ -365,7 +400,7 @@ export default function TrackMortgageScreen() {
                   key={row.id}
                   row={row}
                   currencySymbol={currencySymbol}
-                  minimumDate={parseDateLabelValue(today) ?? undefined}
+                  minimumDate={parseDateLabelValue(startDate) ?? undefined}
                   onDateChange={(rowId, date) => setLumpRows(prev => prev.map(r => (r.id === rowId ? { ...r, date } : r)))}
                   onAmountChange={(rowId, amount) => setLumpRows(prev => prev.map(r => (r.id === rowId ? { ...r, amount } : r)))}
                   onRemove={rowId => setLumpRows(prev => prev.filter(r => r.id !== rowId))}

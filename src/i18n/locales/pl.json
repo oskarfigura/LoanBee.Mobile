@@ -2,6 +2,8 @@
   "calculator": {
     "title": "Kalkulacja Kredytu",
     "subtitle": "Wprowadź szczegóły kredytu i wybierz sposób obliczenia spłaty",
+    "subtitleMortgage": "Sprawdź hipotekę, a potem zapisz ją do śledzenia, jeśli te liczby są ważne.",
+    "subtitleLoan": "Sprawdź kredyt lub scenariusz spłaty, a potem zostaw go w Ostatnich albo śledź później.",
     "loanAmount": "Kwota Kredytu",
     "loanAmountPlaceholder": "np. 300000",
     "interestRate": "Oprocentowanie",
@@ -25,6 +27,35 @@
     "currency": "Waluta",
     "cash": "Gotówka",
     "percent": "Procent"
+  },
+  "journey": {
+    "title": "Nowe obliczenie",
+    "stepBorrowing": "Krok 1",
+    "stepIntent": "Krok 2",
+    "stepTrackMortgage": "Konfiguracja śledzenia",
+    "borrowingType": "Rodzaj zobowiązania",
+    "borrowingTypeTitle": "Z czym pracujesz?",
+    "borrowingTypeHelp": "Najpierw wybierz zobowiązanie, aby LoanBee dopasowało kolejny krok do właściwego produktu.",
+    "mortgageOptionTitle": "Hipoteka",
+    "mortgageOptionBody": "Obliczaj raty, śledź okresy umów i zapisuj nadpłaty w kolejnych etapach hipoteki.",
+    "loanOptionTitle": "Pożyczka osobista",
+    "loanOptionBody": "Modeluj kredyt samochodowy, pożyczkę osobistą albo scenariusz stałej spłaty.",
+    "intent": "Co chcesz zrobić?",
+    "intentTitle": "Co chcesz zrobić z tym zobowiązaniem: {{category}}?",
+    "intentHelp": "Wybierz, czy to szybki scenariusz, czy realne zobowiązanie do śledzenia w czasie.",
+    "exploreScenario": "Sprawdzić scenariusz",
+    "trackBorrowing": "Śledzić zobowiązanie",
+    "scenarioHelp": "Swobodnie testuj liczby. Obliczenie automatycznie trafi do Ostatnich.",
+    "trackHelp": "Skonfiguruj zobowiązanie, które już masz albo które zaraz się zacznie.",
+    "trackMortgageTitle": "Śledź hipotekę",
+    "trackMortgageHelp": "Zacznij od najnowszego salda albo odtwórz historię od pierwotnej daty kredytu.",
+    "simpleSetup": "Prosta konfiguracja",
+    "advancedSetup": "Zaawansowana konfiguracja",
+    "trackFromToday": "Śledź od ostatniego salda",
+    "trackFromTodayHelp": "Wprowadź obecne albo przyszłe saldo startowe, oprocentowanie, okres, kredytodawcę i znane nadpłaty.",
+    "buildHistory": "Odtwórz historię hipoteki",
+    "buildHistoryHelp": "Zacznij od pierwotnej daty hipoteki, zamknij każdą minioną umowę i przejdź do obecnej.",
+    "calculateToTrack": "Oblicz do śledzenia"
   },
   "results": {
     "title": "Wyniki",
@@ -79,11 +110,11 @@
     "exportErrorMessage": "Spróbuj ponownie wyeksportować harmonogram spłat."
   },
   "saved": {
-    "title": "Zapisane Kredyty",
+    "title": "Śledzone",
     "loanDetail": "Szczegóły Kredytu",
     "editLoan": "Zarządzaj zapisanym kredytem",
-    "empty": "Brak zapisanych kredytów",
-    "emptySubtitle": "Zapisz obliczenie, aby zobaczyć je tutaj",
+    "empty": "Nic jeszcze nie jest śledzone",
+    "emptySubtitle": "Rozpocznij prowadzoną kalkulację albo zapisz scenariusz, aby zobaczyć śledzone zobowiązania tutaj",
     "delete": "Usuń",
     "edit": "Edytuj",
     "view": "Podgląd",
@@ -103,13 +134,22 @@
     "notFound": "Nie znaleziono kredytu",
     "viewFullCalculation": "Zobacz pełne obliczenie",
     "createNewCalculation": "Utwórz Nowe Obliczenie",
-    "intro": "Zapisuj obliczenia, utrzymuj przejrzysty widok portfela i przypinaj pozycje, które mają być widoczne w panelu Start.",
-    "searchPlaceholder": "Szukaj zapisanych kredytów",
-    "noMatches": "Brak zapisanych kredytów pasujących do wyszukiwania.",
+    "intro": "Śledzone kredyty i hipoteki są tutaj, a przypięte pozycje są na górze.",
+    "searchPlaceholder": "Szukaj śledzonych pozycji",
+    "noMatches": "Brak śledzonych pozycji pasujących do wyszukiwania.",
     "category": {
       "mortgage": "Hipoteka",
       "loan": "Kredyt"
     }
+  },
+  "recent": {
+    "title": "Ostatnie obliczenia",
+    "intro": "Ostatnie obliczenia są oddzielone od śledzonych zobowiązań, dopóki ich nie zapiszesz.",
+    "empty": "Brak ostatnich obliczeń",
+    "emptySubtitle": "Wykonaj obliczenie hipoteki lub kredytu, a pojawi się tutaj.",
+    "created": "Obliczono {{date}}",
+    "reopen": "Otwórz",
+    "track": "Śledź"
   },
   "save": {
     "title": "Zapisz Kredyt",
@@ -223,6 +263,7 @@
     "version": "Wersja",
     "termsAndConditions": "Regulamin",
     "privacyPolicy": "Polityka Prywatności",
+    "about": "O LoanBee",
     "devDataTitle": "Dane Visual QA",
     "devDataHelp": "Tylko w trybie deweloperskim. Zastępuje zapisane kredyty stałymi danymi do zrzutów ekranu i ręcznych testów.",
     "devDataLoad": "Wczytaj zapisane kredyty Visual QA",
@@ -313,7 +354,8 @@
     "close": "Zamknij",
     "more": "Więcej",
     "viewAll": "Zobacz wszystko",
-    "save": "Zapisz"
+    "save": "Zapisz",
+    "delete": "Usuń"
   },
   "forms": {
     "required": "Wymagane",
@@ -402,6 +444,9 @@
     "pinnedToDashboard": "Przypięte do panelu",
     "unpinHint": "Widoczne na ekranie Start. Dotknij, aby odpiąć.",
     "currentBalance": "Aktualne Saldo",
+    "futureStartsOn": "Zaczyna się",
+    "startingBalance": "Saldo początkowe",
+    "futureStartHelp": "Postęp i aktywność pojawią się, gdy hipoteka się rozpocznie.",
     "paidSoFar": "Spłacono Dotąd",
     "timeProgress": "Spłacony czas",
     "moneyProgress": "Spłacone saldo",
@@ -706,8 +751,8 @@
   },
   "tabs": {
     "home": "Start",
-    "calculator": "Kalkulator",
-    "saved": "Zapisane",
+    "calculator": "Oblicz",
+    "saved": "Śledzone",
     "about": "O Aplikacji",
     "settings": "Ustawienia"
   },
@@ -722,8 +767,15 @@
     "nicknamePlaceholder": "np. Dom rodzinny",
     "lender": "Kredytodawca",
     "currency": "Waluta",
+    "setupTiming": "Punkt startu",
+    "activeNow": "Aktywna teraz",
+    "futureStart": "Zacznie się później",
+    "startDate": "Data rozpoczęcia",
+    "startDateHint": "Postęp pozostanie ukryty do tej daty.",
     "currentBalance": "Aktualne saldo",
     "currentBalanceHint": "Ile jesteś teraz winien — sprawdź ostatni wyciąg lub aplikację bankową.",
+    "startingBalance": "Saldo początkowe",
+    "startingBalanceHint": "Ile spodziewasz się być winien w dniu rozpoczęcia hipoteki.",
     "rate": "Oprocentowanie",
     "repaymentType": "Rodzaj spłaty",
     "remainingTerm": "Pozostały czas spłaty",
@@ -745,5 +797,18 @@
     "summaryPayoff": "Spłacony do",
     "draftUntitled": "Kredyt bez nazwy",
     "draftBadge": "Wersja robocza · dokończ konfigurację"
+  },
+  "history": {
+    "title": "Odtwórz historię hipoteki",
+    "subtitle": "Zacznij od pierwotnej hipoteki i pierwszej umowy.",
+    "save": "Utwórz pierwszą umowę",
+    "sectionMortgage": "Pierwotna hipoteka",
+    "mortgageHelp": "Użyj daty rozpoczęcia hipoteki i pierwotnego salda od kredytodawcy.",
+    "sectionFirstDeal": "Pierwsza umowa",
+    "firstDealHelp": "Wpisz oprocentowanie i długość pierwszego okresu stałego lub promocyjnego.",
+    "originalBalance": "Pierwotne saldo",
+    "firstDealDuration": "Długość pierwszej umowy",
+    "firstDealDurationHint": "Później możesz zakończyć tę umowę saldem końcowym i historycznymi nadpłatami.",
+    "dealLongerThanMortgage": "Pierwsza umowa nie może być dłuższa niż całkowity okres hipoteki."
   }
 }

@@ -28,6 +28,8 @@ import { createLocalId } from '@/utils/id';
 import { colours, layout, spacing } from '@/theme';
 import { useStoreReview } from '@/review';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { recentCalculationsStorage } from '@/storage/recentCalculations';
+import { getResultForFormValues } from '@/results/loanResultRoute';
 import {
   buildInitialDeal,
   buildResultSnapshot,
@@ -67,24 +69,27 @@ export default function SaveNewLoanScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     draftId?: string;
+    recentId?: string;
     result?: string;
     formValues?: string;
     currency?: string;
+    category?: LoanCategory;
     returnToResult?: string;
   }>();
   const { add } = useSavedLoans();
   const { recordUsefulAction, requestReview } = useStoreReview();
   const draftSession = getDraftResultSession<LoanCalculatorFormValues>(params.draftId);
-  const result = draftSession?.result ?? parseJson<LoanResult>(params.result);
-  const formValues = draftSession?.formValues ?? parseJson<LoanCalculatorFormValues>(params.formValues);
+  const recentCalculation = params.recentId ? recentCalculationsStorage.getById(params.recentId) : undefined;
+  const formValues = draftSession?.formValues ?? recentCalculation?.formValues ?? parseJson<LoanCalculatorFormValues>(params.formValues);
+  const result = draftSession?.result ?? (recentCalculation ? getResultForFormValues(recentCalculation.formValues) : undefined) ?? parseJson<LoanResult>(params.result);
 
   const mortgageTermInMonths = result && formValues
     ? getResultTermInMonths(result, formValues)
     : 12;
   const [nickname, setNickname] = useState('');
   const [lender, setLender] = useState('');
-  const [category, setCategory] = useState<LoanCategory>('loan');
-  const [currency, setCurrency] = useState<CurrencyCode>((params.currency as CurrencyCode) ?? 'GBP');
+  const [category, setCategory] = useState<LoanCategory>(params.category ?? recentCalculation?.category ?? 'loan');
+  const [currency, setCurrency] = useState<CurrencyCode>((params.currency as CurrencyCode) ?? recentCalculation?.currency ?? 'GBP');
 
   const isMortgage = category === 'mortgage';
   const screenTitle = isMortgage ? t('save.titleMortgage') : t('save.titleLoan');

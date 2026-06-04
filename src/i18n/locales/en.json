@@ -2,6 +2,8 @@
   "calculator": {
     "title": "Loan Calculation",
     "subtitle": "Enter your loan details and choose how to calculate repayment",
+    "subtitleMortgage": "Model a mortgage, then save it as something to track if the numbers matter.",
+    "subtitleLoan": "Model a loan or repayment scenario, then keep it in Recent or track it later.",
     "loanAmount": "Loan Amount",
     "loanAmountPlaceholder": "e.g. 300000",
     "interestRate": "Interest Rate",
@@ -25,6 +27,35 @@
     "currency": "Currency",
     "cash": "Cash",
     "percent": "Percent"
+  },
+  "journey": {
+    "title": "New calculation",
+    "stepBorrowing": "Step 1",
+    "stepIntent": "Step 2",
+    "stepTrackMortgage": "Track setup",
+    "borrowingType": "Borrowing type",
+    "borrowingTypeTitle": "What are you working with?",
+    "borrowingTypeHelp": "Choose the borrowing first so LoanBee can shape the next step around the right product.",
+    "mortgageOptionTitle": "Mortgage",
+    "mortgageOptionBody": "Calculate repayments, track deals, and record overpayments across mortgage periods.",
+    "loanOptionTitle": "Personal loan",
+    "loanOptionBody": "Model a car loan, personal loan, or fixed repayment scenario.",
+    "intent": "What are you doing?",
+    "intentTitle": "What do you want to do with this {{category}}?",
+    "intentHelp": "Pick whether this is a quick scenario or real borrowing you want to track over time.",
+    "exploreScenario": "Explore scenario",
+    "trackBorrowing": "Track borrowing",
+    "scenarioHelp": "Try numbers freely. The calculation is saved to Recent automatically.",
+    "trackHelp": "Set up borrowing you already have or are about to start.",
+    "trackMortgageTitle": "Track a mortgage",
+    "trackMortgageHelp": "Start from your latest balance, or rebuild the history from the original mortgage date.",
+    "simpleSetup": "Simple setup",
+    "advancedSetup": "Advanced setup",
+    "trackFromToday": "Track from latest statement",
+    "trackFromTodayHelp": "Enter the current or future-start balance, rate, term, lender, and any known overpayments.",
+    "buildHistory": "Build mortgage history",
+    "buildHistoryHelp": "Start at the original mortgage date, complete each past deal, then continue into the current one.",
+    "calculateToTrack": "Calculate to track"
   },
   "results": {
     "title": "Results",
@@ -79,11 +110,11 @@
     "exportErrorMessage": "Please try exporting the amortisation schedule again."
   },
   "saved": {
-    "title": "Saved Loans",
+    "title": "Tracked",
     "loanDetail": "Loan Detail",
     "editLoan": "Manage saved loan",
-    "empty": "No saved loans yet",
-    "emptySubtitle": "Save a calculation to see it here",
+    "empty": "Nothing tracked yet",
+    "emptySubtitle": "Start a guided calculation or save a scenario to see tracked borrowing here",
     "delete": "Delete",
     "edit": "Edit",
     "view": "View",
@@ -103,13 +134,22 @@
     "notFound": "Loan not found",
     "viewFullCalculation": "View full calculation",
     "createNewCalculation": "Create New Calculation",
-    "intro": "Save calculations, keep a clean portfolio view, and pin the items that belong on your home dashboard.",
-    "searchPlaceholder": "Search saved loans",
-    "noMatches": "No saved loans match your search.",
+    "intro": "Tracked loans and mortgages live here, with pinned items first.",
+    "searchPlaceholder": "Search tracked items",
+    "noMatches": "No tracked items match your search.",
     "category": {
       "mortgage": "Mortgage",
       "loan": "Loan"
     }
+  },
+  "recent": {
+    "title": "Recent calculations",
+    "intro": "Recent calculations are kept separate from tracked borrowing until you choose to save them.",
+    "empty": "No recent calculations",
+    "emptySubtitle": "Run a mortgage or loan calculation and it will appear here.",
+    "created": "Calculated {{date}}",
+    "reopen": "Reopen",
+    "track": "Track"
   },
   "save": {
     "title": "Save Loan",
@@ -223,6 +263,7 @@
     "version": "Version",
     "termsAndConditions": "Terms & Conditions",
     "privacyPolicy": "Privacy Policy",
+    "about": "About LoanBee",
     "devDataTitle": "Visual QA Data",
     "devDataHelp": "Development only. Replaces saved loans with deterministic fixtures for emulator screenshots and manual checks.",
     "devDataLoad": "Load visual QA saved loans",
@@ -313,7 +354,8 @@
     "close": "Close",
     "more": "More",
     "viewAll": "View all",
-    "save": "Save"
+    "save": "Save",
+    "delete": "Delete"
   },
   "forms": {
     "required": "Required",
@@ -402,6 +444,9 @@
     "pinnedToDashboard": "Pinned to dashboard",
     "unpinHint": "Visible on your Home dashboard. Tap to unpin.",
     "currentBalance": "Current Balance",
+    "futureStartsOn": "Starts on",
+    "startingBalance": "Starting balance",
+    "futureStartHelp": "Progress and activity appear once this mortgage has started.",
     "paidSoFar": "Paid So Far",
     "timeProgress": "Time paid off",
     "moneyProgress": "Balance paid down",
@@ -706,8 +751,8 @@
   },
   "tabs": {
     "home": "Home",
-    "calculator": "Calculator",
-    "saved": "Saved",
+    "calculator": "Calculate",
+    "saved": "Tracked",
     "about": "About",
     "settings": "Settings"
   },
@@ -722,8 +767,15 @@
     "nicknamePlaceholder": "e.g. Family home",
     "lender": "Lender",
     "currency": "Currency",
+    "setupTiming": "Start point",
+    "activeNow": "Active now",
+    "futureStart": "Starts later",
+    "startDate": "Start date",
+    "startDateHint": "Progress stays hidden until this date.",
     "currentBalance": "Current balance",
     "currentBalanceHint": "What you owe right now — check your latest statement or banking app.",
+    "startingBalance": "Starting balance",
+    "startingBalanceHint": "What you expect to owe when the mortgage begins.",
     "rate": "Interest rate",
     "repaymentType": "Repayment type",
     "remainingTerm": "Time left to pay off",
@@ -745,5 +797,18 @@
     "summaryPayoff": "Paid off by",
     "draftUntitled": "Untitled mortgage",
     "draftBadge": "Draft · resume setup"
+  },
+  "history": {
+    "title": "Build mortgage history",
+    "subtitle": "Start with the original mortgage and first deal.",
+    "save": "Create first deal",
+    "sectionMortgage": "Original mortgage",
+    "mortgageHelp": "Use the mortgage start date and original balance from the lender.",
+    "sectionFirstDeal": "First deal",
+    "firstDealHelp": "Enter the rate and length of the first fixed or intro period.",
+    "originalBalance": "Original balance",
+    "firstDealDuration": "First deal duration",
+    "firstDealDurationHint": "You can complete this deal later with the closing balance and historic overpayments.",
+    "dealLongerThanMortgage": "The first deal cannot be longer than the total mortgage term."
   }
 }
