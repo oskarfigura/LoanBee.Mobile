@@ -4,7 +4,7 @@ import { LineChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
 import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
-import { getProjectionChartLayout } from './dimensions';
+import { getNiceChartMaxValue, getProjectionChartLayout } from './dimensions';
 
 interface Props {
   scenarioRemaining: number[];
@@ -23,6 +23,7 @@ const INITIAL_SPACING = 8;
 const X_LABEL_WIDTH = 46;
 const MIN_LABEL_GAP = 52;
 const END_SPACING = X_LABEL_WIDTH / 2 + 4;
+const SECTION_COUNT = 4;
 
 const XAxisLabel = ({ text, spacing }: { text: string; spacing: number }) => (
   <View style={{ width: X_LABEL_WIDTH, marginLeft: (spacing - X_LABEL_WIDTH) / 2 }}>
@@ -83,6 +84,7 @@ export const MortgageBalanceChart = ({
     edgeSpacing: INITIAL_SPACING + END_SPACING,
     fitToWidth: true,
     spacingMode: 'intervals',
+    fillAvailableWidth: true,
   });
 
   const labelEvery = Math.max(1, Math.ceil(MIN_LABEL_GAP / pointSpacing));
@@ -144,6 +146,10 @@ export const MortgageBalanceChart = ({
   const baselineData = baselineRemaining
     ? buildBalanceData(baselineRemaining, colours.primary, true)
     : undefined;
+  const maxValue = getNiceChartMaxValue([
+    ...(baselineData ?? scenarioData).map(item => item.value),
+    ...scenarioData.map(item => item.value),
+  ], SECTION_COUNT);
 
   const legendItems = hasBaseline && comparisonLabelKeys
     ? [
@@ -195,7 +201,8 @@ export const MortgageBalanceChart = ({
           xAxisThickness={0}
           initialSpacing={INITIAL_SPACING}
           endSpacing={END_SPACING}
-          noOfSections={4}
+          noOfSections={SECTION_COUNT}
+          maxValue={maxValue}
           formatYLabel={v => formatChartCurrency(+v)}
           hideDataPoints
           disableScroll={!scrollEnabled}

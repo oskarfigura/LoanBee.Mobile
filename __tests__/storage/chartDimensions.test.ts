@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { getProjectionChartLayout } from '../../src/components/charts/dimensions';
+import { getNiceChartMaxValue, getProjectionChartLayout } from '../../src/components/charts/dimensions';
 
 describe('getProjectionChartLayout', () => {
   it('fits the viewport without scrolling when content is short', () => {
@@ -90,6 +90,24 @@ describe('getProjectionChartLayout', () => {
     expect(layout.chartWidth).toBeLessThanOrEqual(294);
   });
 
+  it('fitToWidth can fill the available viewport while preserving fitted point spacing', () => {
+    const layout = getProjectionChartLayout({
+      containerWidth: 360,
+      pointCount: 18,
+      perPointWidth: 44,
+      edgeSpacing: 35,
+      fitToWidth: true,
+      spacingMode: 'intervals',
+      fillAvailableWidth: true,
+    });
+
+    const expectedSpacing = Math.floor((294 - 35) / 17);
+    expect(layout.viewportWidth).toBe(294);
+    expect(layout.pointSpacing).toBe(expectedSpacing);
+    expect(layout.scrollEnabled).toBe(false);
+    expect(layout.chartWidth).toBe(294);
+  });
+
   it('fitToWidth never stretches a short timeline past its natural spacing', () => {
     const layout = getProjectionChartLayout({
       containerWidth: 360,
@@ -117,5 +135,13 @@ describe('getProjectionChartLayout', () => {
     expect(layout.pointSpacing).toBe(10);
     expect(layout.scrollEnabled).toBe(true);
     expect(layout.chartWidth).toBe(60 * 10 + 16);
+  });
+
+  it('rounds a chart max above the largest plotted value', () => {
+    expect(getNiceChartMaxValue([10000, 246000, 51000], 4)).toBeGreaterThan(246000);
+  });
+
+  it('does not jump to a much larger y-axis band near a round threshold', () => {
+    expect(getNiceChartMaxValue([360000], 4)).toBe(400000);
   });
 });

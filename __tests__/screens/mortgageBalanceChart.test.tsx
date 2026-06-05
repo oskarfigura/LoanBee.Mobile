@@ -122,6 +122,7 @@ describe('MortgageBalanceChart', () => {
     });
 
     expect(capturedLineProps?.data2).toBeDefined();
+    expect(capturedLineProps?.width).toBe(254);
     expect(capturedLineProps?.spacing).toBeLessThan(44);
     expect(capturedLineProps?.disableScroll).toBe(true);
     expect(capturedLineProps?.curvature).toBe(0.08);
@@ -153,5 +154,31 @@ describe('MortgageBalanceChart', () => {
 
     expect(last.value).toBe(0);
     expect(penultimate.value).toBeGreaterThan(0);
+  });
+
+  it('scales comparison charts from the larger series even when it is not primary', () => {
+    const baseline = Array.from({ length: 121 }, (_, index) => 120000 - (index * 500));
+    const scenario = Array.from({ length: 121 }, (_, index) => 260000 - (index * 800));
+
+    act(() => {
+      create(React.createElement(MortgageBalanceChart, {
+        scenarioRemaining: scenario,
+        baselineRemaining: baseline,
+        currency: 'GBP',
+        comparisonLabelKeys: {
+          baseline: 'overpayments.withoutOverpayments',
+          scenario: 'overpayments.withOverpayments',
+        },
+      }));
+    });
+
+    const largestScenarioValue = Math.max(
+      ...capturedLineProps!.data2.map((point: Record<string, number>) => point.value),
+    );
+
+    expect(largestScenarioValue).toBeGreaterThan(
+      Math.max(...capturedLineProps!.data.map((point: Record<string, number>) => point.value)),
+    );
+    expect(capturedLineProps!.maxValue).toBeGreaterThan(largestScenarioValue);
   });
 });

@@ -5,7 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 type StackSegment = { value: number };
-type StackDatum = { stacks: StackSegment[]; label: string; topLabelComponent?: () => React.ReactNode };
+type StackDatum = {
+  stacks: StackSegment[];
+  label: string;
+  labelWidth?: number;
+  topLabelComponent?: () => React.ReactNode;
+};
 let capturedStackData: StackDatum[] | null = null;
 let capturedBarProps: Record<string, any> | null = null;
 
@@ -105,7 +110,9 @@ describe('RepaymentBarChart principal and interest handling', () => {
     expect(capturedBarProps?.barWidth).toBeLessThan(18);
     expect(capturedBarProps?.spacing).toBeLessThan(14);
     expect(capturedBarProps?.disableScroll).toBe(true);
+    expect(capturedBarProps?.xAxisTextNumberOfLines).toBe(1);
     expect(capturedStackData!.some(item => item.label === '')).toBe(true);
+    expect(capturedStackData!.filter(item => item.label !== '').every(item => item.labelWidth === 34)).toBe(true);
     expect(capturedStackData![capturedStackData!.length - 1].label).not.toBe('');
   });
 });

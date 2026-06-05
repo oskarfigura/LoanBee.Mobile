@@ -4,7 +4,7 @@ import { LineChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
 import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
-import { getProjectionChartLayout } from './dimensions';
+import { getNiceChartMaxValue, getProjectionChartLayout } from './dimensions';
 
 interface Props {
   monthlyArray: number[];
@@ -21,6 +21,7 @@ const INITIAL_SPACING = 8;
 const X_LABEL_WIDTH = 46;
 const MIN_LABEL_GAP = 52;
 const END_SPACING = X_LABEL_WIDTH / 2 + 4;
+const SECTION_COUNT = 4;
 
 const XAxisLabel = ({ text, spacing }: { text: string; spacing: number }) => (
   <View style={{ width: X_LABEL_WIDTH, marginLeft: (spacing - X_LABEL_WIDTH) / 2 }}>
@@ -72,17 +73,23 @@ export const CumulativeAreaChart = ({
     edgeSpacing: INITIAL_SPACING + END_SPACING,
     fitToWidth,
     spacingMode: 'intervals',
+    fillAvailableWidth: true,
   });
 
   const labelEvery = fitToWidth
     ? Math.max(1, Math.ceil(MIN_LABEL_GAP / pointSpacing))
     : yearlyData.length <= 12 ? 1 : Math.ceil(yearlyData.length / 6);
   const lastPosition = yearlyData.length - 1;
+  const shouldLabel = (position: number) => (
+    position === 0
+    || position === lastPosition
+    || (position % labelEvery === 0 && lastPosition - position >= labelEvery)
+  );
   const remainingData = yearlyData.map(({ index }, position) => ({
     value: remainingArray[index],
     color: colours.accent,
     dataPointColor: colours.accent,
-    ...((fitToWidth ? (lastPosition - position) % labelEvery === 0 : position % labelEvery === 0 || position === lastPosition)
+    ...(shouldLabel(position)
       ? {
         labelComponent: () => (
           <XAxisLabel text={`Yr ${Math.ceil((index + 1) / SAMPLE_STEP)}`} spacing={pointSpacing} />
@@ -100,6 +107,11 @@ export const CumulativeAreaChart = ({
     color: colours.teal,
     dataPointColor: colours.teal,
   }));
+  const maxValue = getNiceChartMaxValue([
+    ...remainingData.map(item => item.value),
+    ...totalData.map(item => item.value),
+    ...interestData.map(item => item.value),
+  ], SECTION_COUNT);
 
   const legendItems = [
     { labelKey: 'results.remaining', color: colours.accent },
@@ -157,7 +169,8 @@ export const CumulativeAreaChart = ({
           xAxisThickness={0}
           initialSpacing={INITIAL_SPACING}
           endSpacing={END_SPACING}
-          noOfSections={4}
+          noOfSections={SECTION_COUNT}
+          maxValue={maxValue}
           formatYLabel={v => formatChartCurrency(+v)}
           hideDataPoints
           disableScroll={!scrollEnabled}

@@ -1,5 +1,6 @@
 const Y_AXIS_AND_EDGE_SPACE = 66;
 const MIN_PROJECTION_CHART_WIDTH = 220;
+const DEFAULT_SECTION_COUNT = 4;
 
 export interface ProjectionChartLayout {
   /** Width to hand the chart's drawing area. Equals the content width when scrolling. */
@@ -33,6 +34,7 @@ export const getProjectionChartLayout = ({
   fitToWidth = false,
   minPerPointWidth = 4,
   spacingMode = 'points',
+  fillAvailableWidth = false,
 }: {
   containerWidth: number;
   pointCount: number;
@@ -49,6 +51,8 @@ export const getProjectionChartLayout = ({
    * points, so their visible span is `(pointCount - 1) * spacing`.
    */
   spacingMode?: 'points' | 'intervals';
+  /** Let a fitted chart hand the full viewport width to the chart library. */
+  fillAvailableWidth?: boolean;
 }): ProjectionChartLayout => {
   const safeContainer = Number.isFinite(containerWidth) && containerWidth > 0
     ? containerWidth
@@ -78,12 +82,13 @@ export const getProjectionChartLayout = ({
   const contentWidth = Math.ceil(spacingUnits * pointSpacing + edgeSpacing);
   const scrollEnabled = contentWidth > viewportWidth;
 
-  // The chart's drawing width must equal the points' own spacing-derived span: gifted
-  // -charts maps the line to x from `spacing`, so handing it a wider `width` (e.g. the
-  // full viewport) desyncs the line from the axis and truncates the right-hand tail.
-  // When scrolling, that span is the content; when fitting, it's also the content (it
-  // is <= viewport by construction); only a non-fit, non-scroll chart fills the viewport.
-  const chartWidth = scrollEnabled || fitToWidth ? contentWidth : viewportWidth;
+  // Most fitted charts keep the chart width equal to the spacing-derived content span.
+  // Some gifted-charts line charts render the surrounding rules/axis from the explicit
+  // width, though, so they can opt into the full viewport while the points still use the
+  // fitted spacing above.
+  const chartWidth = scrollEnabled || (fitToWidth && !fillAvailableWidth)
+    ? contentWidth
+    : viewportWidth;
 
   return {
     chartWidth,
@@ -91,4 +96,27 @@ export const getProjectionChartLayout = ({
     pointSpacing,
     scrollEnabled,
   };
+};
+
+export const getNiceChartMaxValue = (
+  values: number[],
+  sectionCount = DEFAULT_SECTION_COUNT,
+) => {
+  const maxValue = values.reduce((max, value) => (
+    Number.isFinite(value) ? Math.max(max, value) : max
+  ), 0);
+
+  if (maxValue <= 0) return sectionCount;
+
+  const targetMax = maxValue * 1.08;
+  const rawStep = targetMax / sectionCount;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const multipliers = [1, 1.25, 1.5, 2, 2.5, 5, 7.5, 10];
+
+  for (const multiplier of multipliers) {
+    const candidateMax = multiplier * magnitude * sectionCount;
+    if (candidateMax >= targetMax) return candidateMax;
+  }
+
+  return 10 * magnitude * sectionCount;
 };

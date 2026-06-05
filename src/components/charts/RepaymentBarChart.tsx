@@ -22,6 +22,7 @@ const INITIAL_SPACING = 8;
 const END_SPACING = 16;
 const MIN_BAR_SLOT = 10;
 const MIN_LABEL_GAP = 34;
+const X_LABEL_WIDTH = 34;
 
 type StackSegment = {
   value: number;
@@ -94,6 +95,7 @@ export const RepaymentBarChart = ({
     label: !fitToWidth || position === lastPosition || position % labelEvery === 0
       ? `Y${item.year}`
       : '',
+    labelWidth: X_LABEL_WIDTH,
   }));
 
   return (
@@ -117,6 +119,7 @@ export const RepaymentBarChart = ({
           noOfSections={4}
           yAxisTextStyle={styles.axisText}
           xAxisLabelTextStyle={styles.axisText}
+          xAxisTextNumberOfLines={1}
           yAxisLabelWidth={42}
           xAxisLabelsHeight={24}
           rulesColor={colours.border}
