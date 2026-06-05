@@ -100,17 +100,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="calculate"
-        options={{
-          title: t('tabs.calculator'),
-          tabBarIcon: ({ color }) => <TabIcon name="calculate" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="saved"
         options={{
           title: t('tabs.saved'),
           tabBarIcon: ({ color }) => <TabIcon name="saved" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="calculate"
+        options={{
+          title: t('tabs.calculator'),
+          tabBarIcon: ({ color }) => <TabIcon name="calculate" color={color} />,
         }}
       />
       <Tabs.Screen

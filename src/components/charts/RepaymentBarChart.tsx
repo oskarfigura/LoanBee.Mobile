@@ -12,11 +12,7 @@ interface Props {
   interestArray: number[];
   currency: CurrencyCode;
   height?: number;
-  // Optional cumulative lump-overpayment series, parallel to monthlyArray. When
-  // provided, lump overpayments are flagged with a marker above the affected year
-  // instead of being stacked into the bar — a one-off overpayment shouldn't tower
-  // over (and crush the scale of) every other year's scheduled repayment.
-  lumpArray?: number[];
+  fitToWidth?: boolean;
 }
 
 const SAMPLE_STEP = 12;
@@ -24,6 +20,8 @@ const BAR_WIDTH = 18;
 const BAR_SPACING = 14;
 const INITIAL_SPACING = 8;
 const END_SPACING = 16;
+const MIN_BAR_SLOT = 10;
+const MIN_LABEL_GAP = 34;
 
 type StackSegment = {
   value: number;
@@ -34,29 +32,21 @@ type StackSegment = {
   borderTopRightRadius?: number;
 };
 
-const OverpaymentMarker = ({ amount, currency }: { amount: number; currency: CurrencyCode }) => (
-  <View style={styles.marker}>
-    <Text style={styles.markerText} numberOfLines={1}>
-      {`+${formatCurrencyCompact(amount, currency)}`}
-    </Text>
-  </View>
-);
-
-export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, height = 196, lumpArray }: Props) => {
+export const RepaymentBarChart = ({
+  monthlyArray,
+  interestArray,
+  currency,
+  height = 196,
+  fitToWidth = false,
+}: Props) => {
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
 
-  const yearlyData = [];
-  let anyLump = false;
+  const rawYearlyData = [];
   for (let i = SAMPLE_STEP; i < monthlyArray.length; i += SAMPLE_STEP) {
     const totalPaid = monthlyArray[i] - monthlyArray[i - SAMPLE_STEP];
     const interestPaid = interestArray[i] - interestArray[i - SAMPLE_STEP];
-    const lumpPaid = lumpArray ? Math.max(0, lumpArray[i] - lumpArray[i - SAMPLE_STEP]) : 0;
-    // Lump overpayments are part of totalPaid; pull them out so the principal segment
-    // reflects scheduled repayment only and the bar height stays comparable year to year.
-    const principalPaid = Math.max(0, totalPaid - interestPaid - lumpPaid);
-    const hasLump = lumpPaid > 0.005;
-    if (hasLump) anyLump = true;
+    const principalPaid = Math.max(0, totalPaid - interestPaid);
     const year = Math.ceil(i / SAMPLE_STEP);
     const stacks: StackSegment[] = [
       {
@@ -72,25 +62,39 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, heigh
         borderTopRightRadius: 5,
       },
     ];
-    yearlyData.push({
+    rawYearlyData.push({
       stacks,
-      label: `Y${year}`,
-      ...(hasLump
-        ? {
-          topLabelComponent: () => <OverpaymentMarker amount={lumpPaid} currency={currency} />,
-        }
-        : {}),
+      year,
     });
   }
 
-  if (yearlyData.length === 0) return null;
+  if (rawYearlyData.length === 0) return null;
 
-  const { chartWidth, scrollEnabled } = getProjectionChartLayout({
+  const { chartWidth, scrollEnabled, pointSpacing } = getProjectionChartLayout({
     containerWidth,
-    pointCount: yearlyData.length,
+    pointCount: rawYearlyData.length,
     perPointWidth: BAR_WIDTH + BAR_SPACING,
     edgeSpacing: INITIAL_SPACING + END_SPACING,
+    fitToWidth,
+    minPerPointWidth: MIN_BAR_SLOT,
   });
+  const barSlot = fitToWidth ? pointSpacing : BAR_WIDTH + BAR_SPACING;
+  const barWidth = fitToWidth
+    ? Math.max(6, Math.min(BAR_WIDTH, Math.floor(barSlot * 0.58)))
+    : BAR_WIDTH;
+  const spacing = fitToWidth
+    ? Math.max(3, barSlot - barWidth)
+    : BAR_SPACING;
+  const labelEvery = fitToWidth
+    ? Math.max(1, Math.ceil(MIN_LABEL_GAP / pointSpacing))
+    : 1;
+  const lastPosition = rawYearlyData.length - 1;
+  const yearlyData = rawYearlyData.map((item, position) => ({
+    ...item,
+    label: !fitToWidth || position === lastPosition || position % labelEvery === 0
+      ? `Y${item.year}`
+      : '',
+  }));
 
   return (
     <View
@@ -106,8 +110,8 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, heigh
           stackData={yearlyData}
           width={chartWidth}
           height={height}
-          barWidth={BAR_WIDTH}
-          spacing={BAR_SPACING}
+          barWidth={barWidth}
+          spacing={spacing}
           initialSpacing={INITIAL_SPACING}
           endSpacing={END_SPACING}
           noOfSections={4}
@@ -138,12 +142,6 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, heigh
           <View style={[styles.legendDot, { backgroundColor: colours.accent }]} />
           <Text style={styles.legendText}>{t('results.interest')}</Text>
         </View>
-        {anyLump ? (
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colours.teal }]} />
-            <Text style={styles.legendText}>{t('results.overpayment')}</Text>
-          </View>
-        ) : null}
       </View>
     </View>
   );
@@ -155,18 +153,6 @@ const styles = StyleSheet.create({
     ...fontFaces.body.regular,
     fontSize: fontSizes.tiny,
     color: colours.textSecondary,
-  },
-  marker: {
-    backgroundColor: colours.teal,
-    borderRadius: 8,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    marginBottom: 4,
-  },
-  markerText: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.tiny,
-    color: colours.white,
   },
   legend: {
     flexDirection: 'row',

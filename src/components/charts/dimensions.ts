@@ -32,6 +32,7 @@ export const getProjectionChartLayout = ({
   axisWidth = Y_AXIS_AND_EDGE_SPACE,
   fitToWidth = false,
   minPerPointWidth = 4,
+  spacingMode = 'points',
 }: {
   containerWidth: number;
   pointCount: number;
@@ -43,6 +44,11 @@ export const getProjectionChartLayout = ({
   fitToWidth?: boolean;
   /** Lower bound on spacing when fitting; below this the chart scrolls instead. */
   minPerPointWidth?: number;
+  /**
+   * Bars occupy one spacing slot per point. Lines occupy the intervals between
+   * points, so their visible span is `(pointCount - 1) * spacing`.
+   */
+  spacingMode?: 'points' | 'intervals';
 }): ProjectionChartLayout => {
   const safeContainer = Number.isFinite(containerWidth) && containerWidth > 0
     ? containerWidth
@@ -53,19 +59,23 @@ export const getProjectionChartLayout = ({
   );
 
   const safePointCount = Math.max(0, pointCount);
+  const spacingUnits = spacingMode === 'intervals'
+    ? Math.max(0, safePointCount - 1)
+    : safePointCount;
   let pointSpacing = perPointWidth;
 
-  if (fitToWidth && safePointCount > 0) {
-    // Solve spacing from `pointCount * spacing + edgeSpacing <= viewportWidth` so the
-    // whole timeline — including the final point — fits without scrolling. Clamp only at
-    // the natural width (never stretch a short series) and a tiny floor (never collapse
-    // the curve); the floor sits low enough that realistic terms always fit, so the
-    // chart only falls back to scrolling for pathologically long timelines.
-    const fitSpacing = Math.floor((viewportWidth - edgeSpacing) / safePointCount);
+  if (fitToWidth && spacingUnits > 0) {
+    // Solve spacing from the chart's visual span so the whole timeline fits without
+    // scrolling. Bar charts use one spacing slot per bar; line charts use the intervals
+    // between points. Clamp only at the natural width (never stretch a short series) and
+    // a tiny floor (never collapse the curve); the floor sits low enough that realistic
+    // terms always fit, so the chart only falls back to scrolling for pathologically long
+    // timelines.
+    const fitSpacing = Math.floor((viewportWidth - edgeSpacing) / spacingUnits);
     pointSpacing = Math.max(minPerPointWidth, Math.min(perPointWidth, fitSpacing));
   }
 
-  const contentWidth = Math.ceil(safePointCount * pointSpacing + edgeSpacing);
+  const contentWidth = Math.ceil(spacingUnits * pointSpacing + edgeSpacing);
   const scrollEnabled = contentWidth > viewportWidth;
 
   // The chart's drawing width must equal the points' own spacing-derived span: gifted

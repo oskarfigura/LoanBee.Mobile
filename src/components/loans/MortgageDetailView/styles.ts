@@ -383,6 +383,25 @@ export const styles = StyleSheet.create({
     gap: spacing.xs,
     marginTop: spacing.sm,
   },
+  projectionHighlightRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  projectionHighlightPill: {
+    borderRadius: radii.chip,
+    borderWidth: 1,
+    borderColor: colours.surfaceStrong,
+    backgroundColor: colours.surfaceMuted,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  projectionHighlightText: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.primary,
+  },
   segmentItem: {
     minHeight: 48,
     flexDirection: 'row',

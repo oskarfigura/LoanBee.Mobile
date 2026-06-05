@@ -10,7 +10,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { AmortisationTable } from '@/components/calculator/AmortisationTable';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
-import { OverpaymentsComparisonChart } from '@/components/charts/OverpaymentsComparisonChart';
+import { MortgageBalanceChart } from '@/components/charts/MortgageBalanceChart';
 import { RepaymentBarChart } from '@/components/charts/RepaymentBarChart';
 import { DashboardProgressGauge } from '@/components/loans/DashboardProgressGauge';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
@@ -45,6 +45,7 @@ import {
   MortgageProjection,
   MortgageProjectionDealSegment,
 } from '@/mortgage/projection';
+import { buildProjectionHighlights, ProjectionHighlight } from '@/mortgage/projectionHighlights';
 import {
   BalanceSourceMetadata,
   getBalanceSourceMetadata,
@@ -65,7 +66,7 @@ import { colours } from '@/theme';
 import { formatFriendlyDate, formatFriendlyDateRange, formatIsoDate } from '@/utils/date';
 
 type MortgageDetailTab = 'overview' | 'projection' | 'timeline';
-type ProjectionPreview = 'repayment' | 'cumulative' | 'overpayment' | 'schedule';
+type ProjectionPreview = 'balance' | 'repayment' | 'cumulative' | 'schedule';
 
 const SUMMARY_METRIC_KEYS = [
   'mortgage.currentBalance',
@@ -106,6 +107,7 @@ export const MortgageDetailView = ({
     ? projection.baselineRemainingArray
     : undefined;
   const trackerSummary = useMemo(() => getMortgageTrackerSummary(loan, asOf), [asOf, loan]);
+  const projectionHighlights = useMemo(() => buildProjectionHighlights(loan), [loan]);
   const displayDetails = useMemo(() => buildSavedLoanDisplayDetails(loan, asOf), [asOf, loan]);
   const insightSummary = useMemo(() => (
     buildSavedLoanSummary(loan, result, asOf, i18n.language)
@@ -189,53 +191,47 @@ export const MortgageDetailView = ({
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => undefined);
   }, []);
   const getProjectionPreviewTitle = () => {
+    if (projectionPreview === 'balance') return t('mortgage.balanceProjection');
     if (projectionPreview === 'repayment') return t('results.repaymentBreakdown');
     if (projectionPreview === 'cumulative') return t('results.cumulativePayments');
-    if (projectionPreview === 'overpayment') return t('overpayments.balanceChart');
     return t('mortgage.trackedSchedule');
   };
   const renderProjectionPreview = () => {
+    if (projectionPreview === 'balance') {
+      return (
+        <MortgageBalanceChart
+          baselineRemaining={overpaymentBaseline}
+          scenarioRemaining={projection.loanChartRemainingArray}
+          currency={loan.currency}
+          height={320}
+          comparisonLabelKeys={overpaymentBaseline ? {
+            baseline: 'overpayments.withoutOverpayments',
+            scenario: 'overpayments.withOverpayments',
+          } : undefined}
+        />
+      );
+    }
+
     if (projectionPreview === 'repayment') {
       return (
-        <>
-          <RepaymentBarChart
-            monthlyArray={projection.loanChartMonthlyArray}
-            interestArray={projection.loanChartInterestArray}
-            lumpArray={projection.loanChartLumpArray}
-            currency={loan.currency}
-            height={320}
-          />
-          <DealSegmentStrip segments={projection.dealSegments} />
-        </>
+        <RepaymentBarChart
+          monthlyArray={projection.loanChartMonthlyArray}
+          interestArray={projection.loanChartInterestArray}
+          currency={loan.currency}
+          height={320}
+        />
       );
     }
 
     if (projectionPreview === 'cumulative') {
       return (
-        <>
-          <CumulativeAreaChart
-            monthlyArray={projection.loanChartMonthlyArray}
-            interestArray={projection.loanChartInterestArray}
-            remainingArray={projection.loanChartRemainingArray}
-            currency={loan.currency}
-            height={320}
-          />
-          <DealSegmentStrip segments={projection.dealSegments} />
-        </>
-      );
-    }
-
-    if (projectionPreview === 'overpayment' && overpaymentBaseline) {
-      return (
-        <>
-          <OverpaymentsComparisonChart
-            baselineRemaining={overpaymentBaseline}
-            scenarioRemaining={projection.loanChartRemainingArray}
-            currency={loan.currency}
-            height={320}
-          />
-          <DealSegmentStrip segments={projection.dealSegments} />
-        </>
+        <CumulativeAreaChart
+          monthlyArray={projection.loanChartMonthlyArray}
+          interestArray={projection.loanChartInterestArray}
+          remainingArray={projection.loanChartRemainingArray}
+          currency={loan.currency}
+          height={320}
+        />
       );
     }
 
@@ -317,9 +313,32 @@ export const MortgageDetailView = ({
           <ProjectionBasisCard
             loan={loan}
             projection={projection}
+            projectionHighlights={projectionHighlights}
             currentDeal={currentDeal}
             draftDeal={draftDeal}
           />
+          <Pressable
+            onPress={() => openProjectionPreview('balance')}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('mortgage.balanceProjection')} ${t('results.fullScreen')}`}
+            style={({ pressed }) => [pressed && styles.previewPressed]}
+          >
+            <Card style={styles.chartCard}>
+              <View style={styles.chartHeader}>
+                <AppText variant="title3">{t('mortgage.balanceProjection')}</AppText>
+                <FullscreenIcon />
+              </View>
+              <MortgageBalanceChart
+                baselineRemaining={overpaymentBaseline}
+                scenarioRemaining={projection.loanChartRemainingArray}
+                currency={loan.currency}
+                comparisonLabelKeys={overpaymentBaseline ? {
+                  baseline: 'overpayments.withoutOverpayments',
+                  scenario: 'overpayments.withOverpayments',
+                } : undefined}
+              />
+            </Card>
+          </Pressable>
           <Pressable
             onPress={() => openProjectionPreview('repayment')}
             accessibilityRole="button"
@@ -334,10 +353,9 @@ export const MortgageDetailView = ({
               <RepaymentBarChart
                 monthlyArray={projection.loanChartMonthlyArray}
                 interestArray={projection.loanChartInterestArray}
-                lumpArray={projection.loanChartLumpArray}
                 currency={loan.currency}
+                fitToWidth
               />
-              <DealSegmentStrip segments={projection.dealSegments} />
             </Card>
           </Pressable>
           <Pressable
@@ -356,31 +374,10 @@ export const MortgageDetailView = ({
                 interestArray={projection.loanChartInterestArray}
                 remainingArray={projection.loanChartRemainingArray}
                 currency={loan.currency}
+                fitToWidth
               />
-              <DealSegmentStrip segments={projection.dealSegments} />
             </Card>
           </Pressable>
-          {overpaymentBaseline ? (
-            <Pressable
-              onPress={() => openProjectionPreview('overpayment')}
-              accessibilityRole="button"
-              accessibilityLabel={`${t('overpayments.balanceChart')} ${t('results.fullScreen')}`}
-              style={({ pressed }) => [pressed && styles.previewPressed]}
-            >
-              <Card style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <AppText variant="title3">{t('overpayments.balanceChart')}</AppText>
-                  <FullscreenIcon />
-                </View>
-                <OverpaymentsComparisonChart
-                  baselineRemaining={overpaymentBaseline}
-                  scenarioRemaining={projection.loanChartRemainingArray}
-                  currency={loan.currency}
-                />
-                <DealSegmentStrip segments={projection.dealSegments} />
-              </Card>
-            </Pressable>
-          ) : null}
           <Card style={[styles.chartCard, styles.scheduleCard]}>
             <View style={styles.chartHeader}>
               <AppText variant="title3">{t('mortgage.trackedSchedule')}</AppText>
@@ -1151,15 +1148,18 @@ const DealSegmentStrip = ({
 const ProjectionBasisCard = ({
   loan,
   projection,
+  projectionHighlights,
   currentDeal,
   draftDeal,
 }: {
   loan: SavedLoan;
   projection: MortgageProjection;
+  projectionHighlights: ProjectionHighlight[];
   currentDeal?: LoanDeal;
   draftDeal?: LoanDeal;
 }) => {
   const { t, i18n } = useTranslation();
+  const hasProjectedChanges = projection.publishedDealCount > 1 || projectionHighlights.length > 0;
 
   return (
     <Card style={styles.projectionBasisCard}>
@@ -1167,7 +1167,7 @@ const ProjectionBasisCard = ({
         <View style={styles.contextHeaderCopy}>
           <Text style={styles.contextKicker}>{t('mortgage.projectionBasis')}</Text>
           <Text style={styles.contextTitle} numberOfLines={2}>
-            {currentDeal ? t('mortgage.currentDealProjectionFrom', { name: currentDeal.name }) : t('mortgage.savedMortgageEstimate')}
+            {t('mortgage.overallMortgageProjection')}
           </Text>
         </View>
         {projection.publishedDealCount > 0 ? (
@@ -1178,12 +1178,23 @@ const ProjectionBasisCard = ({
           </View>
         ) : null}
       </View>
-      {!currentDeal ? (
-        <Text style={styles.projectionAssumptionText}>
-          {t('mortgage.savedMortgageEstimateBody')}
-        </Text>
-      ) : null}
+      <Text style={styles.projectionAssumptionText}>
+        {currentDeal
+          ? (hasProjectedChanges ? t('mortgage.overallMortgageProjectionBody') : t('mortgage.savedMortgageEstimateBody'))
+          : t('mortgage.currentStateProjectionBody')}
+      </Text>
       <DealSegmentStrip segments={projection.dealSegments} />
+      {projectionHighlights.length > 0 ? (
+        <View style={styles.projectionHighlightRow}>
+          {projectionHighlights.map(highlight => (
+            <View key={highlight.kind} style={styles.projectionHighlightPill}>
+              <Text style={styles.projectionHighlightText}>
+                {t(highlight.labelKey, { count: highlight.count })}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
       {draftDeal ? (
         <View style={styles.draftPreview}>
           <View style={styles.draftPreviewHeader}>

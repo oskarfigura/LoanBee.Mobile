@@ -71,6 +71,25 @@ describe('getProjectionChartLayout', () => {
     expect(layout.chartWidth).toBeLessThanOrEqual(294);
   });
 
+  it('fitToWidth sizes line charts from intervals so the final point reaches the chart edge', () => {
+    const layout = getProjectionChartLayout({
+      containerWidth: 360,
+      pointCount: 18,
+      perPointWidth: 44,
+      edgeSpacing: 35,
+      fitToWidth: true,
+      spacingMode: 'intervals',
+    });
+
+    // Line charts have 17 intervals between 18 points, not 18 point slots.
+    const expectedSpacing = Math.floor((294 - 35) / 17);
+    expect(layout.viewportWidth).toBe(294);
+    expect(layout.pointSpacing).toBe(expectedSpacing);
+    expect(layout.scrollEnabled).toBe(false);
+    expect(layout.chartWidth).toBe(17 * expectedSpacing + 35);
+    expect(layout.chartWidth).toBeLessThanOrEqual(294);
+  });
+
   it('fitToWidth never stretches a short timeline past its natural spacing', () => {
     const layout = getProjectionChartLayout({
       containerWidth: 360,

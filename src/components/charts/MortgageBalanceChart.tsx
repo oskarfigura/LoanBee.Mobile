@@ -7,12 +7,14 @@ import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
 import { getProjectionChartLayout } from './dimensions';
 
 interface Props {
-  monthlyArray: number[];
-  interestArray: number[];
-  remainingArray: number[];
+  scenarioRemaining: number[];
   currency: CurrencyCode;
+  baselineRemaining?: number[];
   height?: number;
-  fitToWidth?: boolean;
+  comparisonLabelKeys?: {
+    baseline: string;
+    scenario: string;
+  };
 }
 
 const SAMPLE_STEP = 12;
@@ -28,17 +30,17 @@ const XAxisLabel = ({ text, spacing }: { text: string; spacing: number }) => (
   </View>
 );
 
-export const CumulativeAreaChart = ({
-  monthlyArray,
-  interestArray,
-  remainingArray,
+export const MortgageBalanceChart = ({
+  scenarioRemaining,
+  baselineRemaining,
   currency,
   height = 196,
-  fitToWidth = false,
+  comparisonLabelKeys,
 }: Props) => {
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
   const symbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
+  const hasBaseline = Boolean(baselineRemaining?.length);
 
   const formatChartCurrency = (value: number) => {
     const abs = Math.abs(value);
@@ -47,8 +49,13 @@ export const CumulativeAreaChart = ({
     return `${symbol}${Math.round(abs)}`;
   };
 
-  const buildYearlyData = () => {
-    const lastIndex = monthlyArray.length - 1;
+  const maxLen = Math.max(
+    scenarioRemaining.length,
+    baselineRemaining?.length ?? 0,
+  );
+
+  const buildYearlyIndexes = () => {
+    const lastIndex = maxLen - 1;
     const indexes: number[] = [];
 
     for (let i = SAMPLE_STEP - 1; i <= lastIndex; i += SAMPLE_STEP) {
@@ -59,53 +66,81 @@ export const CumulativeAreaChart = ({
       indexes.push(lastIndex);
     }
 
-    return indexes.map(index => ({ index }));
+    return indexes;
   };
 
-  const yearlyData = buildYearlyData();
-  if (yearlyData.length < 2) return null;
+  const indexes = buildYearlyIndexes();
+  if (indexes.length < 2) return null;
 
   const { chartWidth, scrollEnabled, pointSpacing } = getProjectionChartLayout({
     containerWidth,
-    pointCount: yearlyData.length,
+    pointCount: indexes.length,
     perPointWidth: POINT_SPACING,
     edgeSpacing: INITIAL_SPACING + END_SPACING,
-    fitToWidth,
+    fitToWidth: true,
     spacingMode: 'intervals',
   });
 
-  const labelEvery = fitToWidth
-    ? Math.max(1, Math.ceil(MIN_LABEL_GAP / pointSpacing))
-    : yearlyData.length <= 12 ? 1 : Math.ceil(yearlyData.length / 6);
-  const lastPosition = yearlyData.length - 1;
-  const remainingData = yearlyData.map(({ index }, position) => ({
-    value: remainingArray[index],
-    color: colours.accent,
-    dataPointColor: colours.accent,
-    ...((fitToWidth ? (lastPosition - position) % labelEvery === 0 : position % labelEvery === 0 || position === lastPosition)
-      ? {
-        labelComponent: () => (
-          <XAxisLabel text={`Yr ${Math.ceil((index + 1) / SAMPLE_STEP)}`} spacing={pointSpacing} />
-        ),
-      }
-      : {}),
-  }));
-  const totalData = yearlyData.map(({ index }) => ({
-    value: monthlyArray[index],
-    color: colours.primary,
-    dataPointColor: colours.primary,
-  }));
-  const interestData = yearlyData.map(({ index }) => ({
-    value: interestArray[index],
-    color: colours.teal,
-    dataPointColor: colours.teal,
-  }));
+  const labelEvery = Math.max(1, Math.ceil(MIN_LABEL_GAP / pointSpacing));
+  const lastPosition = indexes.length - 1;
+  const shouldLabel = (position: number) => (lastPosition - position) % labelEvery === 0;
+  const removeTrailingPaidOffPlateau = <T extends { value: number }>(data: T[]): T[] => {
+    let end = data.length;
+    while (
+      end > 1
+      && data[end - 1].value <= 0.005
+      && data[end - 2].value <= 0.005
+    ) {
+      end -= 1;
+    }
 
-  const legendItems = [
-    { labelKey: 'results.remaining', color: colours.accent },
-    { labelKey: 'results.totalPaid', color: colours.primary },
-    { labelKey: 'results.interestPaid', color: colours.teal },
-  ] as const;
+    return end === data.length ? data : data.slice(0, end);
+  };
+
+  const buildBalanceData = (
+    series: number[],
+    color: string,
+    includeLabels: boolean,
+  ) => {
+    const seriesLastIndex = series.length - 1;
+    const data = [];
+    for (let position = 0; position < indexes.length; position += 1) {
+      const rawIndex = indexes[position];
+      const index = Math.min(rawIndex, seriesLastIndex);
+      const labelled = includeLabels && shouldLabel(position);
+
+      data.push({
+        value: series[index],
+        dataPointColor: color,
+        ...(labelled
+          ? {
+            labelComponent: () => (
+              <XAxisLabel text={`Yr ${Math.ceil((index + 1) / SAMPLE_STEP)}`} spacing={pointSpacing} />
+            ),
+          }
+          : {}),
+      });
+
+      if (rawIndex >= seriesLastIndex) {
+        break;
+      }
+    }
+
+    return removeTrailingPaidOffPlateau(data);
+  };
+
+  const scenarioColor = hasBaseline ? colours.teal : colours.primary;
+  const scenarioData = buildBalanceData(scenarioRemaining, scenarioColor, !hasBaseline);
+  const baselineData = baselineRemaining
+    ? buildBalanceData(baselineRemaining, colours.primary, true)
+    : undefined;
+
+  const legendItems = hasBaseline && comparisonLabelKeys
+    ? [
+      { labelKey: comparisonLabelKeys.baseline, color: colours.primary },
+      { labelKey: comparisonLabelKeys.scenario, color: colours.teal },
+    ]
+    : [];
 
   return (
     <View
@@ -118,30 +153,23 @@ export const CumulativeAreaChart = ({
         showsHorizontalScrollIndicator={scrollEnabled}
       >
         <LineChart
-          data={remainingData}
-          data2={totalData}
-          data3={interestData}
+          data={baselineData ?? scenarioData}
+          {...(baselineData ? { data2: scenarioData } : {})}
           width={chartWidth}
           height={height}
           spacing={pointSpacing}
           areaChart
-          areaChart2
-          areaChart3
+          {...(baselineData ? { areaChart2: true } : {})}
           thickness1={3}
-          thickness2={3}
-          thickness3={3}
-          color={colours.accent}
-          color2={colours.primary}
-          color3={colours.teal}
-          startFillColor={colours.accent}
-          startFillColor2={colours.primary}
-          startFillColor3={colours.teal}
-          startOpacity={0.12}
-          startOpacity2={0.1}
-          startOpacity3={0.08}
+          {...(baselineData ? { thickness2: 3 } : {})}
+          color={baselineData ? colours.primary : scenarioColor}
+          {...(baselineData ? { color2: scenarioColor } : {})}
+          startFillColor={baselineData ? colours.primary : scenarioColor}
+          {...(baselineData ? { startFillColor2: scenarioColor } : {})}
+          startOpacity={0.1}
+          {...(baselineData ? { startOpacity2: 0.12 } : {})}
           endOpacity={0.01}
-          endOpacity2={0.01}
-          endOpacity3={0.01}
+          {...(baselineData ? { endOpacity2: 0.01 } : {})}
           yAxisTextStyle={styles.axisText}
           xAxisLabelTextStyle={styles.axisText}
           yAxisLabelWidth={46}
@@ -162,18 +190,19 @@ export const CumulativeAreaChart = ({
           hideDataPoints
           disableScroll={!scrollEnabled}
           curved
-          curvature={0.16}
-          isAnimated
+          curvature={0.08}
         />
       </ScrollView>
-      <View style={styles.legend}>
-        {legendItems.map(item => (
-          <View key={item.labelKey} style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: item.color }]} />
-            <Text style={styles.legendText}>{t(item.labelKey)}</Text>
-          </View>
-        ))}
-      </View>
+      {legendItems.length > 0 ? (
+        <View style={styles.legend}>
+          {legendItems.map(item => (
+            <View key={item.labelKey} style={styles.legendItem}>
+              <View style={[styles.dot, { backgroundColor: item.color }]} />
+              <Text style={styles.legendText}>{t(item.labelKey)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 };
