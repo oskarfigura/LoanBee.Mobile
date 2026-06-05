@@ -43,16 +43,13 @@ import {
 import {
   buildMortgageProjection,
   MortgageProjection,
-  MortgageProjectionDealSegment,
 } from '@/mortgage/projection';
-import { buildProjectionHighlights, ProjectionHighlight } from '@/mortgage/projectionHighlights';
 import {
   BalanceSourceMetadata,
   getBalanceSourceMetadata,
   getReconciliationMessage,
 } from '@/mortgage/reconciliation';
 import {
-  CURRENT_STATE_PROJECTION_DEAL_ID,
   formatDealDuration,
   getCurrentDeal,
   getDealOverpaymentImpact,
@@ -107,7 +104,6 @@ export const MortgageDetailView = ({
     ? projection.baselineRemainingArray
     : undefined;
   const trackerSummary = useMemo(() => getMortgageTrackerSummary(loan, asOf), [asOf, loan]);
-  const projectionHighlights = useMemo(() => buildProjectionHighlights(loan), [loan]);
   const displayDetails = useMemo(() => buildSavedLoanDisplayDetails(loan, asOf), [asOf, loan]);
   const insightSummary = useMemo(() => (
     buildSavedLoanSummary(loan, result, asOf, i18n.language)
@@ -311,11 +307,7 @@ export const MortgageDetailView = ({
       {activeTab === 'projection' ? (
         <View style={styles.tabPanel}>
           <ProjectionBasisCard
-            loan={loan}
-            projection={projection}
-            projectionHighlights={projectionHighlights}
             currentDeal={currentDeal}
-            draftDeal={draftDeal}
           />
           <Pressable
             onPress={() => openProjectionPreview('balance')}
@@ -1015,19 +1007,6 @@ const CompactTimelineSummary = ({
   );
 };
 
-const ContextMetric = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) => (
-  <View style={styles.contextMetric}>
-    <Text style={styles.contextMetricLabel} numberOfLines={1}>{label}</Text>
-    <Text style={styles.contextMetricValue} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
-  </View>
-);
-
 const MortgageQuickActionsRow = ({
   hasActiveDeal,
   onViewDeal,
@@ -1101,65 +1080,12 @@ const SummaryQuickAction = ({
   </TouchableOpacity>
 );
 
-const getSegmentLabelKey = (segment: MortgageProjectionDealSegment) => {
-  if (segment.status === 'completed') return 'saved.completed';
-  if (segment.isCurrent && segment.projectedPointCount > 0) return 'mortgage.currentProjection';
-  if (segment.isCurrent) return 'mortgage.currentDeal';
-  return 'mortgage.historicalContext';
-};
-
-const DealSegmentStrip = ({
-  segments,
-}: {
-  segments: MortgageProjectionDealSegment[];
-}) => {
-  const { t, i18n } = useTranslation();
-  if (segments.length === 0) return null;
-  const visibleSegments = segments.filter(segment => segment.dealId !== CURRENT_STATE_PROJECTION_DEAL_ID);
-  if (visibleSegments.length === 0) return null;
-
-  return (
-    <View style={styles.segmentStrip}>
-      {visibleSegments.map(segment => (
-          <View
-            key={segment.dealId}
-            style={[
-              styles.segmentItem,
-              segment.isCurrent && styles.segmentItemCurrent,
-            ]}
-          >
-            <View style={[
-              styles.segmentDot,
-              segment.status === 'completed' && styles.segmentDotCompleted,
-              segment.isCurrent && styles.segmentDotCurrent,
-            ]} />
-            <View style={styles.segmentCopy}>
-              <Text style={styles.segmentTitle} numberOfLines={1}>{segment.dealName}</Text>
-              <Text style={styles.segmentMeta} numberOfLines={1}>
-                {t(getSegmentLabelKey(segment))} · {formatFriendlyDateRange(segment.startDate, segment.endDate, i18n.language)}
-              </Text>
-            </View>
-          </View>
-      ))}
-    </View>
-  );
-};
-
 const ProjectionBasisCard = ({
-  loan,
-  projection,
-  projectionHighlights,
   currentDeal,
-  draftDeal,
 }: {
-  loan: SavedLoan;
-  projection: MortgageProjection;
-  projectionHighlights: ProjectionHighlight[];
   currentDeal?: LoanDeal;
-  draftDeal?: LoanDeal;
 }) => {
-  const { t, i18n } = useTranslation();
-  const hasProjectedChanges = projection.publishedDealCount > 1 || projectionHighlights.length > 0;
+  const { t } = useTranslation();
 
   return (
     <Card style={styles.projectionBasisCard}>
@@ -1170,49 +1096,12 @@ const ProjectionBasisCard = ({
             {t('mortgage.overallMortgageProjection')}
           </Text>
         </View>
-        {projection.publishedDealCount > 0 ? (
-          <View style={styles.contextBadge}>
-            <Text style={styles.contextBadgeText}>
-              {t('mortgage.publishedDealCount', { count: projection.publishedDealCount })}
-            </Text>
-          </View>
-        ) : null}
       </View>
       <Text style={styles.projectionAssumptionText}>
         {currentDeal
-          ? (hasProjectedChanges ? t('mortgage.overallMortgageProjectionBody') : t('mortgage.savedMortgageEstimateBody'))
+          ? t('mortgage.overallMortgageProjectionBody')
           : t('mortgage.currentStateProjectionBody')}
       </Text>
-      <DealSegmentStrip segments={projection.dealSegments} />
-      {projectionHighlights.length > 0 ? (
-        <View style={styles.projectionHighlightRow}>
-          {projectionHighlights.map(highlight => (
-            <View key={highlight.kind} style={styles.projectionHighlightPill}>
-              <Text style={styles.projectionHighlightText}>
-                {t(highlight.labelKey, { count: highlight.count })}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
-      {draftDeal ? (
-        <View style={styles.draftPreview}>
-          <View style={styles.draftPreviewHeader}>
-            <Text style={styles.contextKicker}>{t('mortgage.draftPreview')}</Text>
-            <Text style={styles.draftPreviewBadge}>{t('mortgage.draftExcluded')}</Text>
-          </View>
-          <Text style={styles.draftPreviewTitle} numberOfLines={2}>{draftDeal.name}</Text>
-          <Text style={styles.draftPreviewBody}>
-            {t('mortgage.draftPreviewBody')}
-          </Text>
-          <View style={styles.contextMetricGrid}>
-            <ContextMetric label={t('mortgage.dealStartDate')} value={formatFriendlyDate(draftDeal.startDate, i18n.language)} />
-            <ContextMetric label={t('calculator.interestRate')} value={`${draftDeal.interestRate}%`} />
-            <ContextMetric label={t('mortgage.openingBankBalance')} value={formatCurrency(draftDeal.openingBalance, loan.currency)} />
-            <ContextMetric label={t('results.monthlyPayment')} value={formatCurrency(draftDeal.monthlyPayment, loan.currency)} />
-          </View>
-        </View>
-      ) : null}
     </Card>
   );
 };

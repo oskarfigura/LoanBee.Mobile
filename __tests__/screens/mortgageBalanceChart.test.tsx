@@ -33,6 +33,14 @@ const buildSeries = (length: number, step: number) => (
   Array.from({ length }, (_, index) => Math.max(0, 300000 - (index * step)))
 );
 
+const textContent = (node: any): string => {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(textContent).join('');
+  if (typeof node.props?.text === 'string') return node.props.text;
+  return textContent(node.props?.children);
+};
+
 beforeEach(() => {
   capturedLineProps = null;
 });
@@ -52,6 +60,43 @@ describe('MortgageBalanceChart', () => {
 
     expect(capturedLineProps?.data2).toBeUndefined();
     expect(capturedLineProps?.color).toBeDefined();
+  });
+
+  it('samples the opening balance and completed yearly balances', () => {
+    act(() => {
+      create(React.createElement(MortgageBalanceChart, {
+        scenarioRemaining: buildSeries(25, 1000),
+        currency: 'GBP',
+      }));
+    });
+
+    expect(capturedLineProps?.data.map((point: Record<string, number>) => point.value)).toEqual([
+      300000,
+      288000,
+      276000,
+    ]);
+  });
+
+  it('labels the comparison timeline from year zero', () => {
+    act(() => {
+      create(React.createElement(MortgageBalanceChart, {
+        scenarioRemaining: buildSeries(265, 1100),
+        baselineRemaining: buildSeries(265, 900),
+        currency: 'GBP',
+        comparisonLabelKeys: {
+          baseline: 'overpayments.withoutOverpayments',
+          scenario: 'overpayments.withOverpayments',
+        },
+      }));
+    });
+
+    const labels = capturedLineProps?.data
+      .map((point: Record<string, any>) => point.labelComponent?.())
+      .filter(Boolean)
+      .map(textContent);
+
+    expect(labels?.[0]).toBe('Yr 0');
+    expect(labels).toContain('Yr 22');
   });
 
   it('condenses comparison points to fit a narrow viewport before falling back to scroll', () => {

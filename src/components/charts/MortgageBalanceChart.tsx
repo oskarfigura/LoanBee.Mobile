@@ -40,7 +40,7 @@ export const MortgageBalanceChart = ({
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
   const symbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
-  const hasBaseline = Boolean(baselineRemaining?.length);
+  const hasBaseline = Boolean(baselineRemaining && baselineRemaining.length > 1);
 
   const formatChartCurrency = (value: number) => {
     const abs = Math.abs(value);
@@ -56,13 +56,17 @@ export const MortgageBalanceChart = ({
 
   const buildYearlyIndexes = () => {
     const lastIndex = maxLen - 1;
+    if (lastIndex < 0) return [];
+
     const indexes: number[] = [];
 
-    for (let i = SAMPLE_STEP - 1; i <= lastIndex; i += SAMPLE_STEP) {
+    indexes.push(0);
+
+    for (let i = SAMPLE_STEP; i <= lastIndex; i += SAMPLE_STEP) {
       indexes.push(i);
     }
 
-    if (lastIndex >= 0 && indexes[indexes.length - 1] !== lastIndex) {
+    if (lastIndex > 0 && indexes[indexes.length - 1] !== lastIndex) {
       indexes.push(lastIndex);
     }
 
@@ -83,7 +87,11 @@ export const MortgageBalanceChart = ({
 
   const labelEvery = Math.max(1, Math.ceil(MIN_LABEL_GAP / pointSpacing));
   const lastPosition = indexes.length - 1;
-  const shouldLabel = (position: number) => (lastPosition - position) % labelEvery === 0;
+  const shouldLabel = (position: number) => (
+    position === 0
+    || position === lastPosition
+    || (position % labelEvery === 0 && lastPosition - position >= labelEvery)
+  );
   const removeTrailingPaidOffPlateau = <T extends { value: number }>(data: T[]): T[] => {
     let end = data.length;
     while (
@@ -103,6 +111,8 @@ export const MortgageBalanceChart = ({
     includeLabels: boolean,
   ) => {
     const seriesLastIndex = series.length - 1;
+    if (seriesLastIndex < 0) return [];
+
     const data = [];
     for (let position = 0; position < indexes.length; position += 1) {
       const rawIndex = indexes[position];
@@ -115,7 +125,7 @@ export const MortgageBalanceChart = ({
         ...(labelled
           ? {
             labelComponent: () => (
-              <XAxisLabel text={`Yr ${Math.ceil((index + 1) / SAMPLE_STEP)}`} spacing={pointSpacing} />
+              <XAxisLabel text={`Yr ${Math.ceil(index / SAMPLE_STEP)}`} spacing={pointSpacing} />
             ),
           }
           : {}),
