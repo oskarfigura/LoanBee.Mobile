@@ -325,7 +325,7 @@ describe('Saved detail sharing', () => {
   });
 
   it('keeps mortgage overpayment savings consolidated into the summary card', () => {
-    const source = readFileSync(join(process.cwd(), 'src/components/loans/MortgageDetailView.tsx'), 'utf8');
+    const source = readFileSync(join(process.cwd(), 'src/components/loans/MortgageDetailView/index.tsx'), 'utf8');
 
     expect(source).not.toContain('<DealOverpaymentsCard');
     expect(source).not.toContain('const DealOverpaymentsCard');
