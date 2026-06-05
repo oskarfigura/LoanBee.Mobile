@@ -19,6 +19,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
 import { LoanBreakdownDonut } from '@/components/charts/LoanBreakdownDonut';
+import { OverpaymentsComparisonChart } from '@/components/charts/OverpaymentsComparisonChart';
 import { RepaymentBarChart } from '@/components/charts/RepaymentBarChart';
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
@@ -33,7 +34,7 @@ import { buildAmortisationCsv } from './amortisationTableUtils';
 import { LoanSummaryOverview } from './LoanSummaryOverview';
 
 type CalculationTab = 'summary' | 'charts' | 'schedule';
-type FullscreenPreview = 'repayment' | 'breakdown' | 'cumulative' | 'schedule';
+type FullscreenPreview = 'repayment' | 'breakdown' | 'cumulative' | 'overpayment' | 'schedule';
 
 interface Props {
   result: LoanResult;
@@ -44,6 +45,9 @@ interface Props {
   shareLabel?: string;
   shareIcon?: React.ReactNode;
   savedLoan?: SavedLoan;
+  // No-overpayment remaining-balance series. Passed by callers only when the loan carries a
+  // recurring overpayment; when present a with/without comparison card is shown in Charts.
+  baselineRemainingArray?: number[];
   summaryContent?: React.ReactNode;
   tabStyle?: 'segmented' | 'underline';
   showFinancialDisclaimer?: boolean;
@@ -60,6 +64,7 @@ export const LoanCalculationView = ({
   shareLabel,
   shareIcon,
   savedLoan,
+  baselineRemainingArray,
   summaryContent,
   tabStyle = 'segmented',
   showFinancialDisclaimer = false,
@@ -73,6 +78,12 @@ export const LoanCalculationView = ({
   const isPreviewOpen = fullscreenPreview !== null;
   const scrollRef = useRef<ScrollView>(null);
   const principalAmount = result.amount - result.downPayment;
+  // Single source of truth for the comparison: the baseline series, but only when it has
+  // enough points to plot (the chart needs ≥2 yearly samples). Render sites narrow off this
+  // one value rather than re-checking the raw prop.
+  const overpaymentBaseline = baselineRemainingArray && baselineRemainingArray.length > 1
+    ? baselineRemainingArray
+    : undefined;
 
   // A fresh calculation (e.g. after Edit -> recalculate) reuses this screen, so
   // reset the scroll to the top rather than leaving the user where they left off.
@@ -162,6 +173,7 @@ export const LoanCalculationView = ({
     if (fullscreenPreview === 'repayment') return t('results.repaymentBreakdown');
     if (fullscreenPreview === 'breakdown') return t('results.loanBreakdown');
     if (fullscreenPreview === 'cumulative') return t('results.cumulativePayments');
+    if (fullscreenPreview === 'overpayment') return t('overpayments.balanceChart');
     return t('results.amortisationTable');
   };
 
@@ -194,6 +206,17 @@ export const LoanCalculationView = ({
           monthlyArray={result.loanChartMonthlyArray}
           interestArray={result.loanChartInterestArray}
           remainingArray={result.loanChartRemainingArray}
+          currency={currency}
+          height={320}
+        />
+      );
+    }
+
+    if (fullscreenPreview === 'overpayment' && overpaymentBaseline) {
+      return (
+        <OverpaymentsComparisonChart
+          baselineRemaining={overpaymentBaseline}
+          scenarioRemaining={result.loanChartRemainingArray}
           currency={currency}
           height={320}
         />
@@ -293,6 +316,26 @@ export const LoanCalculationView = ({
               />
             </Card>
           </Pressable>
+          {overpaymentBaseline ? (
+            <Pressable
+              onPress={() => openFullscreenPreview('overpayment')}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('overpayments.balanceChart')} ${t('results.fullScreen')}`}
+              style={({ pressed }) => [pressed && styles.previewPressed]}
+            >
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <AppText variant="title3">{t('overpayments.balanceChart')}</AppText>
+                  <FullscreenIcon />
+                </View>
+                <OverpaymentsComparisonChart
+                  baselineRemaining={overpaymentBaseline}
+                  scenarioRemaining={result.loanChartRemainingArray}
+                  currency={currency}
+                />
+              </Card>
+            </Pressable>
+          ) : null}
         </View>
       )}
 

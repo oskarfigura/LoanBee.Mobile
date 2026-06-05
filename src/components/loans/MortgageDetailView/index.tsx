@@ -10,6 +10,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { AmortisationTable } from '@/components/calculator/AmortisationTable';
 import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
+import { OverpaymentsComparisonChart } from '@/components/charts/OverpaymentsComparisonChart';
 import { RepaymentBarChart } from '@/components/charts/RepaymentBarChart';
 import { DashboardProgressGauge } from '@/components/loans/DashboardProgressGauge';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
@@ -56,6 +57,7 @@ import {
   getDealOverpaymentImpact,
   getMortgageTrackerSummary,
   getPublishedDeals,
+  loanHasOverpayments,
 } from '@/mortgage/tracker';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { LoanDeal, SavedLoan } from '@/types/SavedLoan';
@@ -63,7 +65,7 @@ import { colours } from '@/theme';
 import { formatFriendlyDate, formatFriendlyDateRange, formatIsoDate } from '@/utils/date';
 
 type MortgageDetailTab = 'overview' | 'projection' | 'timeline';
-type ProjectionPreview = 'repayment' | 'cumulative' | 'schedule';
+type ProjectionPreview = 'repayment' | 'cumulative' | 'overpayment' | 'schedule';
 
 const SUMMARY_METRIC_KEYS = [
   'mortgage.currentBalance',
@@ -95,6 +97,14 @@ export const MortgageDetailView = ({
   const asOf = useMemo(() => new Date(), [loan]);
   const result = useMemo(() => getResultForSavedLoan(loan), [loan]);
   const projection = useMemo(() => buildMortgageProjection(loan, asOf), [asOf, loan]);
+  // Single source of truth for the comparison: the baseline series, but only when the loan
+  // actually has overpayments and there are enough points to plot (the chart needs ≥2 yearly
+  // samples). Render sites narrow off this one value rather than re-checking.
+  const overpaymentBaseline = loanHasOverpayments(loan)
+    && projection.baselineRemainingArray
+    && projection.baselineRemainingArray.length > 1
+    ? projection.baselineRemainingArray
+    : undefined;
   const trackerSummary = useMemo(() => getMortgageTrackerSummary(loan, asOf), [asOf, loan]);
   const displayDetails = useMemo(() => buildSavedLoanDisplayDetails(loan, asOf), [asOf, loan]);
   const insightSummary = useMemo(() => (
@@ -181,6 +191,7 @@ export const MortgageDetailView = ({
   const getProjectionPreviewTitle = () => {
     if (projectionPreview === 'repayment') return t('results.repaymentBreakdown');
     if (projectionPreview === 'cumulative') return t('results.cumulativePayments');
+    if (projectionPreview === 'overpayment') return t('overpayments.balanceChart');
     return t('mortgage.trackedSchedule');
   };
   const renderProjectionPreview = () => {
@@ -206,6 +217,20 @@ export const MortgageDetailView = ({
             monthlyArray={projection.loanChartMonthlyArray}
             interestArray={projection.loanChartInterestArray}
             remainingArray={projection.loanChartRemainingArray}
+            currency={loan.currency}
+            height={320}
+          />
+          <DealSegmentStrip segments={projection.dealSegments} />
+        </>
+      );
+    }
+
+    if (projectionPreview === 'overpayment' && overpaymentBaseline) {
+      return (
+        <>
+          <OverpaymentsComparisonChart
+            baselineRemaining={overpaymentBaseline}
+            scenarioRemaining={projection.loanChartRemainingArray}
             currency={loan.currency}
             height={320}
           />
@@ -335,6 +360,27 @@ export const MortgageDetailView = ({
               <DealSegmentStrip segments={projection.dealSegments} />
             </Card>
           </Pressable>
+          {overpaymentBaseline ? (
+            <Pressable
+              onPress={() => openProjectionPreview('overpayment')}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('overpayments.balanceChart')} ${t('results.fullScreen')}`}
+              style={({ pressed }) => [pressed && styles.previewPressed]}
+            >
+              <Card style={styles.chartCard}>
+                <View style={styles.chartHeader}>
+                  <AppText variant="title3">{t('overpayments.balanceChart')}</AppText>
+                  <FullscreenIcon />
+                </View>
+                <OverpaymentsComparisonChart
+                  baselineRemaining={overpaymentBaseline}
+                  scenarioRemaining={projection.loanChartRemainingArray}
+                  currency={loan.currency}
+                />
+                <DealSegmentStrip segments={projection.dealSegments} />
+              </Card>
+            </Pressable>
+          ) : null}
           <Card style={[styles.chartCard, styles.scheduleCard]}>
             <View style={styles.chartHeader}>
               <AppText variant="title3">{t('mortgage.trackedSchedule')}</AppText>
