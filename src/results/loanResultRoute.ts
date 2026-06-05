@@ -48,7 +48,12 @@ export const buildSavedLoanResultParams = (loan: SavedLoan) => ({
   currency: loan.currency,
 });
 
-export const buildDraftResultParams = (
+// Opens a fresh calculation result: persists it twice — an ephemeral draft session
+// (for the unsaved-result flow) and a durable Recent Calculations entry — then returns
+// the route params that point at them. Unlike the sibling `build*Params` helpers this
+// is not pure; the name signals the writes. Every calculator submit or shared-link open
+// records one Recent entry (capped at MAX_RECENT_CALCULATIONS).
+export const beginDraftResult = (
   result: LoanResult,
   formValues: LoanCalculatorFormValues,
   currency: CurrencyCode,

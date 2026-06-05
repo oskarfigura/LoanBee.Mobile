@@ -142,9 +142,16 @@ export const createLoanOverpaymentScope = (loan: SavedLoan): OverpaymentScope =>
       }
       : null,
     computeMonthlyImpact: amount => toImpact(amount, lumpEntries),
-    // Loan previews a single prospective lump against the current monthly figure —
-    // it does not stack it on existing lumps (mirrors the prior screen behaviour).
-    computeLumpImpact: (amount, date) => toImpact(monthlyAmount, [{ date, amount }]),
+    // Preview the combined impact of every overpayment once this lump lands: the
+    // current monthly figure plus all existing lumps, with the edited one swapped
+    // for its prospective value. Mirrors the deal scope so both surfaces report a
+    // total (matching the banner) rather than an isolated, understated figure.
+    computeLumpImpact: (amount, date, editingId) => toImpact(monthlyAmount, [
+      ...lumpEvents
+        .filter(e => e.id !== editingId)
+        .map(e => ({ date: e.date, amount: e.amount ?? 0 })),
+      { date, amount },
+    ]),
     applySaveMonthly: amount => ({
       ...loan,
       formSnapshot: { ...form, additionalMonthlyPayment: amount },

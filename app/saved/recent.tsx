@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { CheckIcon } from '@/components/ui/Icons/CheckIcon/CheckIcon';
 import { TrashIcon } from '@/components/ui/Icons/TrashIcon/TrashIcon';
 import { formatCurrency } from '@/currency/format';
-import { buildRecentResultParams, getResultForFormValues } from '@/results/loanResultRoute';
+import { buildRecentResultParams } from '@/results/loanResultRoute';
 import { RecentCalculation, recentCalculationsStorage } from '@/storage/recentCalculations';
 import { colours, layout, radii, spacing } from '@/theme';
 import { formatFriendlyDate } from '@/utils/date';
@@ -52,12 +52,15 @@ const RecentCalculationCard = ({
   selectionMode: boolean;
 }) => {
   const { t, i18n } = useTranslation();
-  const result = useMemo(() => getResultForFormValues(item.formValues), [item.formValues]);
   const handlePress = selectionMode ? onToggleSelected : onOpen;
 
+  // Display values come straight from the snapshot recorded at calculation time —
+  // no amortisation is re-run on list render. `loanAmount`/`interest` are echoed
+  // inputs (see getLoanCalculations), so they read from formValues directly.
+  const { resultSnapshot: snapshot, formValues, currency } = item;
   const totalMonths = Math.max(
-    result.tableItems.length,
-    result.termInYears * 12 + result.termInMonths,
+    snapshot.totalTermInMonths,
+    snapshot.termInYears * 12 + snapshot.termInMonths,
   );
   const termLabel = formatTermDuration(totalMonths, t('results.years'), t('results.months'));
 
@@ -80,7 +83,7 @@ const RecentCalculationCard = ({
                   {item.category ? t(`saved.category.${item.category}`) : t('recent.calculation')}
                 </AppText>
                 <AppText variant="title3">
-                  {formatCurrency(result.monthlyPayments, item.currency)}
+                  {formatCurrency(snapshot.monthlyPayments, currency)}
                 </AppText>
                 <AppText variant="bodySm" tone="muted">
                   {t('recent.created', { date: formatFriendlyDate(item.createdAt.slice(0, 10), i18n.language) })}
@@ -89,18 +92,18 @@ const RecentCalculationCard = ({
               <View style={styles.recentMetric}>
                 <AppText variant="helper" tone="muted">{t('results.totalInterest')}</AppText>
                 <AppText variant="labelMd" tone="accent" numberOfLines={1} adjustsFontSizeToFit>
-                  {formatCurrency(result.totalInterestPaid, item.currency)}
+                  {formatCurrency(snapshot.totalInterestPaid, currency)}
                 </AppText>
               </View>
             </View>
             <View style={styles.recentDetails}>
               <RecentStat
                 label={t('calculator.loanAmount')}
-                value={formatCurrency(result.amount, item.currency)}
+                value={formatCurrency(formValues.loanAmount, currency)}
               />
               <RecentStat
                 label={t('calculator.interestRate')}
-                value={`${result.interest}%`}
+                value={`${formValues.interest}%`}
               />
               <RecentStat
                 label={t('results.loanTerm')}

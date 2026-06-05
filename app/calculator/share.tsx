@@ -8,7 +8,7 @@ import { DownPaymentType } from '@/core/DownPaymentType';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { Button } from '@/components/ui/Button';
 import { colours, fontFaces, fontSizes } from '@/theme';
-import { buildDraftResultParams } from '@/results/loanResultRoute';
+import { beginDraftResult } from '@/results/loanResultRoute';
 import { getShareableCalculationValuesFromParams } from '@/share/calculationShareLink';
 import { CurrencyCode } from '@/currency/currencies';
 import type { LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
@@ -47,7 +47,7 @@ export default function SharedCalculationScreen() {
 
     router.replace({
       pathname: '/result' as never,
-      params: buildDraftResultParams(result, values as LoanCalculatorFormValues, values.currency as CurrencyCode),
+      params: beginDraftResult(result, values as LoanCalculatorFormValues, values.currency as CurrencyCode),
     });
   }, [params, router]);
 

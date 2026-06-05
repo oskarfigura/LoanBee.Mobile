@@ -1,5 +1,6 @@
 import type { CurrencyCode } from '@/currency/currencies';
 import type { LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
+import { buildResultSnapshot } from '@/loans/loanGroupFactory';
 import type { LoanResultSnapshot, LoanCategory } from '@/types/SavedLoan';
 import { createLocalId } from '@/utils/id';
 import { storage } from './mmkv';
@@ -55,19 +56,6 @@ const writeAll = (items: RecentCalculation[]): void => {
   storage.set(STORAGE_KEYS.RECENT_CALCULATIONS, JSON.stringify(ordered));
 };
 
-export const buildRecentResultSnapshot = (
-  result: RawResultValues,
-  totalInterestPaidBaseline = result.totalInterestPaid,
-): LoanResultSnapshot => ({
-  monthlyPayments: result.monthlyPayments,
-  totalAmountPaid: result.totalAmountPaid,
-  totalInterestPaid: result.totalInterestPaid,
-  totalInterestPaidBaseline,
-  termInYears: result.termInYears,
-  termInMonths: result.termInMonths,
-  totalTermInMonths: result.tableItems.length,
-});
-
 export const recentCalculationsStorage = {
   getAll(): RecentCalculation[] {
     return readAll();
@@ -98,7 +86,9 @@ export const recentCalculationsStorage = {
       ...(category ? { category } : {}),
       currency,
       formValues,
-      resultSnapshot: buildRecentResultSnapshot(result),
+      // A recent calc has no overpayment baseline to compare against, so the
+      // baseline mirrors the actual total (savings badges never show for recents).
+      resultSnapshot: buildResultSnapshot(result, result.totalInterestPaid),
       sourceLabel,
     };
     writeAll([item, ...readAll()]);

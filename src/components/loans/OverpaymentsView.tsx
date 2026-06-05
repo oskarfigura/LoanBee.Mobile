@@ -83,7 +83,8 @@ export const OverpaymentsView = ({ id, notFoundTitleKey, createScope }: Props) =
   // repaid) follow from the scope's impact `kind`, so neither the view nor the scope
   // needs to know which surface it is driving.
   const toRows = useCallback((impact: OverpaymentImpact, includeZeroSecondary: boolean): ImpactRow[] => {
-    const currency = scope!.currency;
+    if (!scope) return [];
+    const currency = scope.currency;
     const interestSavedLabel = impact.secondary.kind === 'monthsSaved'
       ? t('overpayments.interestSaved')
       : t('mortgage.dealInterestSavedLabel');
@@ -266,7 +267,6 @@ export const OverpaymentsView = ({ id, notFoundTitleKey, createScope }: Props) =
             label={t('overpayments.lumpSumAdd')}
             onPress={openAddLumpSum}
             variant="secondary"
-            style={styles.addLumpSumBtn}
             leftIcon={<PlusIcon size={16} color={colours.primary} />}
           />
         </View>
@@ -417,7 +417,6 @@ const styles = StyleSheet.create({
   },
   lumpSumMain: { flex: 1, gap: 2 },
   divider: { height: 1, backgroundColor: colours.border, marginHorizontal: spacing.md },
-  addLumpSumBtn: {},
   dateNoteCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',

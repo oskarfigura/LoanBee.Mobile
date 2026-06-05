@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import { getDraftResultSession } from '../../src/results/draftResultStore';
 import {
-  buildDraftResultParams,
+  beginDraftResult,
   buildSavedLoanResultParams,
   getResultForSavedLoan,
 } from '../../src/results/loanResultRoute';
@@ -91,7 +91,7 @@ describe('saved loan result params', () => {
       calculationType: 'term' as const,
     };
 
-    const params = buildDraftResultParams(result, formValues, 'USD');
+    const params = beginDraftResult(result, formValues, 'USD');
     const session = getDraftResultSession<typeof formValues>(params.draftId);
     const recent = recentCalculationsStorage.getById(params.recentId);
 

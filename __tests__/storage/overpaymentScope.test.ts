@@ -214,6 +214,29 @@ describe('createLoanOverpaymentScope', () => {
     const updated = createLoanOverpaymentScope(makeLoan()).applyDeleteLump('lump-loan');
     expect(updated.events.find(e => e.id === 'lump-loan')).toBeUndefined();
   });
+
+  it('computeLumpImpact stacks a prospective lump on top of existing lumps', () => {
+    const scope = createLoanOverpaymentScope(makeLoan());
+    const expected = computeLoanOverpayments(loanForm, 200, [
+      { date: '2027-01-01', amount: 8000 },
+      { date: '2028-01-01', amount: 5000 },
+    ]);
+    expect(scope.computeLumpImpact(5000, '2028-01-01')).toEqual({
+      interestSaved: expected.interestSaved,
+      secondary: { kind: 'monthsSaved', value: expected.monthsSaved },
+    });
+  });
+
+  it('computeLumpImpact swaps the edited lump for its prospective value', () => {
+    const scope = createLoanOverpaymentScope(makeLoan());
+    const expected = computeLoanOverpayments(loanForm, 200, [
+      { date: '2027-03-01', amount: 9000 },
+    ]);
+    expect(scope.computeLumpImpact(9000, '2027-03-01', 'lump-loan')).toEqual({
+      interestSaved: expected.interestSaved,
+      secondary: { kind: 'monthsSaved', value: expected.monthsSaved },
+    });
+  });
 });
 
 describe('createDealOverpaymentScope', () => {

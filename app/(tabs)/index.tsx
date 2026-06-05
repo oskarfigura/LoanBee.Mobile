@@ -18,7 +18,7 @@ import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppText } from '@/components/ui/AppText';
 import { colours, elevation, layout, radii, spacing } from '@/theme';
-import { buildDraftResultParams } from '@/results/loanResultRoute';
+import { beginDraftResult } from '@/results/loanResultRoute';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { hasSeenGuide } from '@/onboarding/guideState';
 import { whenConsentFlowComplete } from '@/onboarding/firstRunGate';
@@ -188,7 +188,7 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
 
     router.push({
       pathname: '/result' as never,
-      params: buildDraftResultParams(result, values, values.currency as CurrencyCode),
+      params: beginDraftResult(result, values, values.currency as CurrencyCode),
     });
   };
 
