@@ -475,6 +475,7 @@ const styles = StyleSheet.create({
   },
   warningList: {
     gap: spacing.xs,
+    paddingTop: spacing.sm,
     marginBottom: spacing.sm,
   },
   nodeMuted: {
