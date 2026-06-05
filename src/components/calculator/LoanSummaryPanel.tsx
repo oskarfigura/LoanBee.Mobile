@@ -3,6 +3,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { DashboardPinButton } from '@/components/loans/DashboardPinButton';
 import { DashboardProgressGauge } from '@/components/loans/DashboardProgressGauge';
+import { EditIcon } from '@/components/loans/LoanIcons';
+import { QuickActionTile } from '@/components/ui/QuickActionTile';
+import { SaveIcon } from '@/components/ui/Icons/SaveIcon/SaveIcon';
+import { ShareIcon } from '@/components/ui/Icons/ShareIcon/ShareIcon';
 import { formatCurrency } from '@/currency/format';
 import {
   buildSavedLoanDashboardProgress,
@@ -16,8 +20,19 @@ import { SavedLoan } from '@/types/SavedLoan';
 interface Props {
   loan: SavedLoan;
   result: LoanResult;
-  onTogglePinned: () => void;
-  onTryOverpayments: () => void;
+  onTogglePinned?: () => void;
+  onTryOverpayments?: () => void;
+  /**
+   * 'draft' renders the same summary for an unsaved calculation: no header/pin and
+   * no progress gauge (nothing to track yet), a Share action instead of the
+   * try-overpayments nudge, but the overpayment savings card still shows when the
+   * calculation includes an additional payment.
+   */
+  mode?: 'saved' | 'draft';
+  /** Draft-mode quick actions (save / share / edit the calculation). */
+  onSave?: () => void;
+  onShare?: () => void;
+  onEdit?: () => void;
 }
 
 const getRemainingTermCaptionKey = (monthsRemaining: number) => {
@@ -53,8 +68,18 @@ const formatTermDuration = (months: number, yrsLabel: string, moLabel: string): 
   return `${years} ${yrsLabel} ${mo} ${moLabel}`;
 };
 
-export const LoanSummaryPanel = ({ loan, result, onTogglePinned, onTryOverpayments }: Props) => {
+export const LoanSummaryPanel = ({
+  loan,
+  result,
+  onTogglePinned,
+  onTryOverpayments,
+  mode = 'saved',
+  onSave,
+  onShare,
+  onEdit,
+}: Props) => {
   const { t, i18n } = useTranslation();
+  const isDraft = mode === 'draft';
   const asOf = useMemo(() => new Date(), []);
   const insightSummary = useMemo(
     () => buildSavedLoanSummary(loan, result, asOf, i18n.language),
@@ -89,30 +114,34 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned, onTryOverpaymen
 
   return (
     <View style={styles.panel}>
-      {/* Header */}
-      <View style={styles.summaryHeader}>
-        <View style={styles.summaryHeaderCopy}>
-          <Text
-            style={styles.summaryTitle}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.72}
-          >
-            {loan.nickname}
-          </Text>
-          <Text style={styles.summarySubtitle} numberOfLines={1}>
-            {loan.lender || t('saved.category.loan')}
-          </Text>
-        </View>
-        <DashboardPinButton
-          pinned={loan.pinnedToDashboard}
-          onPress={onTogglePinned}
-          style={styles.summaryPinButton}
-        />
-      </View>
+      {/* Header + progress gauge: only for a saved loan (a draft has no name to
+          show, nothing to pin, and ~0% elapsed so the gauge is meaningless). */}
+      {!isDraft ? (
+        <>
+          <View style={styles.summaryHeader}>
+            <View style={styles.summaryHeaderCopy}>
+              <Text
+                style={styles.summaryTitle}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+              >
+                {loan.nickname}
+              </Text>
+              <Text style={styles.summarySubtitle} numberOfLines={1}>
+                {loan.lender || t('saved.category.loan')}
+              </Text>
+            </View>
+            <DashboardPinButton
+              pinned={loan.pinnedToDashboard}
+              onPress={() => onTogglePinned?.()}
+              style={styles.summaryPinButton}
+            />
+          </View>
 
-      {/* Progress gauge */}
-      <DashboardProgressGauge progress={dashboardProgress} />
+          <DashboardProgressGauge progress={dashboardProgress} />
+        </>
+      ) : null}
 
       {/* Key metrics panel */}
       <View style={styles.summaryRaisedPanel}>
@@ -146,6 +175,45 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned, onTryOverpaymen
           ) : null}
         </View>
       </View>
+
+      {/* Overpayment savings / nudge card — surfaced right under the key metrics */}
+      {hasOverpayment && interestSaved ? (
+        <View style={styles.savingsCard}>
+          <Text style={styles.savingsKicker}>{t('loan.overpaymentSavings')}</Text>
+          <View style={styles.savingsRow}>
+            <Text style={styles.savingsRowLabel}>{t('recalculate.interestSaved')}</Text>
+            <Text style={styles.savingsRowValue}>
+              {formatCurrency(interestSaved, loan.currency)}
+            </Text>
+          </View>
+          {termSavedMonths ? (
+            <View style={styles.savingsRow}>
+              <Text style={styles.savingsRowLabel}>{t('recalculate.timeSaved')}</Text>
+              <Text style={styles.savingsRowValue}>
+                {formatTermDuration(termSavedMonths, t('results.years'), t('results.months'))}
+              </Text>
+            </View>
+          ) : null}
+          {!isDraft && onTryOverpayments ? (
+            <TouchableOpacity
+              onPress={onTryOverpayments}
+              activeOpacity={0.84}
+              style={styles.savingsManageRow}
+              accessibilityRole="button"
+            >
+              <Text style={styles.savingsManageText}>{t('overpayments.manage')} →</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : isDraft ? null : (
+        <View style={styles.nudgeCard}>
+          <Text style={styles.nudgeTitle}>{t('loan.nudgeTitle')}</Text>
+          <Text style={styles.nudgeBody}>{t('loan.nudgeBody')}</Text>
+          <TouchableOpacity onPress={onTryOverpayments} activeOpacity={0.84} style={styles.nudgeCta}>
+            <Text style={styles.nudgeCtaText}>{t('recalculate.ctaButton')} →</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Loan details panel */}
       <View style={styles.summaryRaisedPanel}>
@@ -183,34 +251,36 @@ export const LoanSummaryPanel = ({ loan, result, onTogglePinned, onTryOverpaymen
         </View>
       </View>
 
-      {/* Overpayment savings / nudge card */}
-      {hasOverpayment && interestSaved ? (
-        <View style={styles.savingsCard}>
-          <Text style={styles.savingsKicker}>{t('loan.overpaymentSavings')}</Text>
-          <View style={styles.savingsRow}>
-            <Text style={styles.savingsRowLabel}>{t('recalculate.interestSaved')}</Text>
-            <Text style={styles.savingsRowValue}>
-              {formatCurrency(interestSaved, loan.currency)}
-            </Text>
+      {/* Quick actions — save, share, or edit the calculation (draft only). The
+          saved view manages these from its own header / quick-action card. */}
+      {isDraft ? (
+        <View style={styles.quickActionsCard}>
+          <Text style={styles.quickActionsTitle}>{t('loan.quickActions')}</Text>
+          <View style={styles.quickActionsRow}>
+            {onSave ? (
+              <QuickActionTile
+                label={t('common.save')}
+                icon={<SaveIcon size={21} color={colours.primary} />}
+                onPress={onSave}
+              />
+            ) : null}
+            {onShare ? (
+              <QuickActionTile
+                label={t('share.short')}
+                icon={<ShareIcon size={21} color={colours.primary} strokeWidth={1.9} />}
+                onPress={onShare}
+              />
+            ) : null}
+            {onEdit ? (
+              <QuickActionTile
+                label={t('saved.edit')}
+                icon={<EditIcon size={21} color={colours.primary} />}
+                onPress={onEdit}
+              />
+            ) : null}
           </View>
-          {termSavedMonths ? (
-            <View style={styles.savingsRow}>
-              <Text style={styles.savingsRowLabel}>{t('recalculate.timeSaved')}</Text>
-              <Text style={styles.savingsRowValue}>
-                {formatTermDuration(termSavedMonths, t('results.years'), t('results.months'))}
-              </Text>
-            </View>
-          ) : null}
         </View>
-      ) : (
-        <View style={styles.nudgeCard}>
-          <Text style={styles.nudgeTitle}>{t('loan.nudgeTitle')}</Text>
-          <Text style={styles.nudgeBody}>{t('loan.nudgeBody')}</Text>
-          <TouchableOpacity onPress={onTryOverpayments} activeOpacity={0.84} style={styles.nudgeCta}>
-            <Text style={styles.nudgeCtaText}>{t('recalculate.ctaButton')} →</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      ) : null}
     </View>
   );
 };
@@ -347,6 +417,17 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     color: colours.secondary,
   },
+  savingsManageRow: {
+    borderTopWidth: 1,
+    borderTopColor: colours.successBorder,
+    paddingTop: spacing.xs,
+    marginTop: spacing.xxs,
+  },
+  savingsManageText: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.secondary,
+  },
   nudgeCard: {
     borderRadius: radii.chip,
     borderWidth: 1,
@@ -376,5 +457,25 @@ const styles = StyleSheet.create({
     ...fontFaces.heading.semibold,
     fontSize: fontSizes.xs,
     color: colours.primary,
+  },
+  quickActionsCard: {
+    backgroundColor: colours.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colours.surfaceStrong,
+    borderRadius: radii.card,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  quickActionsTitle: {
+    ...fontFaces.heading.semibold,
+    fontSize: fontSizes.xs,
+    color: colours.textSecondary,
+    textTransform: 'uppercase',
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
   },
 });

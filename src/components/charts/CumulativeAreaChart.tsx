@@ -4,7 +4,7 @@ import { LineChart } from 'react-native-gifted-charts';
 import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
 import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
-import { getProjectionChartWidth } from './dimensions';
+import { getProjectionChartLayout } from './dimensions';
 
 interface Props {
   monthlyArray: number[];
@@ -15,12 +15,13 @@ interface Props {
 }
 
 const SAMPLE_STEP = 12;
+const POINT_SPACING = 44;
+const INITIAL_SPACING = 8;
+const END_SPACING = 8;
 
 export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArray, currency, height = 196 }: Props) => {
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
-  const width = getProjectionChartWidth(containerWidth);
-  const shouldScroll = containerWidth > 0 && width + 66 > containerWidth;
   const symbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? '£';
 
   const formatChartCurrency = (value: number) => {
@@ -74,6 +75,13 @@ export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArra
 
   if (totalData.length < 2) return null;
 
+  const { chartWidth, scrollEnabled } = getProjectionChartLayout({
+    containerWidth,
+    pointCount: yearlyData.length,
+    perPointWidth: POINT_SPACING,
+    edgeSpacing: INITIAL_SPACING + END_SPACING,
+  });
+
   const legendItems = [
     { labelKey: 'results.remaining', color: colours.accent },
     { labelKey: 'results.totalPaid', color: colours.primary },
@@ -86,16 +94,17 @@ export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArra
       onLayout={event => setContainerWidth(event.nativeEvent.layout.width)}
     >
       <ScrollView
-        horizontal={shouldScroll}
-        scrollEnabled={shouldScroll}
-        showsHorizontalScrollIndicator={shouldScroll}
+        horizontal={scrollEnabled}
+        scrollEnabled={scrollEnabled}
+        showsHorizontalScrollIndicator={scrollEnabled}
       >
         <LineChart
           data={remainingData}
           data2={totalData}
           data3={interestData}
-          width={width}
+          width={chartWidth}
           height={height}
+          spacing={POINT_SPACING}
           areaChart
           areaChart2
           areaChart3
@@ -127,12 +136,12 @@ export const CumulativeAreaChart = ({ monthlyArray, interestArray, remainingArra
           yAxisColor={colours.white}
           yAxisThickness={0}
           xAxisThickness={0}
-          initialSpacing={8}
-          endSpacing={8}
+          initialSpacing={INITIAL_SPACING}
+          endSpacing={END_SPACING}
           noOfSections={4}
           formatYLabel={v => formatChartCurrency(+v)}
           hideDataPoints
-          disableScroll={!shouldScroll}
+          disableScroll={!scrollEnabled}
           curved
           curvature={0.16}
           isAnimated

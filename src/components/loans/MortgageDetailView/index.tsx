@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { styles } from './styles';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -58,8 +59,8 @@ import {
 } from '@/mortgage/tracker';
 import { getResultForSavedLoan } from '@/results/loanResultRoute';
 import { LoanDeal, SavedLoan } from '@/types/SavedLoan';
-import { colours, elevation, fontFaces, fontSizes, layout, radii, spacing } from '@/theme';
-import { formatFriendlyDate, formatFriendlyDateRange } from '@/utils/date';
+import { colours } from '@/theme';
+import { formatFriendlyDate, formatFriendlyDateRange, formatIsoDate } from '@/utils/date';
 
 type MortgageDetailTab = 'overview' | 'projection' | 'timeline';
 type ProjectionPreview = 'repayment' | 'cumulative' | 'schedule';
@@ -102,17 +103,24 @@ export const MortgageDetailView = ({
   const dashboardProgress = useMemo(() => (
     buildSavedLoanDashboardProgress(loan, result, asOf)
   ), [asOf, loan, result]);
-  const tabs: Array<{ value: MortgageDetailTab; label: string }> = [
-    { value: 'overview', label: t('mortgage.overview') },
-    { value: 'projection', label: t('mortgage.projection') },
-    { value: 'timeline', label: t('mortgage.timeline') },
-  ];
   const currentDeal = trackerSummary.currentDeal;
   const activeDeal = getCurrentDeal(loan, asOf);
   const publishedDeals = getPublishedDeals(loan);
   const draftDeal = trackerSummary.nextDraftDeal;
   const canPlanNextDeal = !draftDeal;
   const overpaymentDeal = activeDeal ?? publishedDeals[publishedDeals.length - 1];
+  const todayIso = formatIsoDate(asOf);
+  // Borrowing that hasn't started yet has no real history to record or complete, so
+  // the timeline tab and the event/history/completion actions are hidden until it begins.
+  const isFutureStart = Boolean(activeDeal && activeDeal.startDate > todayIso);
+  const tabs: Array<{ value: MortgageDetailTab; label: string }> = [
+    { value: 'overview', label: t('mortgage.overview') },
+    { value: 'projection', label: t('mortgage.projection') },
+    ...(isFutureStart ? [] : [{ value: 'timeline' as const, label: t('mortgage.timeline') }]),
+  ];
+  const tabOrder: MortgageDetailTab[] = isFutureStart
+    ? ['overview', 'projection']
+    : ['overview', 'projection', 'timeline'];
   const switchTab = useCallback((nextTab: MortgageDetailTab) => {
     setActiveTab(nextTab);
     requestAnimationFrame(() => {
@@ -120,7 +128,11 @@ export const MortgageDetailView = ({
     });
   }, []);
 
-  const tabOrder: MortgageDetailTab[] = ['overview', 'projection', 'timeline'];
+  // A future-start mortgage can't sit on the (now hidden) timeline tab.
+  useEffect(() => {
+    if (isFutureStart && activeTab === 'timeline') setActiveTab('overview');
+  }, [isFutureStart, activeTab]);
+
   const stateRef = useRef({ activeTab, switchTab });
   stateRef.current = { activeTab, switchTab };
 
@@ -156,7 +168,7 @@ export const MortgageDetailView = ({
   const goToNewCalculation = () => {
     setAddDrawerVisible(false);
     setActionDrawerVisible(false);
-    router.push({ pathname: '/' as never, params: { calculator: '1' } });
+    router.push('/calculate');
   };
   const openProjectionPreview = useCallback((preview: ProjectionPreview) => {
     setProjectionPreview(preview);
@@ -255,6 +267,8 @@ export const MortgageDetailView = ({
             publishedDeals={publishedDeals}
             projection={projection}
             asOf={asOf}
+            isFutureStart={isFutureStart}
+            overpaymentDeal={overpaymentDeal}
             onTogglePinned={onTogglePinned}
             onAddDeal={() => router.push(`/saved/${loan.id}/deals/new`)}
             onEditDraft={() => {
@@ -262,10 +276,6 @@ export const MortgageDetailView = ({
             }}
             onOpenTimeline={() => switchTab('timeline')}
           />
-
-          {overpaymentDeal ? (
-            <DealOverpaymentsCard loan={loan} deal={overpaymentDeal} />
-          ) : null}
 
           <MortgageQuickActionsRow
             hasActiveDeal={!!activeDeal}
@@ -398,6 +408,7 @@ export const MortgageDetailView = ({
         activeDeal={activeDeal}
         draftDeal={draftDeal}
         canPlanNextDeal={canPlanNextDeal}
+        isFutureStart={isFutureStart}
         mode="add"
         onClose={() => setAddDrawerVisible(false)}
         onNavigate={navigateFromActions}
@@ -410,6 +421,7 @@ export const MortgageDetailView = ({
         activeDeal={activeDeal}
         draftDeal={draftDeal}
         canPlanNextDeal={canPlanNextDeal}
+        isFutureStart={isFutureStart}
         mode="more"
         onClose={() => setActionDrawerVisible(false)}
         onNavigate={navigateFromActions}
@@ -492,6 +504,8 @@ const MortgageSummaryPanel = ({
   publishedDeals,
   projection,
   asOf,
+  isFutureStart,
+  overpaymentDeal,
   onTogglePinned,
   onAddDeal,
   onEditDraft,
@@ -506,6 +520,8 @@ const MortgageSummaryPanel = ({
   publishedDeals: LoanDeal[];
   projection: MortgageProjection;
   asOf: Date;
+  isFutureStart: boolean;
+  overpaymentDeal?: LoanDeal;
   onTogglePinned: () => void;
   onAddDeal: () => void;
   onEditDraft: () => void;
@@ -536,19 +552,52 @@ const MortgageSummaryPanel = ({
         />
       </View>
 
-      <DashboardProgressGauge progress={dashboardProgress} />
-      <MortgageSummaryMetrics summary={summary} progress={dashboardProgress} />
+      {isFutureStart && currentDeal ? (
+        <FutureStartPanel loan={loan} deal={currentDeal} />
+      ) : (
+        <>
+          <DashboardProgressGauge progress={dashboardProgress} />
+          <MortgageSummaryMetrics summary={summary} progress={dashboardProgress} />
+          <CurrentDealSavingsCard loan={loan} currentDeal={overpaymentDeal} />
+        </>
+      )}
       <CurrentDealSummaryPanel loan={loan} currentDeal={currentDeal} asOf={asOf} />
-      <CompactTimelineSummary
-        loan={loan}
-        currentDeal={currentDeal}
-        draftDeal={draftDeal}
-        publishedDeals={publishedDeals}
-        projection={projection}
-        onAddDeal={onAddDeal}
-        onEditDraft={onEditDraft}
-        onOpenTimeline={onOpenTimeline}
-      />
+      {!isFutureStart ? (
+        <CompactTimelineSummary
+          loan={loan}
+          currentDeal={currentDeal}
+          draftDeal={draftDeal}
+          publishedDeals={publishedDeals}
+          projection={projection}
+          onAddDeal={onAddDeal}
+          onEditDraft={onEditDraft}
+          onOpenTimeline={onOpenTimeline}
+        />
+      ) : null}
+    </View>
+  );
+};
+
+const FutureStartPanel = ({ loan, deal }: { loan: SavedLoan; deal: LoanDeal }) => {
+  const { t, i18n } = useTranslation();
+
+  return (
+    <View style={styles.summaryRaisedPanel}>
+      <View style={styles.summaryMetricRow}>
+        <Text style={styles.summaryMetricLabel}>{t('mortgage.futureStartsOn')}</Text>
+        <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
+          {formatFriendlyDate(deal.startDate, i18n.language)}
+        </Text>
+      </View>
+      <View style={styles.summaryMetricRow}>
+        <Text style={styles.summaryMetricLabel}>{t('mortgage.startingBalance')}</Text>
+        <Text style={styles.summaryMetricValue} numberOfLines={1} adjustsFontSizeToFit>
+          {formatCurrency(deal.openingBalance, loan.currency)}
+        </Text>
+      </View>
+      <AppText variant="bodySm" tone="muted" style={styles.futureStartHelp}>
+        {t('mortgage.futureStartHelp')}
+      </AppText>
     </View>
   );
 };
@@ -606,6 +655,81 @@ const SummaryFact = ({
   </View>
 );
 
+// Overpayment savings highlight, surfaced right under the key-metrics box so the
+// value the app exists to show isn't buried among the current-deal facts.
+const CurrentDealSavingsCard = ({
+  loan,
+  currentDeal,
+}: {
+  loan: SavedLoan;
+  currentDeal?: LoanDeal;
+}) => {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const impact = useMemo(
+    () => (currentDeal ? getDealOverpaymentImpact(currentDeal, loan.events) : undefined),
+    [currentDeal, loan.events],
+  );
+  const destination = currentDeal ? `/saved/${loan.id}/deals/${currentDeal.id}/overpayments` as const : undefined;
+
+  if (!currentDeal || !destination) return null;
+
+  if (impact?.hasOverpayments) {
+    return (
+      <Card style={[styles.soonerCardActive, styles.summarySavingsCard]}>
+        <View style={styles.soonerCardHeader}>
+          <CoinsStackedIcon size={18} color={colours.secondary} strokeWidth={1.8} />
+          <AppText variant="labelMd" tone="success" style={styles.soonerCardTitle}>
+            {t('mortgage.dealOverpaymentsSummary')}
+          </AppText>
+        </View>
+        <View style={styles.soonerSavingsRow}>
+          <View style={styles.soonerMetric}>
+            <AppText variant="bodySm" tone="muted">{t('mortgage.dealInterestSavedLabel')}</AppText>
+            <AppText variant="labelMd" style={{ color: colours.secondary }}>
+              {formatCurrency(impact.interestSaved, loan.currency)}
+            </AppText>
+          </View>
+          <View style={styles.soonerMetric}>
+            <AppText variant="bodySm" tone="muted">{t('mortgage.dealExtraRepaidLabel')}</AppText>
+            <AppText variant="labelMd" style={{ color: colours.secondary }}>
+              {formatCurrency(impact.extraPrincipalRepaid, loan.currency)}
+            </AppText>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.soonerManageRow}
+          onPress={() => router.push(destination)}
+          activeOpacity={0.84}
+          accessibilityRole="button"
+        >
+          <AppText variant="labelMd" style={{ color: colours.secondary, flex: 1 }}>{t('mortgage.manageDealOverpayments')}</AppText>
+          <ChevronRightIcon size={14} color={colours.secondary} />
+        </TouchableOpacity>
+      </Card>
+    );
+  }
+
+  if (currentDeal.status === 'completed') return null;
+
+  return (
+    <View style={[styles.soonerNudgeCard, styles.summarySavingsCard]}>
+      <View style={styles.soonerNudgeInner}>
+        <CoinsStackedIcon size={20} color={colours.primary} strokeWidth={1.8} />
+        <View style={styles.soonerNudgeCopy}>
+          <AppText variant="labelMd">{t('mortgage.couldPaySoonerTitle')}</AppText>
+          <AppText variant="bodySm" tone="muted">{t('mortgage.couldPaySoonerBody')}</AppText>
+        </View>
+      </View>
+      <Button
+        label={t('mortgage.setUpDealOverpayment')}
+        onPress={() => router.push(destination)}
+        variant="secondary"
+      />
+    </View>
+  );
+};
+
 const CurrentDealSummaryPanel = ({
   loan,
   currentDeal,
@@ -622,10 +746,6 @@ const CurrentDealSummaryPanel = ({
     balanceSourceMetadata.checkpoint?.reconciliationVariance,
     loan.currency,
     t,
-  );
-  const dealImpact = useMemo(
-    () => currentDeal ? getDealOverpaymentImpact(currentDeal, loan.events) : undefined,
-    [currentDeal, loan.events],
   );
 
   if (!currentDeal) {
@@ -685,9 +805,6 @@ const CurrentDealSummaryPanel = ({
         <SummaryFact label={t('results.monthlyPayment')} value={formatCurrency(currentDeal.monthlyPayment, loan.currency)} />
         <SummaryFact label={t('mortgage.currentDealEnds')} value={formatFriendlyDate(currentDeal.endDate, i18n.language)} />
         <SummaryFact label={t('calculator.additionalPayment')} value={formatCurrency(currentDeal.regularOverpayment, loan.currency)} />
-        {dealImpact?.hasOverpayments ? (
-          <SummaryFact label={t('mortgage.dealInterestSavedLabel')} value={formatCurrency(dealImpact.interestSaved, loan.currency)} />
-        ) : null}
       </View>
       <View style={styles.summarySourceRow}>
         <Text style={styles.summarySourceLabel}>{t('mortgage.balanceSource')}</Text>
@@ -867,80 +984,6 @@ const ContextMetric = ({
     <Text style={styles.contextMetricValue} numberOfLines={2} adjustsFontSizeToFit>{value}</Text>
   </View>
 );
-
-const DealOverpaymentsCard = ({
-  loan,
-  deal,
-}: {
-  loan: SavedLoan;
-  deal: LoanDeal;
-}) => {
-  const { t } = useTranslation();
-  const router = useRouter();
-
-  const hasRegular = deal.regularOverpayment > 0;
-  const hasLumps = loan.events.some(
-    e => e.type === 'lumpOverpayment' && e.dealId === deal.id,
-  );
-  const hasOverpayments = hasRegular || hasLumps;
-
-  const impact = useMemo(
-    () => hasOverpayments ? getDealOverpaymentImpact(deal, loan.events) : null,
-    [deal, hasOverpayments, loan.events],
-  );
-
-  const destination = `/saved/${loan.id}/deals/${deal.id}/overpayments` as const;
-
-  if (hasOverpayments && impact) {
-    return (
-      <Card style={styles.soonerCardActive}>
-        <View style={styles.soonerCardHeader}>
-          <CoinsStackedIcon size={18} color={colours.secondary} strokeWidth={1.8} />
-          <AppText variant="labelMd" tone="success" style={styles.soonerCardTitle}>
-            {t('mortgage.dealOverpaymentsSummary')}
-          </AppText>
-        </View>
-        <View style={styles.soonerSavingsRow}>
-          <View style={styles.soonerMetric}>
-            <AppText variant="bodySm" tone="muted">{t('mortgage.dealInterestSavedLabel')}</AppText>
-            <AppText variant="labelMd" style={{ color: colours.secondary }}>{formatCurrency(impact.interestSaved, loan.currency)}</AppText>
-          </View>
-          <View style={styles.soonerMetric}>
-            <AppText variant="bodySm" tone="muted">{t('mortgage.dealExtraRepaidLabel')}</AppText>
-            <AppText variant="labelMd" style={{ color: colours.secondary }}>{formatCurrency(impact.extraPrincipalRepaid, loan.currency)}</AppText>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={styles.soonerManageRow}
-          onPress={() => router.push(destination)}
-          activeOpacity={0.84}
-        >
-          <AppText variant="labelMd" style={{ color: colours.secondary, flex: 1 }}>{t('mortgage.manageDealOverpayments')}</AppText>
-          <ChevronRightIcon size={14} color={colours.secondary} />
-        </TouchableOpacity>
-      </Card>
-    );
-  }
-
-  if (deal.status === 'completed') return null;
-
-  return (
-    <View style={styles.soonerNudgeCard}>
-      <View style={styles.soonerNudgeInner}>
-        <CoinsStackedIcon size={20} color={colours.primary} strokeWidth={1.8} />
-        <View style={styles.soonerNudgeCopy}>
-          <AppText variant="labelMd">{t('mortgage.couldPaySoonerTitle')}</AppText>
-          <AppText variant="bodySm" tone="muted">{t('mortgage.couldPaySoonerBody')}</AppText>
-        </View>
-      </View>
-      <Button
-        label={t('mortgage.setUpDealOverpayment')}
-        onPress={() => router.push(destination)}
-        variant="secondary"
-      />
-    </View>
-  );
-};
 
 const MortgageQuickActionsRow = ({
   hasActiveDeal,
@@ -1124,6 +1167,7 @@ const QuickActionsDrawer = ({
   activeDeal,
   draftDeal,
   canPlanNextDeal,
+  isFutureStart,
   mode,
   onClose,
   onNavigate,
@@ -1135,6 +1179,7 @@ const QuickActionsDrawer = ({
   activeDeal?: LoanDeal;
   draftDeal?: LoanDeal;
   canPlanNextDeal: boolean;
+  isFutureStart: boolean;
   mode: 'add' | 'more';
   onClose: () => void;
   onNavigate: (href: string) => void;
@@ -1159,7 +1204,7 @@ const QuickActionsDrawer = ({
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={styles.drawerOptionList}>
-            {mode === 'add' && activeDeal ? (
+            {mode === 'add' && activeDeal && !isFutureStart ? (
               <>
                 <Text style={styles.drawerGroupTitle}>{t('mortgage.eventGroup')}</Text>
                 <QuickActionOption
@@ -1224,7 +1269,7 @@ const QuickActionsDrawer = ({
                     onPress={() => onNavigate(`/saved/${loan.id}/deals/${draftDeal.id}`)}
                   />
                 ) : null}
-                {activeDeal?.status === 'active' ? (
+                {activeDeal?.status === 'active' && !isFutureStart ? (
                   <QuickActionOption
                     title={t('mortgage.completeCurrentDeal')}
                     description={t('mortgage.completeCurrentDealHelp')}
@@ -1272,785 +1317,3 @@ const QuickActionOption = ({
     </View>
   </TouchableOpacity>
 );
-
-const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  container: {
-    paddingHorizontal: layout.screenPadding,
-    paddingBottom: spacing['3xl'],
-  },
-  stickyTabs: {
-    marginHorizontal: -layout.screenPadding,
-    backgroundColor: colours.background,
-    zIndex: 2,
-    elevation: 2,
-  },
-  tabControl: {
-    marginHorizontal: 0,
-  },
-  financialDisclaimer: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  tabPanel: {
-    marginTop: spacing.xs,
-  },
-  mortgageSummaryPanel: {
-    gap: spacing.lg,
-    marginBottom: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  summaryHeader: {
-    position: 'relative',
-    alignItems: 'center',
-    paddingHorizontal: 44,
-    minHeight: 62,
-  },
-  summaryHeaderCopy: {
-    alignItems: 'center',
-    minWidth: 0,
-  },
-  summaryTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.xl,
-    lineHeight: 32,
-    color: colours.primary,
-    textAlign: 'center',
-  },
-  summarySubtitle: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.md,
-    lineHeight: 22,
-    color: colours.textSecondary,
-    marginTop: spacing.xxxs,
-  },
-  summaryPinButton: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-  },
-  summaryRaisedPanel: {
-    borderRadius: radii.chip,
-    backgroundColor: colours.white,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    ...elevation.level2,
-  },
-  summaryMetricRow: {
-    minHeight: 66,
-    justifyContent: 'center',
-  },
-  summaryMetricLabel: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.md,
-    lineHeight: 22,
-    color: colours.textSecondary,
-    marginBottom: spacing.xxs,
-  },
-  summaryMetricValue: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.lg,
-    lineHeight: 25,
-    color: colours.primary,
-  },
-  summaryMetricHelper: {
-    ...fontFaces.body.medium,
-    marginTop: spacing.xxxs,
-    fontSize: fontSizes.xs,
-    lineHeight: 16,
-    color: colours.textSecondary,
-  },
-  summarySectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  summarySectionCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  summarySectionKicker: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    textTransform: 'uppercase',
-  },
-  summarySectionTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.lg,
-    lineHeight: 25,
-    color: colours.primary,
-    marginTop: spacing.xxs,
-  },
-  summarySectionMeta: {
-    ...fontFaces.body.medium,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    marginTop: spacing.xxs,
-  },
-  summaryBodyText: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.sm,
-    lineHeight: 20,
-    color: colours.textSecondary,
-  },
-  summaryFactGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    rowGap: spacing.sm,
-    columnGap: spacing.md,
-  },
-  summaryFact: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    minWidth: 0,
-  },
-  summaryFactLabel: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    marginBottom: spacing.xxxs,
-  },
-  summaryFactValue: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-  },
-  summarySourceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colours.borderSoft,
-    marginTop: spacing.md,
-    paddingTop: spacing.sm,
-  },
-  summarySourceLabel: {
-    ...fontFaces.body.medium,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    textTransform: 'uppercase',
-  },
-  summarySourceValue: {
-    flex: 1,
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.primary,
-    textAlign: 'right',
-  },
-  reconciliationBox: {
-    marginTop: spacing.sm,
-    borderRadius: radii.input,
-    borderWidth: 1,
-    borderColor: colours.border,
-    backgroundColor: colours.surface,
-    padding: spacing.sm,
-  },
-  reconciliationText: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-  },
-  reconciliationHelp: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.xs,
-    lineHeight: 17,
-    color: colours.textSecondary,
-    marginTop: spacing.xxxs,
-  },
-  summaryTimelineAction: {
-    minHeight: 40,
-    paddingHorizontal: 14,
-  },
-  summaryTimelineList: {
-    position: 'relative',
-    paddingLeft: 34,
-    marginTop: spacing.xs,
-  },
-  summaryTimelineRail: {
-    position: 'absolute',
-    left: 11,
-    top: 8,
-    bottom: 8,
-    width: 2,
-    backgroundColor: colours.border,
-  },
-  summaryTimelineRow: {
-    minHeight: 58,
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
-  },
-  summaryTimelineNode: {
-    position: 'absolute',
-    left: -34,
-    top: 20,
-    width: 24,
-    height: 24,
-    borderRadius: radii.full,
-    borderWidth: 3,
-    backgroundColor: colours.background,
-  },
-  summaryTimelineCopy: {
-    minWidth: 0,
-  },
-  summaryTimelineLabel: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    textTransform: 'uppercase',
-  },
-  summaryTimelineTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.md,
-    color: colours.textPrimary,
-    marginTop: spacing.xxs,
-  },
-  summaryTimelineMeta: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.sm,
-    color: colours.textSecondary,
-    marginTop: spacing.xxxs,
-  },
-  quickActionsCard: {
-    backgroundColor: colours.surfaceMuted,
-    borderWidth: 1,
-    borderColor: colours.surfaceStrong,
-    borderRadius: radii.card,
-    marginBottom: spacing.sm,
-    marginHorizontal: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
-  },
-  quickActionsHeader: {
-    gap: spacing.xxxs,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: spacing.xs,
-  },
-  quickActionsTitle: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    textTransform: 'uppercase',
-  },
-  quickActionsHelper: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-  },
-  quickActionButton: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: 72,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xxs,
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colours.surfaceRaised,
-    borderWidth: 1,
-    borderColor: colours.surfaceStrong,
-  },
-  quickActionLabel: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.textPrimary,
-    textAlign: 'center',
-  },
-  projectionBasisCard: {
-    marginBottom: spacing.sm,
-  },
-  contextHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  contextHeaderCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  contextKicker: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    textTransform: 'uppercase',
-  },
-  contextTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.md,
-    color: colours.textPrimary,
-    marginTop: spacing.xxs,
-  },
-  contextBadge: {
-    maxWidth: 132,
-    borderRadius: radii.chip,
-    backgroundColor: colours.surfaceAccent,
-    borderWidth: 1,
-    borderColor: colours.border,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  contextBadgeText: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.primary,
-    textAlign: 'center',
-  },
-  projectionAssumptionText: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.sm,
-    lineHeight: 20,
-    color: colours.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  contextMetricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  contextMetric: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    minWidth: 0,
-    borderWidth: 1,
-    borderColor: colours.border,
-    borderRadius: radii.input,
-    backgroundColor: colours.surface,
-    padding: spacing.sm,
-  },
-  contextMetricLabel: {
-    ...fontFaces.body.medium,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    marginBottom: spacing.xxs,
-  },
-  contextMetricValue: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-  },
-  segmentStrip: {
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  segmentItem: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colours.border,
-    borderRadius: radii.input,
-    backgroundColor: colours.surface,
-    padding: spacing.sm,
-  },
-  segmentItemCurrent: {
-    borderColor: colours.teal,
-    backgroundColor: colours.successSurface,
-  },
-  segmentDot: {
-    width: 12,
-    height: 12,
-    borderRadius: radii.full,
-    backgroundColor: colours.borderStrong,
-  },
-  segmentDotCompleted: {
-    backgroundColor: colours.primary,
-  },
-  segmentDotCurrent: {
-    backgroundColor: colours.teal,
-  },
-  segmentCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  segmentTitle: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-  },
-  segmentMeta: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    marginTop: spacing.xxxs,
-  },
-  draftPreview: {
-    borderTopWidth: 1,
-    borderTopColor: colours.border,
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    gap: spacing.sm,
-  },
-  draftPreviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  draftPreviewBadge: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.warning,
-    textTransform: 'uppercase',
-  },
-  draftPreviewTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.md,
-    color: colours.textPrimary,
-  },
-  draftPreviewBody: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.sm,
-    lineHeight: 19,
-    color: colours.textSecondary,
-  },
-  futurePreviewNode: {
-    borderColor: colours.border,
-  },
-  currentPreviewNode: {
-    borderColor: colours.teal,
-    backgroundColor: colours.white,
-  },
-  startPreviewNode: {
-    borderColor: colours.border,
-  },
-  draftExcludedNote: {
-    borderWidth: 1,
-    borderColor: colours.border,
-    borderRadius: radii.input,
-    backgroundColor: colours.warningSurface,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  draftExcludedTitle: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.warning,
-    textTransform: 'uppercase',
-  },
-  draftExcludedText: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.sm,
-    lineHeight: 20,
-    color: colours.textPrimary,
-    marginTop: spacing.xxs,
-  },
-  viewTimelineLink: {
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderTopWidth: 1,
-    borderTopColor: colours.border,
-    marginTop: spacing.xs,
-  },
-  viewTimelineLinkText: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.primary,
-  },
-  modalScrim: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: colours.modalScrim,
-  },
-  drawer: {
-    maxHeight: '84%',
-    borderTopLeftRadius: radii.card,
-    borderTopRightRadius: radii.card,
-    backgroundColor: colours.surfaceRaised,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  drawerHandle: {
-    alignSelf: 'center',
-    width: 44,
-    height: 4,
-    borderRadius: radii.full,
-    backgroundColor: colours.borderSoft,
-    marginBottom: spacing.md,
-  },
-  drawerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  drawerTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.lg,
-    color: colours.primary,
-  },
-  closeText: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.primary,
-  },
-  drawerOptionList: {
-    paddingBottom: spacing.md,
-  },
-  drawerGroupTitle: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    textTransform: 'uppercase',
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
-  drawerOptionRow: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    borderTopWidth: 1,
-    borderTopColor: colours.border,
-    paddingVertical: spacing.sm,
-  },
-  drawerOptionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colours.surfaceAccent,
-    marginRight: spacing.sm,
-    flexShrink: 0,
-  },
-  drawerOptionIconDanger: {
-    backgroundColor: colours.errorSurface,
-  },
-  drawerOptionCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.xxs,
-  },
-  drawerOptionTitle: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-  },
-  drawerOptionTitleDanger: {
-    color: colours.error,
-  },
-  drawerOptionDescription: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.xs,
-    lineHeight: 16,
-    color: colours.textSecondary,
-  },
-  chartCard: {
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  chartHeader: {
-    minHeight: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border,
-    paddingBottom: 10,
-    marginBottom: 12,
-  },
-  previewPressed: {
-    opacity: 0.84,
-  },
-  scheduleCard: {
-    paddingBottom: 8,
-  },
-  previewTitle: {
-    flex: 1,
-  },
-  fullscreenButton: {
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    borderRadius: radii.button,
-    backgroundColor: colours.white,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  actionButtonText: {
-    textTransform: 'uppercase',
-  },
-  fullscreenSafe: {
-    flex: 1,
-    backgroundColor: colours.background,
-  },
-  fullscreenHeader: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: layout.screenPadding,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colours.border,
-    backgroundColor: colours.background,
-  },
-  closeButton: {
-    minHeight: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    borderRadius: radii.button,
-    backgroundColor: colours.surface,
-    borderWidth: 1,
-    borderColor: colours.border,
-  },
-  fullscreenBody: {
-    flex: 1,
-  },
-  fullscreenContent: {
-    padding: layout.screenPadding,
-    paddingBottom: spacing['2xl'],
-  },
-  timelineSection: {
-    marginBottom: spacing.md,
-  },
-  timelineSectionTitle: {
-    color: colours.primary,
-    marginBottom: spacing.sm,
-  },
-  sectionTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.lg,
-    color: colours.primary,
-  },
-  addActivityButton: {
-    minHeight: 40,
-    paddingHorizontal: 14,
-  },
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: colours.border,
-  },
-  eventTitle: {
-    ...fontFaces.heading.bold,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-  },
-  eventDate: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.xs,
-    color: colours.textSecondary,
-    marginLeft: spacing.sm,
-    maxWidth: 92,
-    textAlign: 'right',
-  },
-  soonerNudgeCard: {
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colours.border,
-    borderStyle: 'dashed',
-    backgroundColor: colours.surface,
-    padding: spacing.md,
-    marginHorizontal: spacing.sm,
-    marginBottom: spacing.sm,
-    gap: spacing.sm,
-  },
-  soonerNudgeInner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  soonerNudgeCopy: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  soonerCardActive: {
-    marginHorizontal: spacing.sm,
-    marginBottom: spacing.sm,
-    backgroundColor: colours.successSurface,
-    borderColor: colours.successBorder,
-    gap: spacing.xs,
-  },
-  soonerCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  soonerCardTitle: {
-    flex: 1,
-  },
-  soonerSavingsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-  },
-  soonerMetric: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    minWidth: 0,
-    gap: spacing.xxxs,
-  },
-  soonerManageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: colours.successBorder,
-    paddingTop: spacing.xs,
-    marginTop: spacing.xxs,
-  },
-  overpaymentCard: {
-    marginBottom: 14,
-    marginHorizontal: spacing.sm,
-  },
-  overpaymentCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  overpaymentRowLeft: {
-    flex: 1,
-    minWidth: 0,
-  },
-  overpaymentCardFooter: {
-    borderTopWidth: 1,
-    borderTopColor: colours.border,
-    paddingTop: spacing.sm,
-    marginTop: spacing.xs,
-    gap: spacing.xxs,
-  },
-  overpaymentFooterTotal: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.textPrimary,
-  },
-  overpaymentFooterSaved: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.sm,
-    color: colours.secondary,
-  },
-});

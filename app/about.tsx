@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AppText } from '@/components/ui/AppText';
 import { Button } from '@/components/ui/Button';
@@ -21,20 +21,15 @@ interface FaqItem {
 export default function AboutScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ fromDashboard?: string }>();
   const faqItems = t('about.faqItems', { returnObjects: true }) as FaqItem[];
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
-  const openedFromDashboard = params.fromDashboard === '1';
 
   return (
-    // No 'bottom' edge: this screen sits above the tab bar, which owns the bottom inset.
-    <SafeAreaView style={styles.safe} edges={[]}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScreenHeader
         title={t('tabs.about')}
-        variant="top-level"
-        leftAction={openedFromDashboard ? (
-          <HeaderBackAction onPress={() => router.replace('/')} />
-        ) : undefined}
+        variant="detail"
+        leftAction={<HeaderBackAction onPress={() => router.back()} />}
       />
       <ScrollView contentContainerStyle={styles.container}>
         <Card style={styles.guideCard} variant="status" padding={layout.cardPadding}>

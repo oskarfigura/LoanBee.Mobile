@@ -1286,6 +1286,31 @@ describe('mortgage tracker', () => {
     expect(impact.extraPrincipalRepaid).toBeGreaterThan(0);
   });
 
+  it('ignores deal overpayment events outside the projected deal window', () => {
+    const baseDeal = makeMortgage().deals[0];
+    const loan = makeMortgage({
+      deals: [{ ...baseDeal, regularOverpayment: 0 }],
+      events: [
+        {
+          id: 'late-overpay',
+          createdAt: '2031-07-01T00:00:00.000Z',
+          updatedAt: '2031-07-01T00:00:00.000Z',
+          dealId: baseDeal.id,
+          type: 'lumpOverpayment',
+          date: '2031-07-01',
+          amount: 10000,
+        },
+      ],
+    });
+
+    const impact = getDealOverpaymentImpact(loan.deals[0], loan.events);
+
+    expect(impact.hasOverpayments).toBe(false);
+    expect(impact.totalOverpayments).toBe(0);
+    expect(impact.interestSaved).toBe(0);
+    expect(impact.extraPrincipalRepaid).toBe(0);
+  });
+
   it('reports interest saved for a completed deal by ignoring the bank-confirmed override on the baseline', () => {
     const completed = {
       ...makeMortgage().deals[0],
@@ -1338,6 +1363,26 @@ describe('mortgage tracker', () => {
     const impact = getDealOverpaymentImpact(baseDeal, loan.events);
 
     expect(impact.totalOverpayments).toBeCloseTo(150 * 58, 0);
+  });
+
+  it('does not let skipped-payment events outside the projected window reduce regular overpayment totals', () => {
+    const baseDeal = makeMortgage().deals[0];
+    const loan = makeMortgage({
+      events: [
+        {
+          id: 'late-holiday',
+          createdAt: '2031-07-01T00:00:00.000Z',
+          updatedAt: '2031-07-01T00:00:00.000Z',
+          dealId: baseDeal.id,
+          type: 'paymentHoliday',
+          date: '2031-07-01',
+        },
+      ],
+    });
+
+    const impact = getDealOverpaymentImpact(baseDeal, loan.events);
+
+    expect(impact.totalOverpayments).toBeCloseTo(150 * 60, 0);
   });
 
   it('omits events tied to draft deals from recent activity', () => {

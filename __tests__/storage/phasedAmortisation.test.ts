@@ -59,6 +59,36 @@ describe('phased amortisation — dedupe consistency', () => {
     expect(fromScenario.monthlyPayments).toBeCloseTo(fromOverpayments.monthlyPayments, 2);
   });
 
+  it('ignores deal-scoped lump events when computing whole-loan scenarios', () => {
+    const withDealScopedLump: LoanGroup = {
+      ...baseLoan,
+      events: [
+        ...baseLoan.events,
+        {
+          id: 'deal-scoped',
+          createdAt: '',
+          updatedAt: '',
+          dealId: 'deal-current',
+          type: 'lumpOverpayment',
+          date: '2024-08-01',
+          amount: 25_000,
+        },
+      ],
+    };
+    const lumpSums = baseLoan.events
+      .filter(e => e.type === 'lumpOverpayment' && !e.dealId)
+      .map(e => ({ date: e.date, amount: e.amount ?? 0 }));
+    const fromScenario = computeLoanWithEvents(withDealScopedLump, withDealScopedLump.formSnapshot.additionalMonthlyPayment ?? 0);
+    const fromOverpayments = computeLoanOverpayments(
+      withDealScopedLump.formSnapshot,
+      withDealScopedLump.formSnapshot.additionalMonthlyPayment ?? 0,
+      lumpSums,
+    ).scenario;
+
+    expect(fromScenario.totalInterestPaid).toBeCloseTo(fromOverpayments.totalInterestPaid, 2);
+    expect(fromScenario.totalTermInMonths).toBe(fromOverpayments.totalTermInMonths);
+  });
+
   it('returns the unmodified base schedule when there are no lump sums', () => {
     const noLumpsLoan: LoanGroup = { ...baseLoan, events: [] };
     const result = computeLoanWithEvents(noLumpsLoan, 0);

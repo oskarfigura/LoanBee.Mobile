@@ -3,25 +3,25 @@ import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookmarkIcon } from '@/components/ui/Icons/BookmarkIcon/BookmarkIcon';
-import { CoinsStackedIcon } from '@/components/ui/Icons/CoinsStackedIcon/CoinsStackedIcon';
-import { InfoCircleIcon } from '@/components/ui/Icons/InfoCircleIcon/InfoCircleIcon';
+import { HomeIcon } from '@/components/ui/Icons/HomeIcon/HomeIcon';
+import { PlusCircleIcon } from '@/components/ui/Icons/PlusCircleIcon/PlusCircleIcon';
 import { SettingsIcon } from '@/components/ui/Icons/SettingsIcon/SettingsIcon';
 import { colours, elevation, fontFaces, fontSizes, radii } from '@/theme';
 import { confirmResultLeave, hasResultLeaveGuard } from '@/navigation/resultLeaveGuard';
 
-type TabIconName = 'calculator' | 'saved' | 'about' | 'settings';
+type TabIconName = 'home' | 'calculate' | 'saved' | 'settings';
 
 const TabIcon = ({ name, color }: { name: TabIconName; color: string }) => {
-  if (name === 'calculator') {
-    return <CoinsStackedIcon color={color} size={24} strokeWidth={1.9} />;
+  if (name === 'home') {
+    return <HomeIcon color={color} size={24} strokeWidth={1.9} />;
   }
 
   if (name === 'saved') {
     return <BookmarkIcon color={color} size={24} strokeWidth={1.9} />;
   }
 
-  if (name === 'about') {
-    return <InfoCircleIcon color={color} size={24} strokeWidth={1.9} />;
+  if (name === 'calculate') {
+    return <PlusCircleIcon color={color} size={24} strokeWidth={1.9} />;
   }
 
   return <SettingsIcon color={color} size={24} strokeWidth={1.9} />;
@@ -42,6 +42,11 @@ export default function TabLayout() {
               return;
             }
 
+            if (route.name === 'calculate') {
+              navigation.navigate('calculate', { calculator: String(Date.now()) });
+              return;
+            }
+
             navigation.navigate(route.name);
           };
 
@@ -51,7 +56,7 @@ export default function TabLayout() {
             return;
           }
 
-          if (route.name === 'index') {
+          if (route.name === 'index' || route.name === 'calculate') {
             event.preventDefault();
             navigateToTab();
           }
@@ -91,7 +96,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('tabs.home'),
-          tabBarIcon: ({ color }) => <TabIcon name="calculator" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="calculate"
+        options={{
+          title: t('tabs.calculator'),
+          tabBarIcon: ({ color }) => <TabIcon name="calculate" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -99,13 +111,6 @@ export default function TabLayout() {
         options={{
           title: t('tabs.saved'),
           tabBarIcon: ({ color }) => <TabIcon name="saved" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="about"
-        options={{
-          title: t('tabs.about'),
-          tabBarIcon: ({ color }) => <TabIcon name="about" color={color} />,
         }}
       />
       <Tabs.Screen

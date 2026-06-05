@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
 import { formatCurrencyCompact } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
-import { getProjectionChartWidth } from './dimensions';
+import { getProjectionChartLayout } from './dimensions';
 
 interface Props {
   monthlyArray: number[];
@@ -13,12 +13,17 @@ interface Props {
   currency: CurrencyCode;
   height?: number;
   // Optional cumulative lump-overpayment series, parallel to monthlyArray. When
-  // provided, lump overpayments are drawn as their own stack segment so a one-off
-  // overpayment reads as an overpayment rather than an unexplained principal spike.
+  // provided, lump overpayments are flagged with a marker above the affected year
+  // instead of being stacked into the bar — a one-off overpayment shouldn't tower
+  // over (and crush the scale of) every other year's scheduled repayment.
   lumpArray?: number[];
 }
 
 const SAMPLE_STEP = 12;
+const BAR_WIDTH = 18;
+const BAR_SPACING = 14;
+const INITIAL_SPACING = 8;
+const END_SPACING = 16;
 
 type StackSegment = {
   value: number;
@@ -29,11 +34,17 @@ type StackSegment = {
   borderTopRightRadius?: number;
 };
 
+const OverpaymentMarker = ({ amount, currency }: { amount: number; currency: CurrencyCode }) => (
+  <View style={styles.marker}>
+    <Text style={styles.markerText} numberOfLines={1}>
+      {`+${formatCurrencyCompact(amount, currency)}`}
+    </Text>
+  </View>
+);
+
 export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, height = 196, lumpArray }: Props) => {
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
-  const width = getProjectionChartWidth(containerWidth);
-  const shouldScroll = containerWidth > 0 && width + 66 > containerWidth;
 
   const yearlyData = [];
   let anyLump = false;
@@ -42,7 +53,7 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, heigh
     const interestPaid = interestArray[i] - interestArray[i - SAMPLE_STEP];
     const lumpPaid = lumpArray ? Math.max(0, lumpArray[i] - lumpArray[i - SAMPLE_STEP]) : 0;
     // Lump overpayments are part of totalPaid; pull them out so the principal segment
-    // reflects scheduled repayment only.
+    // reflects scheduled repayment only and the bar height stays comparable year to year.
     const principalPaid = Math.max(0, totalPaid - interestPaid - lumpPaid);
     const hasLump = lumpPaid > 0.005;
     if (hasLump) anyLump = true;
@@ -57,21 +68,29 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, heigh
       {
         value: interestPaid,
         color: colours.accent,
-        ...(hasLump ? {} : { borderTopLeftRadius: 5, borderTopRightRadius: 5 }),
-      },
-    ];
-    if (hasLump) {
-      stacks.push({
-        value: lumpPaid,
-        color: colours.teal,
         borderTopLeftRadius: 5,
         borderTopRightRadius: 5,
-      });
-    }
-    yearlyData.push({ stacks, label: `Y${year}` });
+      },
+    ];
+    yearlyData.push({
+      stacks,
+      label: `Y${year}`,
+      ...(hasLump
+        ? {
+          topLabelComponent: () => <OverpaymentMarker amount={lumpPaid} currency={currency} />,
+        }
+        : {}),
+    });
   }
 
   if (yearlyData.length === 0) return null;
+
+  const { chartWidth, scrollEnabled } = getProjectionChartLayout({
+    containerWidth,
+    pointCount: yearlyData.length,
+    perPointWidth: BAR_WIDTH + BAR_SPACING,
+    edgeSpacing: INITIAL_SPACING + END_SPACING,
+  });
 
   return (
     <View
@@ -79,18 +98,18 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, heigh
       onLayout={event => setContainerWidth(event.nativeEvent.layout.width)}
     >
       <ScrollView
-        horizontal={shouldScroll}
-        scrollEnabled={shouldScroll}
-        showsHorizontalScrollIndicator={shouldScroll}
+        horizontal={scrollEnabled}
+        scrollEnabled={scrollEnabled}
+        showsHorizontalScrollIndicator={scrollEnabled}
       >
         <BarChart
           stackData={yearlyData}
-          width={width}
+          width={chartWidth}
           height={height}
-          barWidth={Math.max(8, Math.min(24, width / yearlyData.length - 4))}
-          spacing={Math.max(8, Math.min(18, width / yearlyData.length / 2))}
-          initialSpacing={8}
-          endSpacing={16}
+          barWidth={BAR_WIDTH}
+          spacing={BAR_SPACING}
+          initialSpacing={INITIAL_SPACING}
+          endSpacing={END_SPACING}
           noOfSections={4}
           yAxisTextStyle={styles.axisText}
           xAxisLabelTextStyle={styles.axisText}
@@ -105,8 +124,8 @@ export const RepaymentBarChart = ({ monthlyArray, interestArray, currency, heigh
           showYAxisIndices={false}
           showXAxisIndices={false}
           formatYLabel={v => formatCurrencyCompact(+v, currency)}
-          disableScroll={!shouldScroll}
-          adjustToWidth={!shouldScroll}
+          disableScroll={!scrollEnabled}
+          adjustToWidth={!scrollEnabled}
           isAnimated
         />
       </ScrollView>
@@ -136,6 +155,18 @@ const styles = StyleSheet.create({
     ...fontFaces.body.regular,
     fontSize: fontSizes.tiny,
     color: colours.textSecondary,
+  },
+  marker: {
+    backgroundColor: colours.teal,
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    marginBottom: 4,
+  },
+  markerText: {
+    ...fontFaces.heading.bold,
+    fontSize: fontSizes.tiny,
+    color: colours.white,
   },
   legend: {
     flexDirection: 'row',

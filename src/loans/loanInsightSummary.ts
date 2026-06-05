@@ -1,5 +1,6 @@
 import { CurrencyCode } from '@/currency/currencies';
 import { formatCurrency } from '@/currency/format';
+import { buildScenarioRemainingArray, computeLoanOverpayments, LumpSumEntry } from '@/loans/loanOverpaymentCalc';
 import { buildMortgageProjection } from '@/mortgage/projection';
 import { getMortgageTrackerSummary, getPublishedDeals } from '@/mortgage/tracker';
 import { LoanResult } from '@/results/loanResultRoute';
@@ -133,22 +134,30 @@ const buildSavedProgress = (
     };
   }
 
+  const additionalPayment = loan.formSnapshot.additionalMonthlyPayment ?? 0;
+  const lumpEntries: LumpSumEntry[] = (loan.events ?? [])
+    .filter(e => e.type === 'lumpOverpayment' && !e.dealId && (e.amount ?? 0) > 0)
+    .map(e => ({ date: e.date, amount: e.amount ?? 0 }));
+  const hasOverpayment = additionalPayment > 0 || lumpEntries.length > 0;
+  const overpaymentResult = hasOverpayment
+    ? computeLoanOverpayments(loan.formSnapshot, additionalPayment, lumpEntries)
+    : null;
   const elapsed = Math.max(0, monthsBetween(loan.formSnapshot.startDate, asOf));
-  const total = Math.max(loan.resultSnapshot.totalTermInMonths, result.tableItems.length, 1);
+  const total = overpaymentResult
+    ? Math.max(overpaymentResult.scenario.totalTermInMonths, 1)
+    : Math.max(loan.resultSnapshot.totalTermInMonths, result.tableItems.length, 1);
   const progress = clamp(elapsed / total);
   const remaining = Math.max(0, total - elapsed);
   const principalAmount = getPrincipalAmount(result);
-  const rawBalance = getCurrentBalance(result, loan.formSnapshot.startDate, asOf);
-  const lumpSumOffset = (loan.events ?? [])
-    .filter(e => e.type === 'lumpOverpayment' && !e.dealId && e.date <= asOf.toISOString().slice(0, 10))
-    .reduce((sum, e) => sum + (e.amount ?? 0), 0);
-  const currentBalance = Math.max(0, rawBalance - lumpSumOffset);
+  const scenarioRemaining = overpaymentResult
+    ? buildScenarioRemainingArray(loan.formSnapshot, additionalPayment, lumpEntries)
+    : null;
+  const currentBalance = scenarioRemaining
+    ? scenarioRemaining[Math.min(elapsed, scenarioRemaining.length - 1)] ?? 0
+    : getCurrentBalance(result, loan.formSnapshot.startDate, asOf);
   const paidSoFar = Math.max(0, principalAmount - currentBalance);
-  const hasOverpayment = (loan.formSnapshot.additionalMonthlyPayment ?? 0) > 0
-    || loan.events.some(e => e.type === 'lumpOverpayment' && (e.amount ?? 0) > 0);
-  const savings = loan.resultSnapshot.totalInterestPaidBaseline - loan.resultSnapshot.totalInterestPaid;
-  const baselineTermMonths = loan.resultSnapshot.termInYears * 12 + loan.resultSnapshot.termInMonths;
-  const termSaved = Math.max(0, baselineTermMonths - loan.resultSnapshot.totalTermInMonths);
+  const savings = overpaymentResult?.interestSaved ?? 0;
+  const termSaved = overpaymentResult?.monthsSaved ?? 0;
 
   return {
     labelKey: 'saved.loanProgress',

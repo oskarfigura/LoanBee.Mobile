@@ -9,10 +9,12 @@ import {
   buildCalculationDisplayContract,
   buildSavedLoanDisplayContract,
 } from '../../src/loans/loanDisplayContract';
+import { buildScenarioRemainingArray, computeLoanOverpayments } from '../../src/loans/loanOverpaymentCalc';
 import { buildInitialDeal, buildResultSnapshot, normaliseFormSnapshot } from '../../src/loans/loanGroupFactory';
 import { getMortgageTrackerSummary } from '../../src/mortgage/tracker';
 import { getResultForSavedLoan } from '../../src/results/loanResultRoute';
 import { LoanGroup } from '../../src/types/SavedLoan';
+import { monthsBetween } from '../../src/utils/date';
 
 const findMetric = (
   metrics: Array<{ id: string; value: string; labelKey: string }>,
@@ -342,6 +344,53 @@ describe('loan display contract', () => {
       'currentBalance',
       'paidSoFar',
     ]);
+  });
+
+  it('derives saved-loan overpayment savings from live overpayments instead of stale snapshots', () => {
+    const base = makeMortgage();
+    const lump = {
+      id: 'loan-lump',
+      createdAt: '2027-01-01T00:00:00.000Z',
+      updatedAt: '2027-01-01T00:00:00.000Z',
+      type: 'lumpOverpayment' as const,
+      date: '2027-01-01',
+      amount: 8000,
+    };
+    const loan = makeMortgage({
+      category: 'loan',
+      deals: [],
+      events: [lump],
+      resultSnapshot: {
+        ...base.resultSnapshot,
+        totalInterestPaid: 10,
+        totalInterestPaidBaseline: 10,
+        totalTermInMonths: 999,
+      },
+    });
+    const expected = computeLoanOverpayments(
+      loan.formSnapshot,
+      loan.formSnapshot.additionalMonthlyPayment ?? 0,
+      [{ date: lump.date, amount: lump.amount }],
+    );
+    const asOf = new Date('2027-07-01T00:00:00Z');
+    const expectedRemaining = buildScenarioRemainingArray(
+      loan.formSnapshot,
+      loan.formSnapshot.additionalMonthlyPayment ?? 0,
+      [{ date: lump.date, amount: lump.amount }],
+    );
+    const expectedBalance = expectedRemaining[monthsBetween(loan.formSnapshot.startDate, asOf)] ?? 0;
+    const contract = buildSavedLoanDisplayContract({
+      loan,
+      result: getResultForSavedLoan(loan),
+      asOf,
+      locale: 'en',
+    });
+    const currentBalance = contract.summary.progress?.metrics.find(metric => metric.id === 'currentBalance');
+
+    expect(contract.summary.progress?.interestSaved).toBeCloseTo(expected.interestSaved, 2);
+    expect(contract.summary.progress?.termSavedMonths).toBe(expected.monthsSaved);
+    expect(contract.summary.progress?.caption.values?.total).toBe(expected.scenario.totalTermInMonths);
+    expect(parseDisplayAmount(currentBalance?.value ?? '')).toBeCloseTo(expectedBalance, 0);
   });
 
   it('omits overpayment savings and marks old paid-down loans as completed', () => {

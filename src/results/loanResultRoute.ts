@@ -2,10 +2,27 @@ import { getLoanCalculations } from '@/core/amortisation';
 import { DownPaymentType } from '@/core/DownPaymentType';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { CurrencyCode } from '@/currency/currencies';
-import { SavedLoan } from '@/types/SavedLoan';
+import type { LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
+import { recentCalculationsStorage } from '@/storage/recentCalculations';
+import type { SavedLoan } from '@/types/SavedLoan';
 import { createDraftResultSession } from './draftResultStore';
 
 export type LoanResult = ReturnType<typeof getLoanCalculations>;
+
+export const getResultForFormValues = (form: LoanCalculatorFormValues): LoanResult => (
+  getLoanCalculations(
+    form.loanAmount,
+    form.interest,
+    form.termInYears ?? 0,
+    form.termInMonths ?? 0,
+    form.desiredMonthlyPayment ?? 0,
+    form.calculationType as LoanCalculationType,
+    form.downPayment,
+    form.downPaymentType as DownPaymentType,
+    form.additionalMonthlyPayment,
+    form.startDate,
+  )
+);
 
 export const getResultForSavedLoan = (loan: SavedLoan): LoanResult => {
   const form = loan.formSnapshot;
@@ -31,12 +48,38 @@ export const buildSavedLoanResultParams = (loan: SavedLoan) => ({
   currency: loan.currency,
 });
 
-export const buildDraftResultParams = (
+// Opens a fresh calculation result: persists it twice — an ephemeral draft session
+// (for the unsaved-result flow) and a durable Recent Calculations entry — then returns
+// the route params that point at them. Unlike the sibling `build*Params` helpers this
+// is not pure; the name signals the writes. Every calculator submit or shared-link open
+// records one Recent entry (capped at MAX_RECENT_CALCULATIONS).
+export const beginDraftResult = (
   result: LoanResult,
-  formValues: unknown,
+  formValues: LoanCalculatorFormValues,
   currency: CurrencyCode,
 ) => ({
   mode: 'draft',
   draftId: createDraftResultSession(result, formValues, currency).id,
+  recentId: recentCalculationsStorage.addFromResult({
+    result,
+    formValues,
+    currency,
+  }).id,
+  currency,
+});
+
+export const buildRecentResultParams = (recentId: string) => ({
+  mode: 'recent',
+  recentId,
+});
+
+// Reopen a calculation in the calculator with its inputs pre-filled, so "Edit" on a
+// draft or recent result lets the user change the figures and recalculate rather
+// than just bouncing back to wherever they came from.
+export const buildEditCalculatorParams = (
+  formValues: LoanCalculatorFormValues,
+  currency: CurrencyCode,
+) => ({
+  editValues: JSON.stringify(formValues),
   currency,
 });

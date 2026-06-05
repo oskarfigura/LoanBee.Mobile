@@ -1,5 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
-import { buildInitialDeal } from '../../src/loans/loanGroupFactory';
+import { buildDraftLoanPreview, buildInitialDeal, RawFormValues } from '../../src/loans/loanGroupFactory';
+import { getLoanCalculations } from '../../src/core/amortisation';
+import { LoanCalculationType } from '../../src/core/LoanCalculationType';
+import { DownPaymentType } from '../../src/core/DownPaymentType';
 import { LoanGroup } from '../../src/types/SavedLoan';
 
 const makeMortgage = (overrides: Partial<LoanGroup> = {}): LoanGroup => ({
@@ -61,5 +64,35 @@ describe('loanGroupFactory', () => {
 
     expect(deal.endDate).toBe('2061-01-01');
     expect(deal.source).toBe('estimate');
+  });
+});
+
+describe('buildDraftLoanPreview baseline', () => {
+  const draftForm: RawFormValues = {
+    loanAmount: 300000,
+    interest: 4,
+    termInYears: 25,
+    termInMonths: 0,
+    downPayment: 10,
+    downPaymentType: 'percent',
+    desiredMonthlyPayment: 0,
+    additionalMonthlyPayment: 0,
+    startDate: '2026-01-01',
+    calculationType: 'term',
+  };
+  const result = getLoanCalculations(
+    300000, 4, 25, 0, 0, LoanCalculationType.TERM, 10, DownPaymentType.PERCENT, 0, '2026-01-01',
+  );
+
+  it('computes the baseline down the lowercase core path (term + percent deposit)', () => {
+    const preview = buildDraftLoanPreview(draftForm, result, 'GBP');
+    // The core compares lowercase enums; the baseline must match the term/percent path,
+    // not the payment/cash path that uppercase values would (wrongly) select.
+    const expected = getLoanCalculations(
+      300000, 4, 25, 0, 0, LoanCalculationType.TERM, 10, DownPaymentType.PERCENT, 0, '2026-01-01',
+    );
+
+    expect(preview.resultSnapshot.totalInterestPaidBaseline).toBeCloseTo(expected.totalInterestPaid, 2);
+    expect(preview.resultSnapshot.totalInterestPaidBaseline).toBeGreaterThan(0);
   });
 });

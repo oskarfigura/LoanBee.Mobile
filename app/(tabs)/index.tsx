@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -7,35 +7,78 @@ import {
   useLoanCalculatorForm,
   LoanCalculatorFormValues,
 } from '@/hooks/useLoanCalculatorForm';
+import { useSavedLoans } from '@/hooks/useSavedLoans';
 import { getLoanCalculations } from '@/core/amortisation';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { DownPaymentType } from '@/core/DownPaymentType';
 import { CurrencyCode } from '@/currency/currencies';
 import { LoanForm } from '@/components/calculator/LoanForm';
+import { MortgageDashboard } from '@/components/loans/MortgageDashboard';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppText } from '@/components/ui/AppText';
-import { colours, spacing } from '@/theme';
-import { buildDraftResultParams } from '@/results/loanResultRoute';
+import { colours, elevation, layout, radii, spacing } from '@/theme';
+import { beginDraftResult } from '@/results/loanResultRoute';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSavedLoans } from '@/hooks/useSavedLoans';
-import { MortgageDashboard } from '@/components/loans/MortgageDashboard';
 import { hasSeenGuide } from '@/onboarding/guideState';
 import { whenConsentFlowComplete } from '@/onboarding/firstRunGate';
 
-export default function CalculatorScreen() {
+type JourneyStep = 'intent' | 'form';
+
+interface JourneyOptionProps {
+  title: string;
+  body: string;
+  meta?: string;
+  onPress: () => void;
+}
+
+const JourneyOption = ({ title, body, meta, onPress }: JourneyOptionProps) => (
+  <TouchableOpacity
+    accessibilityRole="button"
+    activeOpacity={0.84}
+    onPress={onPress}
+    style={styles.optionCard}
+  >
+    {meta ? (
+      <AppText variant="labelSm" tone="accent" style={styles.optionMeta}>
+        {meta}
+      </AppText>
+    ) : null}
+    <AppText variant="title2" style={styles.optionTitle}>
+      {title}
+    </AppText>
+    <AppText variant="bodySm" tone="muted" style={styles.optionBody}>
+      {body}
+    </AppText>
+  </TouchableOpacity>
+);
+
+interface BorrowingJourneyScreenProps {
+  mode?: 'home' | 'calculate';
+}
+
+export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreenProps) {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useLocalSearchParams<{ calculator?: string; dashboard?: string }>();
+  const params = useLocalSearchParams<{
+    calculator?: string;
+    dashboard?: string;
+    editValues?: string;
+  }>();
+  const isCalculateTab = mode === 'calculate';
   const form = useLoanCalculatorForm();
+  const consumedEditRef = useRef<string | null>(null);
   const { loans, refresh } = useSavedLoans();
-  const [showCalculator, setShowCalculator] = useState(false);
-  const pinnedLoans = useMemo(() => (
-    loans
-      .filter(loan => loan.pinnedToDashboard)
-      .sort((a, b) => (a.dashboardOrder ?? 0) - (b.dashboardOrder ?? 0))
-  ), [loans]);
+  const [journeyStep, setJourneyStep] = useState<JourneyStep>('intent');
+  const [showCalculator, setShowCalculator] = useState(isCalculateTab);
   const firstRunChecked = useRef(false);
+
+  const pinnedLoans = useMemo(
+    () => loans
+      .filter(loan => loan.pinnedToDashboard)
+      .sort((a, b) => (a.dashboardOrder ?? 0) - (b.dashboardOrder ?? 0)),
+    [loans],
+  );
 
   useEffect(() => {
     if (firstRunChecked.current) return;
@@ -56,27 +99,78 @@ export default function CalculatorScreen() {
   }, [router]);
 
   useEffect(() => {
-    if (params.calculator === '1') {
+    if (isCalculateTab || params.calculator) {
       setShowCalculator(true);
+      setJourneyStep('intent');
     }
-  }, [params.calculator]);
+  }, [isCalculateTab, params.calculator]);
 
   useEffect(() => {
-    if (params.dashboard) {
+    if (!isCalculateTab && params.dashboard) {
       setShowCalculator(false);
     }
-  }, [params.dashboard]);
+  }, [isCalculateTab, params.dashboard]);
+
+  // Reopen for editing: hydrate the form from the calc's inputs and jump straight to
+  // the form step. Clear the param once consumed so a later plain visit to the tab
+  // starts fresh. Runs after the focus effect below, so the parsed currency wins.
+  useEffect(() => {
+    const editValues = params.editValues;
+    if (!editValues || consumedEditRef.current === editValues) return;
+    consumedEditRef.current = editValues;
+    try {
+      const parsed = JSON.parse(editValues) as Partial<LoanCalculatorFormValues>;
+      form.reset(parsed);
+      setShowCalculator(true);
+      setJourneyStep('form');
+    } catch {
+      // Ignore a malformed edit payload — fall back to a normal calculator visit.
+    }
+    router.setParams({ editValues: '' });
+  }, [params.editValues, form, router]);
 
   useFocusEffect(
     useCallback(() => {
       refresh();
+      // Don't clobber an edited calc's currency while we're hydrating it.
+      if (params.editValues) return;
       form.setValue('currency', getDefaultCurrency(), {
         shouldDirty: false,
         shouldTouch: false,
         shouldValidate: false,
       });
-    }, [form, refresh])
+    }, [form, refresh, params.editValues])
   );
+
+  const openCalculator = useCallback(() => {
+    router.push('/calculate');
+  }, [router]);
+
+  const returnToDashboard = useCallback(() => {
+    if (isCalculateTab) {
+      setJourneyStep('intent');
+      return;
+    }
+
+    setShowCalculator(false);
+  }, [isCalculateTab]);
+
+  const handleJourneyBack = useCallback(() => {
+    if (journeyStep === 'intent') {
+      returnToDashboard();
+      return;
+    }
+
+    setJourneyStep('intent');
+  }, [journeyStep, returnToDashboard]);
+
+  const openPlanForm = useCallback(() => {
+    setJourneyStep('form');
+  }, []);
+
+  const openTrackForm = useCallback(() => {
+    router.push('/saved/track');
+  }, [router]);
 
   const handleSubmit = (values: LoanCalculatorFormValues) => {
     const result = getLoanCalculations(
@@ -94,16 +188,57 @@ export default function CalculatorScreen() {
 
     router.push({
       pathname: '/result' as never,
-      params: buildDraftResultParams(result, values, values.currency as CurrencyCode),
+      params: beginDraftResult(result, values, values.currency as CurrencyCode),
     });
   };
 
-  if (pinnedLoans.length > 0 && !showCalculator) {
+  const canGoBackInJourney = journeyStep !== 'intent' || (!isCalculateTab && pinnedLoans.length > 0);
+  const journeyBackAction = canGoBackInJourney ? (
+    <HeaderBackAction onPress={handleJourneyBack} />
+  ) : undefined;
+
+  if (!isCalculateTab && pinnedLoans.length > 0 && !showCalculator) {
     return (
-      // No 'bottom' edge: tab screens sit above the tab bar, which already clears the
-      // device bottom inset. Adding it here double-counts and opens a gap above the bar.
       <SafeAreaView style={styles.safe} edges={[]}>
-        <MortgageDashboard loans={pinnedLoans} onNewCalculation={() => setShowCalculator(true)} />
+        <MortgageDashboard loans={pinnedLoans} onNewCalculation={openCalculator} />
+      </SafeAreaView>
+    );
+  }
+
+  if (journeyStep !== 'form') {
+    return (
+      <SafeAreaView style={styles.safe} edges={[]}>
+        <ScreenHeader
+          title={t('journey.title')}
+          variant="top-level"
+          leftAction={journeyBackAction}
+        />
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          <View style={styles.journeyIntro}>
+            <AppText variant="labelSm" tone="accent" style={styles.kicker}>
+              {t('journey.stepIntent')}
+            </AppText>
+            <AppText variant="title1" style={styles.journeyTitle}>
+              {t('journey.intentTitle')}
+            </AppText>
+            <AppText variant="bodyLg" tone="muted" style={styles.journeyBody}>
+              {t('journey.intentHelp')}
+            </AppText>
+          </View>
+
+          <View style={styles.optionList}>
+            <JourneyOption
+              title={t('journey.planTitle')}
+              body={t('journey.scenarioHelp')}
+              onPress={openPlanForm}
+            />
+            <JourneyOption
+              title={t('journey.trackBorrowing')}
+              body={t('journey.trackHelp')}
+              onPress={openTrackForm}
+            />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -112,9 +247,9 @@ export default function CalculatorScreen() {
     // No 'bottom' edge: this screen sits above the tab bar, which owns the bottom inset.
     <SafeAreaView style={styles.safe} edges={[]}>
       <ScreenHeader
-        title={t('calculator.title')}
+        title={t('tabs.calculator')}
         variant="top-level"
-        leftAction={pinnedLoans.length > 0 ? <HeaderBackAction onPress={() => setShowCalculator(false)} /> : undefined}
+        leftAction={journeyBackAction}
       />
       <LoanForm
         form={form}
@@ -131,8 +266,50 @@ export default function CalculatorScreen() {
   );
 }
 
+export default function HomeScreen() {
+  return <BorrowingJourneyScreen mode="home" />;
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
+  container: {
+    padding: layout.screenPadding,
+    paddingBottom: spacing['3xl'],
+  },
+  kicker: {
+    textTransform: 'uppercase',
+  },
+  journeyIntro: {
+    gap: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  journeyTitle: {
+    color: colours.textPrimary,
+  },
+  journeyBody: {
+    maxWidth: '96%',
+  },
+  optionList: {
+    gap: spacing.md,
+  },
+  optionCard: {
+    backgroundColor: colours.surfaceRaised,
+    borderColor: colours.borderSoft,
+    borderWidth: 1,
+    borderRadius: radii.card,
+    padding: layout.cardPadding,
+    gap: spacing.xs,
+    ...elevation.level1,
+  },
+  optionMeta: {
+    textTransform: 'uppercase',
+  },
+  optionTitle: {
+    color: colours.textPrimary,
+  },
+  optionBody: {
+    maxWidth: '96%',
+  },
   pageIntro: {
     marginBottom: spacing.lg,
   },

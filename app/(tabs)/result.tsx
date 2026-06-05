@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
-  Share,
   View,
   StyleSheet,
 } from 'react-native';
@@ -14,23 +12,27 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton';
 import { BannerAd } from '@/ads/BannerAd';
-import { colours, layout } from '@/theme';
+import { colours } from '@/theme';
 import { CurrencyCode } from '@/currency/currencies';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SavedLoan } from '@/types/SavedLoan';
 import {
   LoanResult,
   getResultForSavedLoan,
+  getResultForFormValues,
+  buildEditCalculatorParams,
 } from '@/results/loanResultRoute';
+import { LoanCalculatorFormValues } from '@/hooks/useLoanCalculatorForm';
 import { getDraftResultSession } from '@/results/draftResultStore';
 import { savedLoansStorage } from '@/storage/savedLoans';
+import { recentCalculationsStorage } from '@/storage/recentCalculations';
 import { setResultLeaveGuard } from '@/navigation/resultLeaveGuard';
 import { useStoreReview } from '@/review';
-import { formatCurrency } from '@/currency/format';
-import { getCalculationWebShareUrl, ShareableCalculationValues } from '@/share/calculationShareLink';
+import { shareCalculation } from '@/share/shareCalculation';
 import { UnsavedResultModal } from '@/components/results/UnsavedResultModal';
 import { EditIcon } from '@/components/loans/LoanIcons';
-import { CalculationSummaryPanel } from '@/components/calculator/CalculationSummaryPanel';
+import { LoanSummaryPanel } from '@/components/calculator/LoanSummaryPanel';
+import { buildDraftLoanPreview, RawFormValues } from '@/loans/loanGroupFactory';
 import { SaveIcon } from '@/components/ui/Icons/SaveIcon/SaveIcon';
 import { ShareIcon } from '@/components/ui/Icons/ShareIcon/ShareIcon';
 
@@ -40,6 +42,7 @@ type ResultParams = {
   formValues?: string;
   currency?: string;
   mode?: string;
+  recentId?: string;
   savedLoan?: string;
   savedLoanId?: string;
 };
@@ -68,24 +71,33 @@ export default function ResultScreen() {
     if (fromParams) return fromParams;
     return params.savedLoanId ? savedLoansStorage.getById(params.savedLoanId) ?? null : null;
   }, [params.savedLoan, params.savedLoanId]);
+  const recentCalculation = useMemo(() => (
+    params.recentId ? recentCalculationsStorage.getById(params.recentId) ?? null : null
+  ), [params.recentId]);
   const isSavedMode = params.mode === 'saved' && savedLoan !== null;
   const draftSession = useMemo(() => getDraftResultSession(params.draftId), [params.draftId]);
 
   const result = useMemo(() => {
     if (savedLoan) return getResultForSavedLoan(savedLoan);
     if (draftSession) return draftSession.result;
+    if (recentCalculation) return getResultForFormValues(recentCalculation.formValues);
     return parseJson<LoanResult>(params.result);
-  }, [draftSession, params.result, savedLoan]);
+  }, [draftSession, params.result, recentCalculation, savedLoan]);
   const formValues = useMemo(() => (
     savedLoan?.formSnapshot
     ?? draftSession?.formValues
+    ?? recentCalculation?.formValues
     ?? parseJson<Record<string, unknown>>(params.formValues)
-  ), [draftSession?.formValues, params.formValues, savedLoan]);
-  const currency = ((savedLoan?.currency ?? draftSession?.currency ?? params.currency) as CurrencyCode | undefined) ?? 'GBP';
-  const additionalMonthlyPayment =
-    typeof (formValues as Record<string, unknown>)?.additionalMonthlyPayment === 'number'
-      ? (formValues as Record<string, unknown>).additionalMonthlyPayment as number
-      : 0;
+  ), [draftSession?.formValues, params.formValues, recentCalculation?.formValues, savedLoan]);
+  const currency = ((savedLoan?.currency ?? draftSession?.currency ?? recentCalculation?.currency ?? params.currency) as CurrencyCode | undefined) ?? 'GBP';
+  // Preview an unsaved calculation through the same summary surface the saved-loan
+  // detail uses, by building a transient draft loan from the calculation inputs.
+  const draftLoan = useMemo(
+    () => (!isSavedMode && result && formValues
+      ? buildDraftLoanPreview(formValues as unknown as RawFormValues, result, currency)
+      : null),
+    [currency, formValues, isSavedMode, result],
+  );
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const shareIcon = useMemo(() => <ShareIcon color={colours.primary} />, []);
 
@@ -116,47 +128,40 @@ export default function ResultScreen() {
         result: params.result ?? JSON.stringify(result),
         formValues: params.formValues ?? JSON.stringify(formValues),
         draftId: params.draftId,
+        recentId: params.recentId,
         currency,
         returnToResult: '1',
       },
     });
-  }, [currency, formValues, params.draftId, params.formValues, params.result, result, router]);
+  }, [currency, formValues, params.draftId, params.formValues, params.recentId, params.result, result, router]);
 
   const handleShare = useCallback(async () => {
     if (!result || !formValues) return;
 
-    const shareValues = {
-      ...(formValues as Partial<ShareableCalculationValues>),
+    await shareCalculation({
+      result,
+      formValues,
       currency,
-    } as ShareableCalculationValues;
-    const shareUrl = getCalculationWebShareUrl(shareValues);
-    const monthlyPayment = formatCurrency(result.monthlyPayments, currency);
-    const totalInterest = formatCurrency(result.totalInterestPaid, currency);
-    const totalCost = formatCurrency(result.totalAmountPaid, currency);
-
-    try {
-      await Share.share({
-        title: t('share.title'),
-        message: [
-          t('share.intro'),
-          '',
-          t('share.monthlyPayment', { amount: monthlyPayment }),
-          t('share.totalInterest', { amount: totalInterest }),
-          t('share.totalCost', { amount: totalCost }),
-          '',
-          t('share.viewCalculation'),
-          shareUrl,
-        ].join('\n'),
-        url: shareUrl,
-      });
-    } catch {
-      Alert.alert(t('share.errorTitle'), t('share.errorMessage'));
-    }
-  }, [currency, formValues, result, t]);
+      category: savedLoan?.category ?? recentCalculation?.category,
+      t,
+    });
+  }, [currency, formValues, recentCalculation?.category, result, savedLoan?.category, t]);
 
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
+
+  const handleEdit = useCallback(() => {
+    if (!formValues) return;
+    // Editing means reopening the calculator with these inputs pre-filled. Bypass the
+    // unsaved-result guard (the user is deliberately leaving the result), and replace
+    // the result in the stack so editing supersedes it. Works whether this result came
+    // from the calculator (draft) or the Recent list — both carry the form values.
+    continueWithoutGuard(() => router.replace({
+      pathname: '/calculate',
+      params: buildEditCalculatorParams(formValues as unknown as LoanCalculatorFormValues, currency),
+    }));
+  }, [continueWithoutGuard, currency, formValues, router]);
 
   const confirmLeave = useCallback((continueNavigation: () => void) => {
     pendingLeaveRef.current = continueNavigation;
@@ -223,21 +228,21 @@ export default function ResultScreen() {
         title={t('results.title')}
         variant="detail"
         leftAction={<HeaderBackAction onPress={handleBack} variant="circle" />}
-        rightAction={!isSavedMode ? (
-          <HeaderIconButton
-            onPress={openSave}
-            accessibilityLabel={t('results.saveThisLoan')}
-          >
-            <SaveIcon color={colours.primary} />
-          </HeaderIconButton>
-        ) : savedLoan ? (
+        rightAction={isSavedMode && savedLoan ? (
           <HeaderIconButton
             onPress={() => router.push(`/saved/${savedLoan.id}/edit`)}
             accessibilityLabel={t('edit.manageShort')}
           >
             <EditIcon color={colours.primary} />
           </HeaderIconButton>
-        ) : undefined}
+        ) : (
+          <HeaderIconButton
+            onPress={openSave}
+            accessibilityLabel={t('common.save')}
+          >
+            <SaveIcon color={colours.primary} size={20} />
+          </HeaderIconButton>
+        )}
         showBottomBorder={false}
         backgroundColor={colours.background}
       />
@@ -253,22 +258,19 @@ export default function ResultScreen() {
         tabStyle="underline"
         showFinancialDisclaimer
         ownsScroll
-        summaryContent={!isSavedMode ? (
-          <CalculationSummaryPanel
+        summaryContent={!isSavedMode && draftLoan ? (
+          <LoanSummaryPanel
+            loan={draftLoan}
             result={result}
-            currency={currency}
-            startDate={String(formValues.startDate)}
-            additionalMonthlyPayment={additionalMonthlyPayment}
+            mode="draft"
+            onSave={openSave}
             onShare={handleShare}
-            shareLabel={t('share.short')}
-            shareIcon={shareIcon}
+            onEdit={handleEdit}
           />
         ) : undefined}
       />
 
-      <View style={styles.adFooter}>
-        <BannerAd />
-      </View>
+      <BannerAd />
       <UnsavedResultModal
         visible={showUnsavedModal}
         onKeepEditing={keepEditing}
@@ -283,11 +285,4 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colours.background },
   notFound: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   notFoundText: { marginBottom: 16 },
-  adFooter: {
-    backgroundColor: colours.white,
-    borderTopWidth: 1,
-    borderTopColor: colours.surface,
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: 2,
-  },
 });
