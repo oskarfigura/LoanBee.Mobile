@@ -78,7 +78,12 @@ export const LoanCalculationView = ({
   const isPreviewOpen = fullscreenPreview !== null;
   const scrollRef = useRef<ScrollView>(null);
   const principalAmount = result.amount - result.downPayment;
-  const showOverpaymentComparison = !!baselineRemainingArray && baselineRemainingArray.length > 1;
+  // Single source of truth for the comparison: the baseline series, but only when it has
+  // enough points to plot (the chart needs ≥2 yearly samples). Render sites narrow off this
+  // one value rather than re-checking the raw prop.
+  const overpaymentBaseline = baselineRemainingArray && baselineRemainingArray.length > 1
+    ? baselineRemainingArray
+    : undefined;
 
   // A fresh calculation (e.g. after Edit -> recalculate) reuses this screen, so
   // reset the scroll to the top rather than leaving the user where they left off.
@@ -207,10 +212,10 @@ export const LoanCalculationView = ({
       );
     }
 
-    if (fullscreenPreview === 'overpayment' && baselineRemainingArray) {
+    if (fullscreenPreview === 'overpayment' && overpaymentBaseline) {
       return (
         <OverpaymentsComparisonChart
-          baselineRemaining={baselineRemainingArray}
+          baselineRemaining={overpaymentBaseline}
           scenarioRemaining={result.loanChartRemainingArray}
           currency={currency}
           height={320}
@@ -311,7 +316,7 @@ export const LoanCalculationView = ({
               />
             </Card>
           </Pressable>
-          {showOverpaymentComparison && baselineRemainingArray ? (
+          {overpaymentBaseline ? (
             <Pressable
               onPress={() => openFullscreenPreview('overpayment')}
               accessibilityRole="button"
@@ -324,7 +329,7 @@ export const LoanCalculationView = ({
                   <FullscreenIcon />
                 </View>
                 <OverpaymentsComparisonChart
-                  baselineRemaining={baselineRemainingArray}
+                  baselineRemaining={overpaymentBaseline}
                   scenarioRemaining={result.loanChartRemainingArray}
                   currency={currency}
                 />

@@ -97,7 +97,14 @@ export const MortgageDetailView = ({
   const asOf = useMemo(() => new Date(), [loan]);
   const result = useMemo(() => getResultForSavedLoan(loan), [loan]);
   const projection = useMemo(() => buildMortgageProjection(loan, asOf), [asOf, loan]);
-  const showOverpaymentComparison = loanHasOverpayments(loan) && !!projection.baselineRemainingArray;
+  // Single source of truth for the comparison: the baseline series, but only when the loan
+  // actually has overpayments and there are enough points to plot (the chart needs ≥2 yearly
+  // samples). Render sites narrow off this one value rather than re-checking.
+  const overpaymentBaseline = loanHasOverpayments(loan)
+    && projection.baselineRemainingArray
+    && projection.baselineRemainingArray.length > 1
+    ? projection.baselineRemainingArray
+    : undefined;
   const trackerSummary = useMemo(() => getMortgageTrackerSummary(loan, asOf), [asOf, loan]);
   const displayDetails = useMemo(() => buildSavedLoanDisplayDetails(loan, asOf), [asOf, loan]);
   const insightSummary = useMemo(() => (
@@ -218,11 +225,11 @@ export const MortgageDetailView = ({
       );
     }
 
-    if (projectionPreview === 'overpayment' && projection.baselineRemainingArray) {
+    if (projectionPreview === 'overpayment' && overpaymentBaseline) {
       return (
         <>
           <OverpaymentsComparisonChart
-            baselineRemaining={projection.baselineRemainingArray}
+            baselineRemaining={overpaymentBaseline}
             scenarioRemaining={projection.loanChartRemainingArray}
             currency={loan.currency}
             height={320}
@@ -353,7 +360,7 @@ export const MortgageDetailView = ({
               <DealSegmentStrip segments={projection.dealSegments} />
             </Card>
           </Pressable>
-          {showOverpaymentComparison && projection.baselineRemainingArray ? (
+          {overpaymentBaseline ? (
             <Pressable
               onPress={() => openProjectionPreview('overpayment')}
               accessibilityRole="button"
@@ -366,7 +373,7 @@ export const MortgageDetailView = ({
                   <FullscreenIcon />
                 </View>
                 <OverpaymentsComparisonChart
-                  baselineRemaining={projection.baselineRemainingArray}
+                  baselineRemaining={overpaymentBaseline}
                   scenarioRemaining={projection.loanChartRemainingArray}
                   currency={loan.currency}
                 />
