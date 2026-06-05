@@ -1,7 +1,6 @@
 import {
   CURRENT_STATE_PROJECTION_DEAL_ID,
   getCurrentDeal,
-  getDraftDeals,
   getProjectionDeals,
   getPublishedDeals,
 } from '@/mortgage/tracker';
@@ -76,7 +75,6 @@ export interface MortgageProjection {
   projectedEndDate?: string;
   currentDealEndDate?: string;
   publishedDealCount: number;
-  draftDealCount: number;
   dealSegments: MortgageProjectionDealSegment[];
 }
 
@@ -157,7 +155,6 @@ const buildEmptyProjection = (loan: LoanGroup): MortgageProjection => {
     additionalBorrowingTotal: 0,
     currentDealEndDate: getCurrentDeal(loan)?.endDate,
     publishedDealCount: 0,
-    draftDealCount: getDraftDeals(loan).length,
     dealSegments: [],
   };
 };
@@ -385,7 +382,6 @@ const buildProjection = (
     projectedEndDate,
     currentDealEndDate: currentDeal?.endDate,
     publishedDealCount: publishedDeals.length,
-    draftDealCount: getDraftDeals(loan).length,
     dealSegments,
   };
 };

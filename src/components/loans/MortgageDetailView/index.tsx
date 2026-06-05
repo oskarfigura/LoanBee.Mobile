@@ -280,7 +280,6 @@ export const MortgageDetailView = ({
             dashboardProgress={dashboardProgress}
             lender={displayDetails.lender}
             currentDeal={activeDeal}
-            draftDeal={draftDeal}
             publishedDeals={publishedDeals}
             projection={projection}
             asOf={asOf}
@@ -288,9 +287,6 @@ export const MortgageDetailView = ({
             overpaymentDeal={overpaymentDeal}
             onTogglePinned={onTogglePinned}
             onAddDeal={() => router.push(`/saved/${loan.id}/deals/new`)}
-            onEditDraft={() => {
-              if (draftDeal) router.push(`/saved/${loan.id}/deals/${draftDeal.id}`);
-            }}
             onOpenTimeline={() => switchTab('timeline')}
           />
 
@@ -535,7 +531,6 @@ const MortgageSummaryPanel = ({
   dashboardProgress,
   lender,
   currentDeal,
-  draftDeal,
   publishedDeals,
   projection,
   asOf,
@@ -543,7 +538,6 @@ const MortgageSummaryPanel = ({
   overpaymentDeal,
   onTogglePinned,
   onAddDeal,
-  onEditDraft,
   onOpenTimeline,
 }: {
   loan: SavedLoan;
@@ -551,7 +545,6 @@ const MortgageSummaryPanel = ({
   dashboardProgress: LoanDashboardProgress[];
   lender?: string;
   currentDeal?: LoanDeal;
-  draftDeal?: LoanDeal;
   publishedDeals: LoanDeal[];
   projection: MortgageProjection;
   asOf: Date;
@@ -559,7 +552,6 @@ const MortgageSummaryPanel = ({
   overpaymentDeal?: LoanDeal;
   onTogglePinned: () => void;
   onAddDeal: () => void;
-  onEditDraft: () => void;
   onOpenTimeline: () => void;
 }) => {
   const { t } = useTranslation();
@@ -601,11 +593,9 @@ const MortgageSummaryPanel = ({
         <CompactTimelineSummary
           loan={loan}
           currentDeal={currentDeal}
-          draftDeal={draftDeal}
           publishedDeals={publishedDeals}
           projection={projection}
           onAddDeal={onAddDeal}
-          onEditDraft={onEditDraft}
           onOpenTimeline={onOpenTimeline}
         />
       ) : null}
@@ -879,30 +869,23 @@ const ReconciliationSummary = ({
 const CompactTimelineSummary = ({
   loan,
   currentDeal,
-  draftDeal,
   publishedDeals,
   projection,
   onAddDeal,
-  onEditDraft,
   onOpenTimeline,
 }: {
   loan: SavedLoan;
   currentDeal?: LoanDeal;
-  draftDeal?: LoanDeal;
   publishedDeals: LoanDeal[];
   projection: MortgageProjection;
   onAddDeal: () => void;
-  onEditDraft: () => void;
   onOpenTimeline: () => void;
 }) => {
   const { t, i18n } = useTranslation();
   const firstDeal = publishedDeals[0];
-  const actionLabel = draftDeal
-    ? t('mortgage.editDraftDeal')
-    : firstDeal
-      ? t('mortgage.addDeal')
-      : t('mortgage.addCurrentDeal');
-  const actionHandler = draftDeal ? onEditDraft : onAddDeal;
+  const actionLabel = firstDeal
+    ? t('mortgage.addDeal')
+    : t('mortgage.addCurrentDeal');
   const items: Array<{
     key: string;
     marker: 'future' | 'current' | 'start';
@@ -950,13 +933,13 @@ const CompactTimelineSummary = ({
           <Button
             label={actionLabel}
             leftIcon={<PlusIcon color={colours.primaryInk} size={18} />}
-            onPress={actionHandler}
+            onPress={onAddDeal}
             variant="icon-pill"
             style={styles.summaryTimelineAction}
           />
         ) : null}
       </View>
-      {!firstDeal && !draftDeal ? (
+      {!firstDeal ? (
         <Text style={styles.summaryBodyText}>
           {t('mortgage.noDealChangesBody')}
         </Text>
@@ -987,14 +970,6 @@ const CompactTimelineSummary = ({
           </TouchableOpacity>
         ))}
       </View>
-      {draftDeal ? (
-        <View style={styles.draftExcludedNote}>
-          <Text style={styles.draftExcludedTitle}>{t('mortgage.draftExcludedFromEstimate')}</Text>
-          <Text style={styles.draftExcludedText}>
-            {t('mortgage.draftExcludedFromEstimateBody', { name: draftDeal.name })}
-          </Text>
-        </View>
-      ) : null}
       <TouchableOpacity
         style={styles.viewTimelineLink}
         onPress={onOpenTimeline}

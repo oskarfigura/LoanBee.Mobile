@@ -439,8 +439,6 @@
     "timelineStart": "Start",
     "currentEstimate": "Aktualny szacunek",
     "includedEstimate": "Uwzględnione w szacunku",
-    "draftExcludedFromEstimate": "Szkic poza szacunkiem",
-    "draftExcludedFromEstimateBody": "{{name}} jest szkicem. Nie jest uwzględniany w saldach, wykresach, sumach ani datach spłaty, dopóki nie stanie się aktywny.",
     "historicalContext": "Historia",
     "projectionDealChanges_one": "{{count}} zmiana umowy",
     "projectionDealChanges_other": "{{count}} zmiany umów",

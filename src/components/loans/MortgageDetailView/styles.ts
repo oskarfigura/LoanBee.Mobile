@@ -347,27 +347,6 @@ export const styles = StyleSheet.create({
   startPreviewNode: {
     borderColor: colours.border,
   },
-  draftExcludedNote: {
-    borderWidth: 1,
-    borderColor: colours.border,
-    borderRadius: radii.input,
-    backgroundColor: colours.warningSurface,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  draftExcludedTitle: {
-    ...fontFaces.heading.semibold,
-    fontSize: fontSizes.xs,
-    color: colours.warning,
-    textTransform: 'uppercase',
-  },
-  draftExcludedText: {
-    ...fontFaces.body.regular,
-    fontSize: fontSizes.sm,
-    lineHeight: 20,
-    color: colours.textPrimary,
-    marginTop: spacing.xxs,
-  },
   viewTimelineLink: {
     minHeight: 44,
     alignItems: 'center',

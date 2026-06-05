@@ -439,8 +439,6 @@
     "timelineStart": "Start",
     "currentEstimate": "Current estimate",
     "includedEstimate": "Included in estimate",
-    "draftExcludedFromEstimate": "Draft not included",
-    "draftExcludedFromEstimateBody": "{{name}} is a draft. It is not included in balances, charts, totals, or payoff dates until it becomes active.",
     "historicalContext": "Historical context",
     "projectionDealChanges_one": "{{count}} deal change",
     "projectionDealChanges_other": "{{count}} deal changes",

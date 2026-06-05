@@ -1019,7 +1019,7 @@ describe('mortgage tracker', () => {
     const projection = buildMortgageProjection(loan, new Date('2026-10-01T00:00:00'));
 
     expect(projection.publishedDealCount).toBe(1);
-    expect(projection.draftDealCount).toBe(1);
+    expect('draftDealCount' in projection).toBe(false);
     expect(projection.points.some(point => point.dealId === 'draft')).toBe(false);
     expect(projection.loanChartRemainingArray).not.toContain(999999);
   });
