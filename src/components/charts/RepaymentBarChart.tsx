@@ -62,13 +62,16 @@ export const RepaymentBarChart = ({
   // entry (e.g. a £379 final payment after the last full £1,502 instalment). Bucketed
   // naively that stub spills into a fresh year and renders as a jarring one-month
   // sliver tacked on past the real final year. When the closing bucket is smaller than
-  // a regular instalment, fold it back into the preceding year so the chart ends on the
-  // loan's true final year while still conserving the total paid.
-  const regularPayment = monthlyArray.length > 1 ? monthlyArray[1] - monthlyArray[0] : 0;
-  if (buckets.length >= 2 && regularPayment > 0) {
+  // a single instalment of the loan's closing year, fold it back into the preceding year
+  // so the chart ends on the loan's true final year while still conserving the total
+  // paid. Only the final bucket can be partial, so the second-to-last is always a full
+  // 12-month year — its monthly rate is the right reference even if a remortgage changed
+  // the instalment partway through.
+  if (buckets.length >= 2) {
     const tail = buckets[buckets.length - 1];
-    if (tail.totalPaid < regularPayment - 1e-6) {
-      const prev = buckets[buckets.length - 2];
+    const prev = buckets[buckets.length - 2];
+    const closingMonthlyRate = prev.totalPaid / SAMPLE_STEP;
+    if (closingMonthlyRate > 0 && tail.totalPaid < closingMonthlyRate - 1e-6) {
       prev.principalPaid += tail.principalPaid;
       prev.interestPaid += tail.interestPaid;
       prev.totalPaid += tail.totalPaid;

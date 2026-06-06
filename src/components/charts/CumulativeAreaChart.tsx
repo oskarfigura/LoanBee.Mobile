@@ -21,11 +21,13 @@ const POINT_SPACING = 44;
 const INITIAL_SPACING = 8;
 const X_LABEL_WIDTH = 46;
 const MIN_LABEL_GAP = 52;
-// The final label is right-anchored (ends at its point) rather than centred, so the
-// chart only needs a small trailing pad instead of reserving half a label width. This
-// lets the plotted series stretch close to the right edge rather than stopping short
-// with a band of empty gridlines after the last point.
-const END_SPACING = 12;
+// Trailing pad after the last point. When fitting the whole timeline into the card we
+// right-anchor the final label (it ends at its point) so only a small pad is needed and
+// the series stretches close to the right edge instead of stopping short under empty
+// gridlines. When the chart scrolls (fullscreen) the final label stays centred, so it
+// keeps the half-label reserve to avoid clipping at the scroll content's edge.
+const FIT_END_SPACING = 12;
+const SCROLL_END_SPACING = X_LABEL_WIDTH / 2 + 4;
 const SECTION_COUNT = 4;
 
 /**
@@ -93,11 +95,13 @@ export const CumulativeAreaChart = ({
   const yearlyData = buildYearlyData();
   if (yearlyData.length < 2) return <ChartEmptyState height={height} />;
 
+  const endSpacing = fitToWidth ? FIT_END_SPACING : SCROLL_END_SPACING;
+
   const { chartWidth, scrollEnabled, pointSpacing } = getProjectionChartLayout({
     containerWidth,
     pointCount: yearlyData.length,
     perPointWidth: POINT_SPACING,
-    edgeSpacing: INITIAL_SPACING + END_SPACING,
+    edgeSpacing: INITIAL_SPACING + endSpacing,
     fitToWidth,
     spacingMode: 'intervals',
     fillAvailableWidth: true,
@@ -122,7 +126,7 @@ export const CumulativeAreaChart = ({
           <XAxisLabel
             text={`Yr ${Math.ceil((index + 1) / SAMPLE_STEP)}`}
             spacing={pointSpacing}
-            anchor={position === lastPosition ? 'end' : 'center'}
+            anchor={position === lastPosition && fitToWidth ? 'end' : 'center'}
           />
         ),
       }
@@ -199,7 +203,7 @@ export const CumulativeAreaChart = ({
           yAxisThickness={0}
           xAxisThickness={0}
           initialSpacing={INITIAL_SPACING}
-          endSpacing={END_SPACING}
+          endSpacing={endSpacing}
           noOfSections={SECTION_COUNT}
           maxValue={maxValue}
           formatYLabel={v => formatChartCurrency(+v)}
