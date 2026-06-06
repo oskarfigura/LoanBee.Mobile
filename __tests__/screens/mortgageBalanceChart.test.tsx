@@ -131,6 +131,39 @@ describe('MortgageBalanceChart', () => {
     expect(capturedLineProps?.data2.some((point: Record<string, unknown>) => 'spacing' in point)).toBe(false);
   });
 
+  it('stretches the balance curve close to the right edge with only a small trailing pad', () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(React.createElement(MortgageBalanceChart, {
+        scenarioRemaining: buildSeries(220, 1100),
+        baselineRemaining: buildSeries(265, 900),
+        currency: 'GBP',
+        comparisonLabelKeys: {
+          baseline: 'overpayments.withoutOverpayments',
+          scenario: 'overpayments.withOverpayments',
+        },
+      }));
+    });
+
+    const layoutNode = renderer.root.findAll(node => (
+      String(node.type) === 'View' && typeof node.props.onLayout === 'function'
+    ))[0];
+
+    act(() => {
+      layoutNode.props.onLayout({ nativeEvent: { layout: { width: 360 } } });
+    });
+
+    const data = capturedLineProps!.data as Array<Record<string, unknown>>;
+    const lastPointX = capturedLineProps!.initialSpacing + (data.length - 1) * capturedLineProps!.spacing;
+    const trailingGap = capturedLineProps!.width - lastPointX;
+
+    // The last plotted point must sit within roughly one spacing slot of the right edge,
+    // so the curve fills the card instead of stopping short under empty gridlines.
+    expect(capturedLineProps!.endSpacing).toBeLessThanOrEqual(12);
+    expect(trailingGap).toBeLessThanOrEqual(capturedLineProps!.spacing + capturedLineProps!.endSpacing);
+    expect(lastPointX).toBeGreaterThan(capturedLineProps!.width * 0.9);
+  });
+
   it('does not render a flat zero tail after the baseline has paid off', () => {
     const baseline = Array.from(
       { length: 253 },
