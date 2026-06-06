@@ -674,6 +674,7 @@
     "invalidEventTitle": "Check event details",
     "eventRequiresActiveDeal": "Activities can only be saved against the current active deal.",
     "eventOutsideDealDates": "Choose a date within the current deal dates.",
+    "eventOutsideTerm": "Choose a date between the start and the payoff.",
     "dealNotStartedError": "This deal hasn't started yet, so it can't be completed.",
     "invalidEventDate": "Choose a valid event date.",
     "invalidEventAmount": "Enter an overpayment amount greater than zero.",

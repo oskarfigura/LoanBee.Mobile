@@ -93,3 +93,67 @@ export const validateCompletionOverpaymentRow = (
     isValid: amount.isValid && !dateErrorKey,
   };
 };
+
+export type TrackLumpRowInput = {
+  id: string;
+  date: string;
+  amount: string;
+};
+
+export type TrackLumpRowValidation = {
+  id: string;
+  amount: NumericValidation;
+  dateErrorKey?: string;
+  amountErrorKey?: string;
+  // A row with a blank amount is incomplete, not invalid: it is ignored on save
+  // and never blocks it (mirrors the add-then-leave-empty UX of the calculator).
+  ignored: boolean;
+  isValid: boolean;
+};
+
+// Validate the track form's lump overpayment rows. Previously these were only
+// filtered by valid-date and amount>0, so a date before the start clamped to
+// month 0, a date after payoff was silently dropped, and an oversized amount was
+// silently absorbed. Surface those instead of producing a wrong projection.
+// Amounts are accumulated so a set of lumps cannot collectively exceed the
+// opening balance (total principal ever repaid can never exceed it).
+export const validateTrackLumpRows = (
+  rows: TrackLumpRowInput[],
+  startDate: string,
+  payoffDate: string | undefined,
+  openingBalance: number,
+): TrackLumpRowValidation[] => {
+  let cumulative = 0;
+
+  return rows.map(row => {
+    const amount = validateMoneyText(row.amount, { required: false });
+
+    if (amount.isEmpty) {
+      return { id: row.id, amount, ignored: true, isValid: true };
+    }
+
+    let dateErrorKey: string | undefined;
+    if (!isValidIsoDate(row.date)) {
+      dateErrorKey = 'mortgage.invalidEventDate';
+    } else if (row.date < startDate || (payoffDate !== undefined && row.date > payoffDate)) {
+      dateErrorKey = 'mortgage.eventOutsideTerm';
+    }
+
+    let amountErrorKey = amount.isValid ? undefined : amount.errorKey;
+    if (amount.isValid) {
+      cumulative += amount.numeric;
+      if (openingBalance > 0 && cumulative > openingBalance) {
+        amountErrorKey = 'mortgage.overpaymentTooLarge';
+      }
+    }
+
+    return {
+      id: row.id,
+      amount,
+      dateErrorKey,
+      amountErrorKey,
+      ignored: false,
+      isValid: !dateErrorKey && !amountErrorKey,
+    };
+  });
+};

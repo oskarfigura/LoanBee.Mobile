@@ -3,6 +3,7 @@ import {
   validateCompletionAmounts,
   validateCompletionOverpaymentRow,
   validateCurrentDealDurationText,
+  validateTrackLumpRows,
 } from '@/mortgage/validation';
 import { LoanDeal } from '@/types/SavedLoan';
 
@@ -75,5 +76,48 @@ describe('mortgage validation helpers', () => {
       isValid: false,
       amount: { errorKey: 'mortgage.overpaymentTooLarge' },
     });
+  });
+});
+
+describe('validateTrackLumpRows', () => {
+  const START = '2026-01-01';
+  const PAYOFF = '2046-01-01';
+  const BALANCE = 240000;
+
+  const validate = (rows: { id: string; date: string; amount: string }[]) =>
+    validateTrackLumpRows(rows, START, PAYOFF, BALANCE);
+
+  it('ignores blank-amount rows so they never block save', () => {
+    const [row] = validate([{ id: 'a', date: START, amount: '' }]);
+    expect(row).toMatchObject({ ignored: true, isValid: true });
+  });
+
+  it('accepts a valid lump within the term', () => {
+    const [row] = validate([{ id: 'a', date: '2030-06-01', amount: '5000' }]);
+    expect(row).toMatchObject({ ignored: false, isValid: true });
+  });
+
+  it('rejects a lump dated before the start', () => {
+    const [row] = validate([{ id: 'a', date: '2025-06-01', amount: '5000' }]);
+    expect(row).toMatchObject({ isValid: false, dateErrorKey: 'mortgage.eventOutsideTerm' });
+  });
+
+  it('rejects a lump dated after the payoff', () => {
+    const [row] = validate([{ id: 'a', date: '2047-01-01', amount: '5000' }]);
+    expect(row).toMatchObject({ isValid: false, dateErrorKey: 'mortgage.eventOutsideTerm' });
+  });
+
+  it('flags an unparseable date', () => {
+    const [row] = validate([{ id: 'a', date: 'nope', amount: '5000' }]);
+    expect(row).toMatchObject({ isValid: false, dateErrorKey: 'mortgage.invalidEventDate' });
+  });
+
+  it('rejects lumps that collectively exceed the opening balance', () => {
+    const rows = validate([
+      { id: 'a', date: '2027-01-01', amount: '150000' },
+      { id: 'b', date: '2028-01-01', amount: '150000' },
+    ]);
+    expect(rows[0]).toMatchObject({ isValid: true });
+    expect(rows[1]).toMatchObject({ isValid: false, amountErrorKey: 'mortgage.overpaymentTooLarge' });
   });
 });

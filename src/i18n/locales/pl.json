@@ -674,6 +674,7 @@
     "invalidEventTitle": "Sprawdź szczegóły zdarzenia",
     "eventRequiresActiveDeal": "Aktywności można zapisywać tylko dla aktualnej aktywnej umowy.",
     "eventOutsideDealDates": "Wybierz datę mieszczącą się w datach aktualnej umowy.",
+    "eventOutsideTerm": "Wybierz datę między początkiem a spłatą.",
     "dealNotStartedError": "Ta umowa jeszcze się nie rozpoczęła, więc nie można jej zakończyć.",
     "invalidEventDate": "Wybierz poprawną datę zdarzenia.",
     "invalidEventAmount": "Podaj kwotę nadpłaty większą od zera.",
