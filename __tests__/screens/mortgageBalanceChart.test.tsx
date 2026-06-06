@@ -28,6 +28,7 @@ jest.mock('react-i18next', () => ({
 }));
 
 import { MortgageBalanceChart } from '../../src/components/charts/MortgageBalanceChart';
+import { colours } from '../../src/theme';
 
 const buildSeries = (length: number, step: number) => (
   Array.from({ length }, (_, index) => Math.max(0, 300000 - (index * step)))
@@ -130,6 +131,39 @@ describe('MortgageBalanceChart', () => {
     expect(capturedLineProps?.data2.some((point: Record<string, unknown>) => 'spacing' in point)).toBe(false);
   });
 
+  it('stretches the balance curve close to the right edge with only a small trailing pad', () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(React.createElement(MortgageBalanceChart, {
+        scenarioRemaining: buildSeries(220, 1100),
+        baselineRemaining: buildSeries(265, 900),
+        currency: 'GBP',
+        comparisonLabelKeys: {
+          baseline: 'overpayments.withoutOverpayments',
+          scenario: 'overpayments.withOverpayments',
+        },
+      }));
+    });
+
+    const layoutNode = renderer.root.findAll(node => (
+      String(node.type) === 'View' && typeof node.props.onLayout === 'function'
+    ))[0];
+
+    act(() => {
+      layoutNode.props.onLayout({ nativeEvent: { layout: { width: 360 } } });
+    });
+
+    const data = capturedLineProps!.data as Array<Record<string, unknown>>;
+    const lastPointX = capturedLineProps!.initialSpacing + (data.length - 1) * capturedLineProps!.spacing;
+    const trailingGap = capturedLineProps!.width - lastPointX;
+
+    // The last plotted point must sit within roughly one spacing slot of the right edge,
+    // so the curve fills the card instead of stopping short under empty gridlines.
+    expect(capturedLineProps!.endSpacing).toBeLessThanOrEqual(12);
+    expect(trailingGap).toBeLessThanOrEqual(capturedLineProps!.spacing + capturedLineProps!.endSpacing);
+    expect(lastPointX).toBeGreaterThan(capturedLineProps!.width * 0.9);
+  });
+
   it('does not render a flat zero tail after the baseline has paid off', () => {
     const baseline = Array.from(
       { length: 253 },
@@ -180,5 +214,55 @@ describe('MortgageBalanceChart', () => {
       Math.max(...capturedLineProps!.data.map((point: Record<string, number>) => point.value)),
     );
     expect(capturedLineProps!.maxValue).toBeGreaterThan(largestScenarioValue);
+  });
+
+  it('terminates a paid-off scenario early instead of padding a false plateau', () => {
+    // The overpayment scenario pays off at month 60 (its array is only 61 long),
+    // while the baseline runs the full 120 months. The shorter series must stop at
+    // its real end, not get stretched to the baseline length by repeating its last
+    // value — which would draw a long flat line sitting at zero.
+    const baseline = Array.from({ length: 121 }, (_, index) => Math.max(0, 300000 - (index * 2400)));
+    const scenario = Array.from({ length: 61 }, (_, index) => Math.max(0, 300000 - (index * 5000)));
+
+    act(() => {
+      create(React.createElement(MortgageBalanceChart, {
+        scenarioRemaining: scenario,
+        baselineRemaining: baseline,
+        currency: 'GBP',
+        comparisonLabelKeys: {
+          baseline: 'overpayments.withoutOverpayments',
+          scenario: 'overpayments.withOverpayments',
+        },
+      }));
+    });
+
+    const baselineData = capturedLineProps?.data as Array<{ value: number }>;
+    const scenarioData = capturedLineProps?.data2 as Array<{ value: number }>;
+
+    // Scenario ends earlier than the baseline timeline.
+    expect(scenarioData.length).toBeLessThan(baselineData.length);
+    // It reaches zero and stops there — no repeated trailing plateau.
+    expect(scenarioData[scenarioData.length - 1].value).toBe(0);
+    const values = scenarioData.map(point => point.value);
+    const hasConsecutiveDuplicate = values.some((value, index) => index > 0 && value === values[index - 1]);
+    expect(hasConsecutiveDuplicate).toBe(false);
+  });
+
+  it('draws a single scenario line in the primary colour with no comparison legend', () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(React.createElement(MortgageBalanceChart, {
+        scenarioRemaining: buildSeries(121, 1200),
+        currency: 'GBP',
+      }));
+    });
+
+    expect(capturedLineProps?.data2).toBeUndefined();
+    expect(capturedLineProps?.color).toBe(colours.primary);
+    // No comparison labels were supplied, so no legend rows should be rendered.
+    const legendKeys = renderer.root.findAll(node => (
+      textContent(node).startsWith('overpayments.')
+    ));
+    expect(legendKeys).toHaveLength(0);
   });
 });

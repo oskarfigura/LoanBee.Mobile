@@ -27,7 +27,7 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-import { CumulativeAreaChart } from '../../src/components/charts/CumulativeAreaChart';
+import { CumulativeAreaChart, hasCumulativeChartData } from '../../src/components/charts/CumulativeAreaChart';
 
 const buildArrays = (months = 216) => ({
   monthly: Array.from({ length: months }, (_, index) => index * 1200),
@@ -97,9 +97,43 @@ describe('CumulativeAreaChart', () => {
       layoutNode.props.onLayout({ nativeEvent: { layout: { width: 360 } } });
     });
 
+    // Edge spacing is INITIAL_SPACING (8) + END_SPACING (12) = 20.
     expect(capturedLineProps?.width).toBe(294);
-    expect(capturedLineProps?.spacing).toBe(Math.floor((294 - 35) / 17));
+    expect(capturedLineProps?.spacing).toBe(Math.floor((294 - 20) / 17));
     expect(capturedLineProps?.disableScroll).toBe(true);
+  });
+
+  it('stretches the series close to the right edge with only a small trailing pad', () => {
+    const { monthly, interest, remaining } = buildArrays();
+    let renderer!: ReturnType<typeof create>;
+
+    act(() => {
+      renderer = create(React.createElement(CumulativeAreaChart, {
+        monthlyArray: monthly,
+        interestArray: interest,
+        remainingArray: remaining,
+        currency: 'GBP',
+        fitToWidth: true,
+      }));
+    });
+
+    const layoutNode = renderer.root.findAll(node => (
+      String(node.type) === 'View' && typeof node.props.onLayout === 'function'
+    ))[0];
+
+    act(() => {
+      layoutNode.props.onLayout({ nativeEvent: { layout: { width: 360 } } });
+    });
+
+    const pointCount = capturedLineProps!.data.length;
+    const lastPointX = capturedLineProps!.initialSpacing + (pointCount - 1) * capturedLineProps!.spacing;
+    const trailingGap = capturedLineProps!.width - lastPointX;
+
+    // The last plotted point must sit within roughly one spacing slot of the right
+    // edge, so the data fills the card instead of stopping short under empty gridlines.
+    expect(capturedLineProps!.endSpacing).toBeLessThanOrEqual(12);
+    expect(trailingGap).toBeLessThanOrEqual(capturedLineProps!.spacing + capturedLineProps!.endSpacing);
+    expect(lastPointX).toBeGreaterThan(capturedLineProps!.width * 0.9);
   });
 
   it('labels the cumulative timeline from the first completed year through the final year', () => {
@@ -122,5 +156,71 @@ describe('CumulativeAreaChart', () => {
 
     expect(labels?.[0]).toBe('Yr 1');
     expect(labels).toContain('Yr 18');
+  });
+
+  it('maps the three series to remaining, total paid, and interest in that order', () => {
+    const { monthly, interest, remaining } = buildArrays();
+
+    act(() => {
+      create(React.createElement(CumulativeAreaChart, {
+        monthlyArray: monthly,
+        interestArray: interest,
+        remainingArray: remaining,
+        currency: 'GBP',
+      }));
+    });
+
+    // The first sampled point is the end of year one (index 11).
+    expect(capturedLineProps?.data[0].value).toBe(remaining[11]);
+    expect(capturedLineProps?.data2[0].value).toBe(monthly[11]);
+    expect(capturedLineProps?.data3[0].value).toBe(interest[11]);
+    expect(capturedLineProps?.color).toBeDefined();
+    expect(capturedLineProps?.color2).toBeDefined();
+    expect(capturedLineProps?.color3).toBeDefined();
+  });
+
+  it('draws the remaining-balance series down to zero for a fully repaid loan', () => {
+    const monthly = Array.from({ length: 121 }, (_, index) => index * 900);
+    const interest = Array.from({ length: 121 }, (_, index) => index * 150);
+    const remaining = Array.from({ length: 121 }, (_, index) => Math.max(0, 120000 - (index * 1000)));
+
+    act(() => {
+      create(React.createElement(CumulativeAreaChart, {
+        monthlyArray: monthly,
+        interestArray: interest,
+        remainingArray: remaining,
+        currency: 'GBP',
+      }));
+    });
+
+    const remainingSeries = capturedLineProps?.data as Array<{ value: number }>;
+    expect(remainingSeries[remainingSeries.length - 1].value).toBe(0);
+  });
+
+  it('shows an empty state instead of a blank card when there is under a year of data', () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(React.createElement(CumulativeAreaChart, {
+        monthlyArray: Array.from({ length: 8 }, (_, index) => index * 1000),
+        interestArray: Array.from({ length: 8 }, (_, index) => index * 200),
+        remainingArray: Array.from({ length: 8 }, (_, index) => 8000 - (index * 1000)),
+        currency: 'GBP',
+      }));
+    });
+
+    expect(capturedLineProps).toBeNull();
+    const rendered = renderer.root.findAll(node => textContent(node) === 'results.chartEmptyState');
+    expect(rendered.length).toBeGreaterThan(0);
+  });
+});
+
+describe('hasCumulativeChartData', () => {
+  it('reports false below two yearly samples and true at or above the threshold', () => {
+    // The chart renders an empty state until the timeline reaches index 12
+    // (a 13-entry array), matching the empty-state test above.
+    expect(hasCumulativeChartData(8)).toBe(false);
+    expect(hasCumulativeChartData(12)).toBe(false);
+    expect(hasCumulativeChartData(13)).toBe(true);
+    expect(hasCumulativeChartData(216)).toBe(true);
   });
 });

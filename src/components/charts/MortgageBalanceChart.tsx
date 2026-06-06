@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
 import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
 import { getNiceChartMaxValue, getProjectionChartLayout } from './dimensions';
+import { ChartEmptyState } from './ChartEmptyState';
 
 interface Props {
   scenarioRemaining: number[];
@@ -22,12 +23,32 @@ const POINT_SPACING = 44;
 const INITIAL_SPACING = 8;
 const X_LABEL_WIDTH = 46;
 const MIN_LABEL_GAP = 52;
-const END_SPACING = X_LABEL_WIDTH / 2 + 4;
+// Trailing pad after the last point. When the whole timeline fits the card we right-anchor
+// the final label (it ends at its point) so only a small pad is needed and the curve
+// stretches close to the right edge instead of stopping short under empty gridlines. In
+// the rare scroll fallback (pathologically long terms) the final label stays centred and
+// keeps the half-label reserve to avoid clipping at the scroll content's edge.
+const FIT_END_SPACING = 12;
+const SCROLL_END_SPACING = X_LABEL_WIDTH / 2 + 4;
 const SECTION_COUNT = 4;
 
-const XAxisLabel = ({ text, spacing }: { text: string; spacing: number }) => (
-  <View style={{ width: X_LABEL_WIDTH, marginLeft: (spacing - X_LABEL_WIDTH) / 2 }}>
-    <Text style={styles.xAxisLabel} numberOfLines={1}>{text}</Text>
+const XAxisLabel = ({ text, spacing, anchor = 'center' }: { text: string; spacing: number; anchor?: 'center' | 'end' }) => (
+  // gifted-charts positions the label's left edge at its data point. 'center' shifts the
+  // box back so the text sits under the point; 'end' pulls the box so it finishes at the
+  // point and the text right-aligns — used for the final point so it never overflows the
+  // right edge and the chart can use a minimal trailing pad.
+  <View
+    style={{
+      width: X_LABEL_WIDTH,
+      marginLeft: anchor === 'end' ? spacing - X_LABEL_WIDTH : (spacing - X_LABEL_WIDTH) / 2,
+    }}
+  >
+    <Text
+      style={[styles.xAxisLabel, anchor === 'end' && styles.xAxisLabelEnd]}
+      numberOfLines={1}
+    >
+      {text}
+    </Text>
   </View>
 );
 
@@ -75,18 +96,19 @@ export const MortgageBalanceChart = ({
   };
 
   const indexes = buildYearlyIndexes();
-  if (indexes.length < 2) return null;
+  if (indexes.length < 2) return <ChartEmptyState height={height} />;
 
   const { chartWidth, scrollEnabled, pointSpacing } = getProjectionChartLayout({
     containerWidth,
     pointCount: indexes.length,
     perPointWidth: POINT_SPACING,
-    edgeSpacing: INITIAL_SPACING + END_SPACING,
+    edgeSpacing: INITIAL_SPACING + FIT_END_SPACING,
     fitToWidth: true,
     spacingMode: 'intervals',
     fillAvailableWidth: true,
   });
 
+  const endSpacing = scrollEnabled ? SCROLL_END_SPACING : FIT_END_SPACING;
   const labelEvery = Math.max(1, Math.ceil(MIN_LABEL_GAP / pointSpacing));
   const lastPosition = indexes.length - 1;
   const shouldLabel = (position: number) => (
@@ -127,7 +149,11 @@ export const MortgageBalanceChart = ({
         ...(labelled
           ? {
             labelComponent: () => (
-              <XAxisLabel text={`Yr ${Math.ceil(index / SAMPLE_STEP)}`} spacing={pointSpacing} />
+              <XAxisLabel
+                text={`Yr ${Math.ceil(index / SAMPLE_STEP)}`}
+                spacing={pointSpacing}
+                anchor={position === lastPosition && !scrollEnabled ? 'end' : 'center'}
+              />
             ),
           }
           : {}),
@@ -200,7 +226,7 @@ export const MortgageBalanceChart = ({
           yAxisThickness={0}
           xAxisThickness={0}
           initialSpacing={INITIAL_SPACING}
-          endSpacing={END_SPACING}
+          endSpacing={endSpacing}
           noOfSections={SECTION_COUNT}
           maxValue={maxValue}
           formatYLabel={v => formatChartCurrency(+v)}
@@ -236,6 +262,9 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.tiny,
     color: colours.textSecondary,
     textAlign: 'center',
+  },
+  xAxisLabelEnd: {
+    textAlign: 'right',
   },
   legend: {
     flexDirection: 'row',

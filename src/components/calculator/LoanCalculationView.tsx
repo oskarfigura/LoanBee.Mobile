@@ -17,7 +17,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
-import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
+import { CumulativeAreaChart, hasCumulativeChartData } from '@/components/charts/CumulativeAreaChart';
 import { ChartHelpButton, ChartHelpDrawer, type ChartHelpContent } from '@/components/charts/ChartHelp';
 import { LoanBreakdownDonut } from '@/components/charts/LoanBreakdownDonut';
 import { OverpaymentsComparisonChart } from '@/components/charts/OverpaymentsComparisonChart';
@@ -87,6 +87,9 @@ export const LoanCalculationView = ({
   const overpaymentBaseline = baselineRemainingArray && baselineRemainingArray.length > 1
     ? baselineRemainingArray
     : undefined;
+  // Short loans can't fill the cumulative chart; when it falls back to an empty state
+  // the card should not look tappable or offer a fullscreen view.
+  const cumulativeInteractive = hasCumulativeChartData(result.loanChartMonthlyArray.length);
 
   // A fresh calculation (e.g. after Edit -> recalculate) reuses this screen, so
   // reset the scroll to the top rather than leaving the user where they left off.
@@ -222,7 +225,7 @@ export const LoanCalculationView = ({
     return null;
   };
 
-  const renderChartHeader = (title: string, helpId: ChartHelpId) => (
+  const renderChartHeader = (title: string, helpId: ChartHelpId, interactive = true) => (
     <View style={styles.chartHeader}>
       <AppText variant="title3" style={styles.chartTitle}>{title}</AppText>
       <View style={styles.chartActions}>
@@ -230,7 +233,7 @@ export const LoanCalculationView = ({
           accessibilityLabel={t('chartHelp.open', { title })}
           onPress={() => openChartHelp(helpId)}
         />
-        <FullscreenIcon />
+        {interactive ? <FullscreenIcon /> : null}
       </View>
     </View>
   );
@@ -353,13 +356,14 @@ export const LoanCalculationView = ({
             </Card>
           </Pressable>
           <Pressable
-            onPress={() => openFullscreenPreview('cumulative')}
+            onPress={cumulativeInteractive ? () => openFullscreenPreview('cumulative') : undefined}
+            disabled={!cumulativeInteractive}
             accessibilityRole="button"
             accessibilityLabel={`${t('results.cumulativePayments')} ${t('results.fullScreen')}`}
             style={({ pressed }) => [pressed && styles.previewPressed]}
           >
             <Card style={styles.chartCard}>
-              {renderChartHeader(t('results.cumulativePayments'), 'cumulativePayments')}
+              {renderChartHeader(t('results.cumulativePayments'), 'cumulativePayments', cumulativeInteractive)}
               <CumulativeAreaChart
                 monthlyArray={result.loanChartMonthlyArray}
                 interestArray={result.loanChartInterestArray}

@@ -6,6 +6,7 @@ import { colours, fontFaces, fontSizes } from '@/theme';
 import { formatCurrencyCompact } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 import { getProjectionChartLayout } from './dimensions';
+import { ChartEmptyState } from './ChartEmptyState';
 
 interface Props {
   monthlyArray: number[];
@@ -43,13 +44,46 @@ export const RepaymentBarChart = ({
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
 
-  const rawYearlyData = [];
-  for (let i = SAMPLE_STEP; i < monthlyArray.length; i += SAMPLE_STEP) {
-    const totalPaid = monthlyArray[i] - monthlyArray[i - SAMPLE_STEP];
-    const interestPaid = interestArray[i] - interestArray[i - SAMPLE_STEP];
+  // Bucket the cumulative arrays into years. The final bucket can be a partial year
+  // (e.g. an 18-month loan ends on a half-year); clamp its end to the last index so
+  // those trailing months still get their own bar rather than being dropped.
+  const lastIndex = monthlyArray.length - 1;
+  const buckets: { year: number; principalPaid: number; interestPaid: number; totalPaid: number }[] = [];
+  for (let start = 0; start < lastIndex; start += SAMPLE_STEP) {
+    const end = Math.min(start + SAMPLE_STEP, lastIndex);
+    const totalPaid = monthlyArray[end] - monthlyArray[start];
+    const interestPaid = interestArray[end] - interestArray[start];
     const principalPaid = Math.max(0, totalPaid - interestPaid);
-    const year = Math.ceil(i / SAMPLE_STEP);
-    const stacks: StackSegment[] = [
+    const year = Math.ceil(end / SAMPLE_STEP);
+    buckets.push({ year, principalPaid, interestPaid, totalPaid });
+  }
+
+  // The amortisation engine settles a sub-instalment remainder as one extra closing
+  // entry (e.g. a £379 final payment after the last full £1,502 instalment). Bucketed
+  // naively that stub spills into a fresh year and renders as a jarring one-month
+  // sliver tacked on past the real final year. When the closing bucket is smaller than
+  // a single instalment of the loan's closing year, fold it back into the preceding year
+  // so the chart ends on the loan's true final year while still conserving the total
+  // paid. Only the final bucket can be partial, so the second-to-last is always a full
+  // 12-month year — its monthly rate is the right reference even if a remortgage changed
+  // the instalment partway through.
+  if (buckets.length >= 2) {
+    const tail = buckets[buckets.length - 1];
+    const prev = buckets[buckets.length - 2];
+    const closingMonthlyRate = prev.totalPaid / SAMPLE_STEP;
+    if (closingMonthlyRate > 0 && tail.totalPaid < closingMonthlyRate - 1e-6) {
+      prev.principalPaid += tail.principalPaid;
+      prev.interestPaid += tail.interestPaid;
+      prev.totalPaid += tail.totalPaid;
+      buckets.pop();
+    }
+  }
+
+  if (buckets.length === 0) return <ChartEmptyState height={height} />;
+
+  const rawYearlyData = buckets.map(({ year, principalPaid, interestPaid }) => ({
+    year,
+    stacks: [
       {
         value: principalPaid,
         color: colours.primary,
@@ -62,14 +96,8 @@ export const RepaymentBarChart = ({
         borderTopLeftRadius: 5,
         borderTopRightRadius: 5,
       },
-    ];
-    rawYearlyData.push({
-      stacks,
-      year,
-    });
-  }
-
-  if (rawYearlyData.length === 0) return null;
+    ] as StackSegment[],
+  }));
 
   const { chartWidth, scrollEnabled, pointSpacing } = getProjectionChartLayout({
     containerWidth,

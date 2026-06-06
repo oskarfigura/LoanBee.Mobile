@@ -74,6 +74,7 @@
     "repaymentBreakdown": "Prognoza Spłat",
     "loanBreakdown": "Podział Kredytu (%)",
     "cumulativePayments": "Łączne Płatności",
+    "chartEmptyState": "Za mało danych, aby utworzyć wykres",
     "unsavedTitle": "Opuść bez zapisywania",
     "cancelLeave": "Anuluj",
     "keepEditing": "Kontynuuj edycję",
