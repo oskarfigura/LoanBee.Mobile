@@ -1,11 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  getProjectedDealBalanceAtDate,
   validateCompletionAmounts,
   validateCompletionOverpaymentRow,
   validateCompletionOverpaymentRows,
   validateCurrentDealDurationText,
   validateTrackLumpRows,
 } from '@/mortgage/validation';
+import { projectDeal } from '@/mortgage/tracker';
 import { LoanDeal } from '@/types/SavedLoan';
 
 const deal: LoanDeal = {
@@ -77,6 +79,24 @@ describe('mortgage validation helpers', () => {
       isValid: false,
       amount: { errorKey: 'mortgage.overpaymentTooLarge' },
     });
+  });
+});
+
+describe('getProjectedDealBalanceAtDate', () => {
+  it('returns the opening balance at the start date', () => {
+    expect(getProjectedDealBalanceAtDate(deal, deal.startDate)).toBe(deal.openingBalance);
+  });
+
+  it('falls back to the opening balance for an unparseable date', () => {
+    expect(getProjectedDealBalanceAtDate(deal, 'nope')).toBe(deal.openingBalance);
+  });
+
+  it('amortises down (never negative) and matches the shared projection engine', () => {
+    const later = getProjectedDealBalanceAtDate(deal, '2029-01-01');
+    expect(later).toBeGreaterThanOrEqual(0);
+    expect(later).toBeLessThan(deal.openingBalance);
+    // Locks the delegation: validation must read the same balance the projection shows.
+    expect(later).toBe(projectDeal(deal, [], new Date('2029-01-01T00:00:00'), true).balance);
   });
 });
 

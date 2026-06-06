@@ -1,4 +1,5 @@
 import { LoanDeal } from '@/types/SavedLoan';
+import { projectDeal } from '@/mortgage/tracker';
 import { isValidIsoDate, parseDateLabelValue } from '@/utils/date';
 import {
   NumericValidation,
@@ -32,28 +33,26 @@ export const validateCompletionAmounts = (
   feesAdded: validateMoneyText(feesAdded, { allowZero: true }),
 });
 
-const monthsBetweenDates = (startDate: string, endDate: string): number => {
-  const start = parseDateLabelValue(startDate);
-  const end = parseDateLabelValue(endDate);
-  if (!start || !end) return 0;
-
-  return Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()));
-};
-
+// Delegate to the shared projection engine rather than re-deriving the
+// amortisation here. The previous bespoke loop omitted the payment cap and
+// ignored logged events, so the "overpayment too large" guard could disagree
+// with the balance the projection actually shows. projectDeal applies the deal's
+// scheduled payment plus its regular overpayment up to the event date.
 export const getProjectedDealBalanceAtDate = (
   deal: LoanDeal,
   eventDate: string,
 ): number => {
-  const months = monthsBetweenDates(deal.startDate, eventDate);
-  const monthlyRate = deal.interestRate / 100 / 12;
-  let balance = deal.openingBalance;
+  const asOf = parseDateLabelValue(eventDate);
+  if (!asOf) return +deal.openingBalance.toFixed(2);
 
-  for (let month = 0; month < months; month += 1) {
-    const interest = balance * monthlyRate;
-    balance = Math.max(0, balance + interest - deal.monthlyPayment - deal.regularOverpayment);
-  }
+  // For a completed deal projectDeal would override the balance with the
+  // bank-confirmed closing figure for every date; strip the completion so the
+  // guard sees the scheduled balance at the event date, as the original did.
+  const dealForProjection: LoanDeal = deal.status === 'completed' && deal.completion
+    ? { ...deal, status: 'active', completion: undefined, endDate: deal.completion.completedAt }
+    : deal;
 
-  return +balance.toFixed(2);
+  return projectDeal(dealForProjection, [], asOf, true).balance;
 };
 
 export const validateCompletionOverpaymentRow = (
