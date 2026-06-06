@@ -42,6 +42,8 @@ describe.each(cases)('chart data integrity — $name', ({ amount, interest, year
   it('keeps the three plotted series the same length with correct starting anchors', () => {
     expect(interestPaid.length).toBe(paid.length);
     expect(remaining.length).toBe(paid.length);
+    // One leading entry (month 0) plus one per amortisation row.
+    expect(paid.length).toBe(result.tableItems.length + 1);
     expect(paid[0]).toBe(0);
     expect(interestPaid[0]).toBe(0);
     expect(remaining[0]).toBe(amount);

@@ -27,7 +27,7 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-import { CumulativeAreaChart } from '../../src/components/charts/CumulativeAreaChart';
+import { CumulativeAreaChart, hasCumulativeChartData } from '../../src/components/charts/CumulativeAreaChart';
 
 const buildArrays = (months = 216) => ({
   monthly: Array.from({ length: months }, (_, index) => index * 1200),
@@ -177,5 +177,16 @@ describe('CumulativeAreaChart', () => {
     expect(capturedLineProps).toBeNull();
     const rendered = renderer.root.findAll(node => textContent(node) === 'results.chartEmptyState');
     expect(rendered.length).toBeGreaterThan(0);
+  });
+});
+
+describe('hasCumulativeChartData', () => {
+  it('reports false below two yearly samples and true at or above the threshold', () => {
+    // The chart renders an empty state until the timeline reaches index 12
+    // (a 13-entry array), matching the empty-state test above.
+    expect(hasCumulativeChartData(8)).toBe(false);
+    expect(hasCumulativeChartData(12)).toBe(false);
+    expect(hasCumulativeChartData(13)).toBe(true);
+    expect(hasCumulativeChartData(216)).toBe(true);
   });
 });

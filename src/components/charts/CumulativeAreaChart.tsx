@@ -24,6 +24,14 @@ const MIN_LABEL_GAP = 52;
 const END_SPACING = X_LABEL_WIDTH / 2 + 4;
 const SECTION_COUNT = 4;
 
+/**
+ * Whether the cumulative chart has enough monthly points to draw a curve (at least
+ * two yearly samples). Below this it renders an empty state, so callers can use this
+ * to avoid presenting the card as an interactive (tappable / fullscreen) chart.
+ */
+export const hasCumulativeChartData = (monthlyPointCount: number) =>
+  monthlyPointCount - 1 >= SAMPLE_STEP;
+
 const XAxisLabel = ({ text, spacing }: { text: string; spacing: number }) => (
   <View style={{ width: X_LABEL_WIDTH, marginLeft: (spacing - X_LABEL_WIDTH) / 2 }}>
     <Text style={styles.xAxisLabel} numberOfLines={1}>{text}</Text>

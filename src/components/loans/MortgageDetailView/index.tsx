@@ -10,7 +10,7 @@ import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { AmortisationTable } from '@/components/calculator/AmortisationTable';
 import { ChartHelpButton, ChartHelpDrawer, type ChartHelpContent } from '@/components/charts/ChartHelp';
-import { CumulativeAreaChart } from '@/components/charts/CumulativeAreaChart';
+import { CumulativeAreaChart, hasCumulativeChartData } from '@/components/charts/CumulativeAreaChart';
 import { MortgageBalanceChart } from '@/components/charts/MortgageBalanceChart';
 import { RepaymentBarChart } from '@/components/charts/RepaymentBarChart';
 import { DashboardProgressGauge } from '@/components/loans/DashboardProgressGauge';
@@ -428,6 +428,7 @@ export const MortgageDetailView = ({
               helpAccessibilityLabel={t('chartHelp.open', { title: t('results.cumulativePayments') })}
               onPress={() => openProjectionPreview('cumulative')}
               onHelpPress={() => openChartHelp('cumulativePayments')}
+              interactive={hasCumulativeChartData(projection.loanChartMonthlyArray.length)}
             >
               <CumulativeAreaChart
                 monthlyArray={projection.loanChartMonthlyArray}
@@ -1177,6 +1178,7 @@ const ProjectionChartCard = ({
   helpAccessibilityLabel,
   onPress,
   onHelpPress,
+  interactive = true,
   children,
 }: {
   title: string;
@@ -1184,10 +1186,12 @@ const ProjectionChartCard = ({
   helpAccessibilityLabel: string;
   onPress: () => void;
   onHelpPress: () => void;
+  interactive?: boolean;
   children: React.ReactNode;
 }) => (
   <Pressable
-    onPress={onPress}
+    onPress={interactive ? onPress : undefined}
+    disabled={!interactive}
     accessibilityRole="button"
     accessibilityLabel={accessibilityLabel}
     style={({ pressed }) => [pressed && styles.previewPressed]}
@@ -1200,7 +1204,7 @@ const ProjectionChartCard = ({
             accessibilityLabel={helpAccessibilityLabel}
             onPress={onHelpPress}
           />
-          <FullscreenIcon />
+          {interactive ? <FullscreenIcon /> : null}
         </View>
       </View>
       {children}

@@ -16,10 +16,7 @@ interface Props {
 export const LoanBreakdownDonut = ({ principal, totalInterest, currency, radius = 88 }: Props) => {
   const { t } = useTranslation();
   const total = principal + totalInterest;
-  const formatPct = (value: number) => {
-    const rounded = Number(value.toFixed(1));
-    return Number.isInteger(rounded) ? String(rounded) : String(rounded);
-  };
+  const formatPct = (value: number) => String(Number(value.toFixed(1)));
   // Round the principal share, then derive interest as its complement so the two
   // displayed percentages always total 100 (rounding each independently can drift
   // to 100.1 when both shares land on a .x5 boundary, e.g. a 31.25/68.75 split).
