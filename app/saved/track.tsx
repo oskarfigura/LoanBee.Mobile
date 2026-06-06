@@ -136,11 +136,9 @@ export default function TrackMortgageScreen() {
 
   // Lump overpayments must fall within [start, payoff] and not collectively
   // exceed the balance — otherwise the projection silently clamps/drops them.
-  const lumpValidations = validateTrackLumpRows(
-    lumpRows,
-    startDate,
-    payoffDateIso,
-    balanceValidation.numeric,
+  const lumpValidations = useMemo(
+    () => validateTrackLumpRows(lumpRows, startDate, payoffDateIso, balanceValidation.numeric),
+    [lumpRows, startDate, payoffDateIso, balanceValidation.numeric],
   );
   const lumpsValid = lumpValidations.every(row => row.isValid);
 
