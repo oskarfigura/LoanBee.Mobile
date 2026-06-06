@@ -1,4 +1,4 @@
-import { LoanDeal } from '@/types/SavedLoan';
+import { LoanDeal, MortgageEvent } from '@/types/SavedLoan';
 import { projectDeal } from '@/mortgage/tracker';
 import { isValidIsoDate, parseDateLabelValue } from '@/utils/date';
 import {
@@ -37,10 +37,13 @@ export const validateCompletionAmounts = (
 // amortisation here. The previous bespoke loop omitted the payment cap and
 // ignored logged events, so the "overpayment too large" guard could disagree
 // with the balance the projection actually shows. projectDeal applies the deal's
-// scheduled payment plus its regular overpayment up to the event date.
+// scheduled payment plus its regular overpayment, and any `events` passed, up to
+// the event date. Callers must exclude the lump events the form rows themselves
+// represent, otherwise those would be double-counted against the running total.
 export const getProjectedDealBalanceAtDate = (
   deal: LoanDeal,
   eventDate: string,
+  events: MortgageEvent[] = [],
 ): number => {
   const asOf = parseDateLabelValue(eventDate);
   if (!asOf) return +deal.openingBalance.toFixed(2);
@@ -52,13 +55,14 @@ export const getProjectedDealBalanceAtDate = (
     ? { ...deal, status: 'active', completion: undefined, endDate: deal.completion.completedAt }
     : deal;
 
-  return projectDeal(dealForProjection, [], asOf, true).balance;
+  return projectDeal(dealForProjection, events, asOf, true).balance;
 };
 
 export const validateCompletionOverpaymentRow = (
   row: CompletionOverpaymentRowInput,
   deal: LoanDeal,
   completedAt: string,
+  events: MortgageEvent[] = [],
 ): CompletionOverpaymentRowValidation => {
   const amount = validateMoneyText(row.amount);
   let dateErrorKey: string | undefined;
@@ -70,7 +74,7 @@ export const validateCompletionOverpaymentRow = (
   }
 
   const projectedBalance = isValidIsoDate(row.date)
-    ? getProjectedDealBalanceAtDate(deal, row.date)
+    ? getProjectedDealBalanceAtDate(deal, row.date, events)
     : deal.openingBalance;
 
   if (!dateErrorKey && amount.isValid && amount.numeric > projectedBalance) {
@@ -102,13 +106,14 @@ export const validateCompletionOverpaymentRows = (
   rows: Array<CompletionOverpaymentRowInput & { id: string }>,
   deal: LoanDeal,
   completedAt: string,
+  events: MortgageEvent[] = [],
 ): Map<string, CompletionOverpaymentRowValidation> => {
   const ordered = [...rows].sort((a, b) => a.date.localeCompare(b.date));
   const result = new Map<string, CompletionOverpaymentRowValidation>();
   let cumulative = 0;
 
   for (const row of ordered) {
-    const base = validateCompletionOverpaymentRow(row, deal, completedAt);
+    const base = validateCompletionOverpaymentRow(row, deal, completedAt, events);
 
     if (base.isValid) {
       const available = Math.max(0, base.projectedBalance - cumulative);

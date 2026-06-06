@@ -146,9 +146,21 @@ const CompletedDealDetailView = ({
   const currencySymbol = CURRENCIES.find(c => c.code === initialLoan.currency)?.symbol ?? '£';
   const minimumDate = parseDateLabelValue(deal.startDate) ?? undefined;
   const maximumDate = parseDateLabelValue(deal.completion?.completedAt ?? deal.endDate) ?? undefined;
-  const overpaymentValidations = useMemo(() => (
-    validateCompletionOverpaymentRows(overpayments, deal, deal.completion?.completedAt ?? deal.endDate)
-  ), [deal, overpayments]);
+  const overpaymentValidations = useMemo(() => {
+    // The rows shown here are this deal's saved lump overpayments, so they must
+    // be excluded from the projection feeding the balance check — the running
+    // total in validateCompletionOverpaymentRows reintroduces them in date order.
+    // Other event types (missed payments, checkpoints) still shape the balance.
+    const eventsExcludingFormLumps = initialLoan.events.filter(
+      event => !(event.type === 'lumpOverpayment' && event.dealId === deal.id),
+    );
+    return validateCompletionOverpaymentRows(
+      overpayments,
+      deal,
+      deal.completion?.completedAt ?? deal.endDate,
+      eventsExcludingFormLumps,
+    );
+  }, [deal, overpayments, initialLoan.events]);
   const hasInvalidOverpayment = [...overpaymentValidations.values()].some(validation => !validation.isValid);
 
   const addRow = () =>

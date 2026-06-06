@@ -8,7 +8,7 @@ import {
   validateTrackLumpRows,
 } from '@/mortgage/validation';
 import { projectDeal } from '@/mortgage/tracker';
-import { LoanDeal } from '@/types/SavedLoan';
+import { LoanDeal, MortgageEvent } from '@/types/SavedLoan';
 
 const deal: LoanDeal = {
   id: 'deal-1',
@@ -97,6 +97,21 @@ describe('getProjectedDealBalanceAtDate', () => {
     expect(later).toBeLessThan(deal.openingBalance);
     // Locks the delegation: validation must read the same balance the projection shows.
     expect(later).toBe(projectDeal(deal, [], new Date('2029-01-01T00:00:00'), true).balance);
+  });
+
+  it('subtracts a prior lump overpayment event from the projected balance', () => {
+    const priorLump: MortgageEvent = {
+      id: 'ev-1',
+      createdAt: '2026-03-01T00:00:00.000Z',
+      updatedAt: '2026-03-01T00:00:00.000Z',
+      dealId: deal.id,
+      type: 'lumpOverpayment',
+      date: '2026-03-01',
+      amount: 20000,
+    };
+    const withEvent = getProjectedDealBalanceAtDate(deal, '2029-01-01', [priorLump]);
+    const withoutEvent = getProjectedDealBalanceAtDate(deal, '2029-01-01');
+    expect(withEvent).toBeLessThan(withoutEvent);
   });
 });
 
