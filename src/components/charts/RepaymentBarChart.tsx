@@ -6,6 +6,7 @@ import { colours, fontFaces, fontSizes } from '@/theme';
 import { formatCurrencyCompact } from '@/currency/format';
 import { CurrencyCode } from '@/currency/currencies';
 import { getProjectionChartLayout } from './dimensions';
+import { ChartEmptyState } from './ChartEmptyState';
 
 interface Props {
   monthlyArray: number[];
@@ -43,12 +44,17 @@ export const RepaymentBarChart = ({
   const { t } = useTranslation();
   const [containerWidth, setContainerWidth] = useState(0);
 
+  // Bucket the cumulative arrays into years. The final bucket can be a partial year
+  // (e.g. an 18-month loan ends on a half-year); clamp its end to the last index so
+  // those trailing months still get their own bar rather than being dropped.
+  const lastIndex = monthlyArray.length - 1;
   const rawYearlyData = [];
-  for (let i = SAMPLE_STEP; i < monthlyArray.length; i += SAMPLE_STEP) {
-    const totalPaid = monthlyArray[i] - monthlyArray[i - SAMPLE_STEP];
-    const interestPaid = interestArray[i] - interestArray[i - SAMPLE_STEP];
+  for (let start = 0; start < lastIndex; start += SAMPLE_STEP) {
+    const end = Math.min(start + SAMPLE_STEP, lastIndex);
+    const totalPaid = monthlyArray[end] - monthlyArray[start];
+    const interestPaid = interestArray[end] - interestArray[start];
     const principalPaid = Math.max(0, totalPaid - interestPaid);
-    const year = Math.ceil(i / SAMPLE_STEP);
+    const year = Math.ceil(end / SAMPLE_STEP);
     const stacks: StackSegment[] = [
       {
         value: principalPaid,
@@ -69,7 +75,7 @@ export const RepaymentBarChart = ({
     });
   }
 
-  if (rawYearlyData.length === 0) return null;
+  if (rawYearlyData.length === 0) return <ChartEmptyState height={height} />;
 
   const { chartWidth, scrollEnabled, pointSpacing } = getProjectionChartLayout({
     containerWidth,

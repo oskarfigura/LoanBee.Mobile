@@ -20,8 +20,11 @@ export const LoanBreakdownDonut = ({ principal, totalInterest, currency, radius 
     const rounded = Number(value.toFixed(1));
     return Number.isInteger(rounded) ? String(rounded) : String(rounded);
   };
+  // Round the principal share, then derive interest as its complement so the two
+  // displayed percentages always total 100 (rounding each independently can drift
+  // to 100.1 when both shares land on a .x5 boundary, e.g. a 31.25/68.75 split).
   const principalPct = total > 0 ? formatPct((principal / total) * 100) : '0';
-  const interestPct = total > 0 ? formatPct((totalInterest / total) * 100) : '0';
+  const interestPct = total > 0 ? formatPct(100 - Number(principalPct)) : '0';
 
   const data = [
     { value: principal, color: colours.primary, gradientCenterColor: colours.primaryDark },

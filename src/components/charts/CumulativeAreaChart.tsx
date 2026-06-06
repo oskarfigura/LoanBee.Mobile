@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
 import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
 import { getNiceChartMaxValue, getProjectionChartLayout } from './dimensions';
+import { ChartEmptyState } from './ChartEmptyState';
 
 interface Props {
   monthlyArray: number[];
@@ -64,7 +65,7 @@ export const CumulativeAreaChart = ({
   };
 
   const yearlyData = buildYearlyData();
-  if (yearlyData.length < 2) return null;
+  if (yearlyData.length < 2) return <ChartEmptyState height={height} />;
 
   const { chartWidth, scrollEnabled, pointSpacing } = getProjectionChartLayout({
     containerWidth,

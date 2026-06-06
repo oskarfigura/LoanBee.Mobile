@@ -145,3 +145,54 @@ describe('getProjectionChartLayout', () => {
     expect(getNiceChartMaxValue([360000], 4)).toBe(400000);
   });
 });
+
+describe('getNiceChartMaxValue edge cases', () => {
+  it('falls back to the section count when every value is zero', () => {
+    expect(getNiceChartMaxValue([0, 0, 0], 4)).toBe(4);
+  });
+
+  it('falls back to the section count when every value is negative', () => {
+    expect(getNiceChartMaxValue([-100, -5000], 4)).toBe(4);
+  });
+
+  it('scales from the positive maximum when values are mixed sign', () => {
+    expect(getNiceChartMaxValue([-5000, 100000], 4)).toBeGreaterThanOrEqual(100000);
+  });
+
+  it('ignores non-finite values when finding the maximum', () => {
+    const fromMixed = getNiceChartMaxValue([Number.NaN, Number.POSITIVE_INFINITY, 1000], 4);
+    expect(fromMixed).toBe(getNiceChartMaxValue([1000], 4));
+    expect(Number.isFinite(fromMixed)).toBe(true);
+  });
+
+  it('returns a positive axis even for tiny sub-unit values', () => {
+    expect(getNiceChartMaxValue([0.3], 4)).toBeGreaterThanOrEqual(0.3);
+  });
+});
+
+describe('getProjectionChartLayout edge cases', () => {
+  it('handles an empty timeline without scrolling or NaN', () => {
+    const layout = getProjectionChartLayout({
+      containerWidth: 360,
+      pointCount: 0,
+      perPointWidth: 44,
+      edgeSpacing: 16,
+      fitToWidth: true,
+    });
+
+    expect(layout.scrollEnabled).toBe(false);
+    expect(Number.isFinite(layout.chartWidth)).toBe(true);
+    expect(Number.isFinite(layout.pointSpacing)).toBe(true);
+  });
+
+  it('falls back to the minimum viewport for a negative container width', () => {
+    const layout = getProjectionChartLayout({
+      containerWidth: -200,
+      pointCount: 10,
+      perPointWidth: 44,
+      edgeSpacing: 16,
+    });
+
+    expect(layout.viewportWidth).toBe(220);
+  });
+});

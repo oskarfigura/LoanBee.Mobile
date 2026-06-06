@@ -123,4 +123,59 @@ describe('CumulativeAreaChart', () => {
     expect(labels?.[0]).toBe('Yr 1');
     expect(labels).toContain('Yr 18');
   });
+
+  it('maps the three series to remaining, total paid, and interest in that order', () => {
+    const { monthly, interest, remaining } = buildArrays();
+
+    act(() => {
+      create(React.createElement(CumulativeAreaChart, {
+        monthlyArray: monthly,
+        interestArray: interest,
+        remainingArray: remaining,
+        currency: 'GBP',
+      }));
+    });
+
+    // The first sampled point is the end of year one (index 11).
+    expect(capturedLineProps?.data[0].value).toBe(remaining[11]);
+    expect(capturedLineProps?.data2[0].value).toBe(monthly[11]);
+    expect(capturedLineProps?.data3[0].value).toBe(interest[11]);
+    expect(capturedLineProps?.color).toBeDefined();
+    expect(capturedLineProps?.color2).toBeDefined();
+    expect(capturedLineProps?.color3).toBeDefined();
+  });
+
+  it('draws the remaining-balance series down to zero for a fully repaid loan', () => {
+    const monthly = Array.from({ length: 121 }, (_, index) => index * 900);
+    const interest = Array.from({ length: 121 }, (_, index) => index * 150);
+    const remaining = Array.from({ length: 121 }, (_, index) => Math.max(0, 120000 - (index * 1000)));
+
+    act(() => {
+      create(React.createElement(CumulativeAreaChart, {
+        monthlyArray: monthly,
+        interestArray: interest,
+        remainingArray: remaining,
+        currency: 'GBP',
+      }));
+    });
+
+    const remainingSeries = capturedLineProps?.data as Array<{ value: number }>;
+    expect(remainingSeries[remainingSeries.length - 1].value).toBe(0);
+  });
+
+  it('shows an empty state instead of a blank card when there is under a year of data', () => {
+    let renderer!: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(React.createElement(CumulativeAreaChart, {
+        monthlyArray: Array.from({ length: 8 }, (_, index) => index * 1000),
+        interestArray: Array.from({ length: 8 }, (_, index) => index * 200),
+        remainingArray: Array.from({ length: 8 }, (_, index) => 8000 - (index * 1000)),
+        currency: 'GBP',
+      }));
+    });
+
+    expect(capturedLineProps).toBeNull();
+    const rendered = renderer.root.findAll(node => textContent(node) === 'results.chartEmptyState');
+    expect(rendered.length).toBeGreaterThan(0);
+  });
 });

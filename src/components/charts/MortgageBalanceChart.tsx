@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { colours, fontFaces, fontSizes } from '@/theme';
 import { CurrencyCode, CURRENCIES } from '@/currency/currencies';
 import { getNiceChartMaxValue, getProjectionChartLayout } from './dimensions';
+import { ChartEmptyState } from './ChartEmptyState';
 
 interface Props {
   scenarioRemaining: number[];
@@ -75,7 +76,7 @@ export const MortgageBalanceChart = ({
   };
 
   const indexes = buildYearlyIndexes();
-  if (indexes.length < 2) return null;
+  if (indexes.length < 2) return <ChartEmptyState height={height} />;
 
   const { chartWidth, scrollEnabled, pointSpacing } = getProjectionChartLayout({
     containerWidth,

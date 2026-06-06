@@ -74,6 +74,7 @@
     "repaymentBreakdown": "Repayment Projection",
     "loanBreakdown": "Loan Breakdown (%)",
     "cumulativePayments": "Cumulative Payments",
+    "chartEmptyState": "Not enough data to chart yet",
     "unsavedTitle": "Leave without saving",
     "cancelLeave": "Cancel",
     "keepEditing": "Keep editing",
