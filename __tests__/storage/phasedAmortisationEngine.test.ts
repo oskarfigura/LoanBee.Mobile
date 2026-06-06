@@ -75,17 +75,22 @@ describe('computePhasedTotals', () => {
   // negative "refund" row — which used to add a phantom month to the term.
   describe('residual smaller than one payment (B1)', () => {
     const monthly = baseResult.monthlyPayments;
+    const monthlyRate = INTEREST / 100 / 12;
     const lumpMonthIndex = 100; // 100 months after START is 2032-05-01.
     const lumpDate = '2032-05-01';
     const balanceBeforeLump = parseFloat(baseResult.tableItems[lumpMonthIndex - 1].ending);
     // Leave roughly half a payment outstanding so the next month clears it.
     const lump = balanceBeforeLump - monthly * 0.5;
+    const residualBalance = balanceBeforeLump - lump;
 
-    it('clears in exactly one further month with no phantom refund row', () => {
+    it('clears in exactly one further month with the right interest (no negative refund)', () => {
       const result = phased([{ date: lumpDate, amount: lump }]);
 
       expect(result.totalTermInMonths).toBe(lumpMonthIndex + 1);
-      expect(result.totalInterestPaid).toBeGreaterThan(0);
+      // Interest = every month up to the lump, plus one final month on the residual.
+      // The old refund-row bug made the final month's interest negative.
+      const expectedInterest = sumInterestThroughMonth(lumpMonthIndex) + +(residualBalance * monthlyRate).toFixed(2);
+      expect(result.totalInterestPaid).toBeCloseTo(expectedInterest, 2);
     });
 
     it('remaining-balance series has no upward spike and ends at zero', () => {

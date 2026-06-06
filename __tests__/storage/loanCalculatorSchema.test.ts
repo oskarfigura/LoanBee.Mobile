@@ -21,10 +21,13 @@ const baseValues: LoanCalculatorFormInputValues = {
 const parse = (overrides: Partial<LoanCalculatorFormInputValues>) =>
   loanCalculatorSchema.safeParse({ ...baseValues, ...overrides });
 
-const downPaymentError = (result: ReturnType<typeof parse>): string | undefined => {
+const errorFor = (result: ReturnType<typeof parse>, field: string): string | undefined => {
   if (result.success) return undefined;
-  return result.error.issues.find(issue => issue.path[0] === 'downPayment')?.message;
+  return result.error.issues.find(issue => issue.path[0] === field)?.message;
 };
+
+const downPaymentError = (result: ReturnType<typeof parse>): string | undefined =>
+  errorFor(result, 'downPayment');
 
 describe('loanCalculatorSchema — down payment vs loan amount (B2)', () => {
   it('accepts the default 10% down payment', () => {
@@ -50,5 +53,33 @@ describe('loanCalculatorSchema — down payment vs loan amount (B2)', () => {
 
   it('accepts a cash down payment below the loan amount', () => {
     expect(parse({ downPaymentType: 'cash', downPayment: 50000 }).success).toBe(true);
+  });
+});
+
+describe('loanCalculatorSchema — term and payment refinements', () => {
+  it('requires a non-zero term in TERM mode', () => {
+    const result = parse({ calculationType: 'term', termInYears: 0, termInMonths: 0 });
+    expect(errorFor(result, 'termInYears')).toBe('errors.termRequired');
+  });
+
+  it('requires a desired payment in PAYMENT mode', () => {
+    const result = parse({ calculationType: 'payment', desiredMonthlyPayment: 0 });
+    expect(errorFor(result, 'desiredMonthlyPayment')).toBe('errors.desiredPaymentRequired');
+  });
+
+  it('rejects a desired payment below the interest-only minimum', () => {
+    // 270k effective @ 3% → interest-only ≈ £676/mo, so £100 never amortises.
+    const result = parse({ calculationType: 'payment', desiredMonthlyPayment: 100 });
+    expect(errorFor(result, 'desiredMonthlyPayment')).toContain('errors.desiredPaymentMinimum');
+  });
+
+  it('rejects a desired payment that exceeds the loan balance', () => {
+    const result = parse({ calculationType: 'payment', desiredMonthlyPayment: 500000 });
+    expect(errorFor(result, 'desiredMonthlyPayment')).toBe('errors.desiredPaymentExceeds');
+  });
+
+  it('rejects an additional payment that exceeds the loan balance in TERM mode', () => {
+    const result = parse({ calculationType: 'term', additionalMonthlyPayment: 500000 });
+    expect(errorFor(result, 'additionalMonthlyPayment')).toBe('errors.additionalPaymentExceeds');
   });
 });
