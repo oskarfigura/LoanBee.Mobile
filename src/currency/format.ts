@@ -1,4 +1,4 @@
 export {
   formatCurrency,
   formatCurrencyCompact,
-} from '@amortisation/currency';
+} from '@oskarfigura/amortisation/currency';

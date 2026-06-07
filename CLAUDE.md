@@ -2,11 +2,11 @@
 
 ## Architecture
 
-Expo Router app with a 4-tab bottom navigator. All navigation is file-based under `app/`. The core maths engine in `src/core/` is pure TypeScript with zero React Native dependencies — it is copied verbatim from the web repo and must stay that way.
+Expo Router app with a 4-tab bottom navigator. All navigation is file-based under `app/`. The core maths engine lives in the published package `@oskarfigura/amortisation` (pure TypeScript, zero runtime/React Native dependencies, shared with the web app). `src/core/` is now a thin re-export layer over that package — do not reimplement maths there.
 
 ## Key Invariants
 
-- **Never modify `src/core/`** without running `npm test` first and after. These files are the authoritative maths engine shared with the web app.
+- **The maths engine is `@oskarfigura/amortisation`** (GitHub Packages, ESM). `src/core/*` only re-exports from it. To change calculation behaviour, change it in the `TTN.Amortisation` repo, publish a new version, and bump it here. Run `npm test` before and after any change touching `src/core/`.
 - **All colours must use `colours.*`** from `src/theme/colours.ts`. Never write a hex literal in a component or screen.
 - **All font families must use `fonts.body` or `fonts.heading`** from `src/theme/typography.ts`. Never write `fontFamily: 'Inter'` inline.
 - **All font weights must use `fontWeights.*`** from `src/theme/typography.ts`. Never write `fontWeight: '700'` inline.
@@ -46,6 +46,8 @@ npm test    # runs all Jest projects
 
 Mocks live in `src/__mocks__/`: `react-native-mmkv.ts` (in-memory Map) and `react-native-reanimated.ts` (stubs). The storage project jest config maps `react-native-mmkv` to the mock.
 
+`@oskarfigura/amortisation` ships ESM `dist/*.js` and its `exports` map declares only `import`/`types` conditions (no `require`), so jest's CommonJS resolver can't resolve it natively. Each jest project therefore maps the specifier straight to the package's `dist` via `moduleNameMapper`, transforms its `.js` with ts-jest (`allowJs: true`), and whitelists it in `transformIgnorePatterns` (`node_modules/(?!@oskarfigura/amortisation/)`).
+
 ## Currency System
 
 `src/currency/currencies.ts` defines the four supported currencies. `languageToCurrency()` (in `src/currency/defaults.ts`) maps `pl` → PLN, anything else → GBP. The global default is stored in MMKV under `user_currency` and initialised from the device locale on first launch. Each `SavedLoan` carries its own `currency` field — always pass the loan's currency (not the global default) to `formatCurrency()` in result/chart/table components.
@@ -74,6 +76,18 @@ Google test IDs are used automatically when env vars are unset or `__DEV__` is t
 ## Local Development
 
 The project always runs via local builds — Expo Go is not supported due to native modules (`react-native-mmkv`, `react-native-google-mobile-ads`). Local builds do not require a paid Expo plan or EAS.
+
+### GitHub Packages auth (required for `npm install`)
+
+`@oskarfigura/amortisation` is hosted on GitHub Packages. The committed `.npmrc` points the `@oskarfigura` scope at `https://npm.pkg.github.com` and reads the token from `NODE_AUTH_TOKEN`. Before installing, export a GitHub token with the `read:packages` scope:
+
+```bash
+gh auth refresh -h github.com -s read:packages   # one-time, adds the scope
+export NODE_AUTH_TOKEN=$(gh auth token)
+npm install
+```
+
+CI must provide `NODE_AUTH_TOKEN` (e.g. the workflow's `GITHUB_TOKEN` or a PAT with `read:packages`).
 
 - `android/` is currently checked in and can be used directly with Gradle.
 - `ios/` is currently generated locally and ignored by git. Create it with `npm run ios` or `npx expo prebuild --platform ios` before attempting Xcode/Pods work.

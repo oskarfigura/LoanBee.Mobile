@@ -3,8 +3,8 @@ export {
   getBaseLog,
   nFormatter,
   numberWithCommas,
-} from '@amortisation/calculation';
+} from '@oskarfigura/amortisation/calculation';
 export {
   getLoanEndDate,
   getOverallTermInMonths,
-} from '@amortisation/dates';
+} from '@oskarfigura/amortisation/dates';

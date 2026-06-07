@@ -1,6 +1,6 @@
 export {
   buildAmortisationCsv,
   formatAmortisationPeriodLabel,
-} from '@amortisation';
+} from '@oskarfigura/amortisation';
 
-export type { AmortisationTableItem } from '@amortisation';
+export type { AmortisationTableItem } from '@oskarfigura/amortisation';
