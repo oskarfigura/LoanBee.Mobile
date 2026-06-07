@@ -4,5 +4,5 @@ export {
   getCalculationWebShareUrl,
   getShareableCalculationValuesFromParams,
   normalizeShareableCalculationValues,
-} from '@amortisation';
-export type { ShareableCalculationValues } from '@amortisation';
+} from '@oskarfigura/amortisation';
+export type { ShareableCalculationValues } from '@oskarfigura/amortisation';

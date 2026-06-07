@@ -4,5 +4,5 @@ export {
   getCurrencySymbol,
   isCurrencyCode,
   normalizeCurrency,
-} from '@amortisation/currency';
-export type { Currency, CurrencyCode } from '@amortisation';
+} from '@oskarfigura/amortisation/currency';
+export type { Currency, CurrencyCode } from '@oskarfigura/amortisation';

@@ -32,15 +32,26 @@
         ],
         "testEnvironment": "node",
         "moduleNameMapper": {
-          "^@amortisation$": "<rootDir>/packages/amortisation",
-          "^@amortisation/(.*)$": "<rootDir>/packages/amortisation/$1",
+          "^@oskarfigura/amortisation$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/index.js",
+          "^@oskarfigura/amortisation/(.*)$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/$1.js",
           "^@/(.*)$": "<rootDir>/src/$1"
         },
         "transform": {
           "^.+\\.tsx?$": [
             "ts-jest"
+          ],
+          "^.+\\.jsx?$": [
+            "ts-jest",
+            {
+              "tsconfig": {
+                "allowJs": true
+              }
+            }
           ]
-        }
+        },
+        "transformIgnorePatterns": [
+          "node_modules/(?!@oskarfigura/amortisation/)"
+        ]
       },
       {
         "displayName": "storage",
@@ -52,16 +63,27 @@
         ],
         "testEnvironment": "node",
         "moduleNameMapper": {
-          "^@amortisation$": "<rootDir>/packages/amortisation",
-          "^@amortisation/(.*)$": "<rootDir>/packages/amortisation/$1",
+          "^@oskarfigura/amortisation$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/index.js",
+          "^@oskarfigura/amortisation/(.*)$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/$1.js",
           "^@/(.*)$": "<rootDir>/src/$1",
           "^react-native-mmkv$": "<rootDir>/src/__mocks__/react-native-mmkv.ts"
         },
         "transform": {
           "^.+\\.tsx?$": [
             "ts-jest"
+          ],
+          "^.+\\.jsx?$": [
+            "ts-jest",
+            {
+              "tsconfig": {
+                "allowJs": true
+              }
+            }
           ]
-        }
+        },
+        "transformIgnorePatterns": [
+          "node_modules/(?!@oskarfigura/amortisation/)"
+        ]
       },
       {
         "displayName": "display",
@@ -73,15 +95,26 @@
         ],
         "testEnvironment": "node",
         "moduleNameMapper": {
-          "^@amortisation$": "<rootDir>/packages/amortisation",
-          "^@amortisation/(.*)$": "<rootDir>/packages/amortisation/$1",
+          "^@oskarfigura/amortisation$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/index.js",
+          "^@oskarfigura/amortisation/(.*)$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/$1.js",
           "^@/(.*)$": "<rootDir>/src/$1"
         },
         "transform": {
           "^.+\\.tsx?$": [
             "ts-jest"
+          ],
+          "^.+\\.jsx?$": [
+            "ts-jest",
+            {
+              "tsconfig": {
+                "allowJs": true
+              }
+            }
           ]
-        }
+        },
+        "transformIgnorePatterns": [
+          "node_modules/(?!@oskarfigura/amortisation/)"
+        ]
       },
       {
         "displayName": "design-system",
@@ -93,15 +126,26 @@
         ],
         "testEnvironment": "node",
         "moduleNameMapper": {
-          "^@amortisation$": "<rootDir>/packages/amortisation",
-          "^@amortisation/(.*)$": "<rootDir>/packages/amortisation/$1",
+          "^@oskarfigura/amortisation$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/index.js",
+          "^@oskarfigura/amortisation/(.*)$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/$1.js",
           "^@/(.*)$": "<rootDir>/src/$1"
         },
         "transform": {
           "^.+\\.tsx?$": [
             "ts-jest"
+          ],
+          "^.+\\.jsx?$": [
+            "ts-jest",
+            {
+              "tsconfig": {
+                "allowJs": true
+              }
+            }
           ]
-        }
+        },
+        "transformIgnorePatterns": [
+          "node_modules/(?!@oskarfigura/amortisation/)"
+        ]
       },
       {
         "displayName": "screens",
@@ -113,8 +157,8 @@
         ],
         "testEnvironment": "node",
         "moduleNameMapper": {
-          "^@amortisation$": "<rootDir>/packages/amortisation",
-          "^@amortisation/(.*)$": "<rootDir>/packages/amortisation/$1",
+          "^@oskarfigura/amortisation$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/index.js",
+          "^@oskarfigura/amortisation/(.*)$": "<rootDir>/node_modules/@oskarfigura/amortisation/dist/$1.js",
           "^@/(.*)$": "<rootDir>/src/$1",
           "^react-native-mmkv$": "<rootDir>/src/__mocks__/react-native-mmkv.ts"
         },
@@ -126,14 +170,27 @@
                 "jsx": "react"
               }
             }
+          ],
+          "^.+\\.jsx?$": [
+            "ts-jest",
+            {
+              "tsconfig": {
+                "allowJs": true,
+                "jsx": "react"
+              }
+            }
           ]
-        }
+        },
+        "transformIgnorePatterns": [
+          "node_modules/(?!@oskarfigura/amortisation/)"
+        ]
       }
     ]
   },
   "dependencies": {
     "@expo-google-fonts/manrope": "^0.4.2",
     "@hookform/resolvers": "^5.2.2",
+    "@oskarfigura/amortisation": "^1.0.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.6.0",
     "expo": "~55.0.26",

@@ -6,12 +6,6 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "paths": {
-      "@amortisation": [
-        "./packages/amortisation/index"
-      ],
-      "@amortisation/*": [
-        "./packages/amortisation/*"
-      ],
       "@/*": [
         "./src/*"
       ]

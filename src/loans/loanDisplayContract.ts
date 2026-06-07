@@ -11,7 +11,7 @@ import { SavedLoan } from '@/types/SavedLoan';
 import {
   buildAmortisationDisplayRows as buildPackageAmortisationDisplayRows,
   buildCalculationDisplayContract as buildPackageCalculationDisplayContract,
-} from '@amortisation';
+} from '@oskarfigura/amortisation';
 
 export type UserVisibleMetric = {
   id: string;

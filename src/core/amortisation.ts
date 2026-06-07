@@ -1,1 +1,1 @@
-export * from '@amortisation/calculation';
+export * from '@oskarfigura/amortisation/calculation';

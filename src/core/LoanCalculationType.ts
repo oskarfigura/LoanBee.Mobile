@@ -1,1 +1,1 @@
-export { LoanCalculationType } from '@amortisation';
+export { LoanCalculationType } from '@oskarfigura/amortisation';

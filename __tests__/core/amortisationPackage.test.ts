@@ -9,9 +9,9 @@ import {
   getLoanCalculations,
   getShareableCalculationValuesFromParams,
   getTableItems,
-} from '@amortisation';
+} from '@oskarfigura/amortisation';
 
-describe('packages/amortisation contract', () => {
+describe('@oskarfigura/amortisation contract', () => {
   it('calculates the canonical term-mode golden path', () => {
     const result = getLoanCalculations(
       300000,

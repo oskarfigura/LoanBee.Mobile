@@ -1,1 +1,1 @@
-export { DownPaymentType } from '@amortisation';
+export { DownPaymentType } from '@oskarfigura/amortisation';

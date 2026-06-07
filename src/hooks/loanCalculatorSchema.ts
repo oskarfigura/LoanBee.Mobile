@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { DownPaymentType } from '@/core/DownPaymentType';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { getEffectiveLoanAmount, getMinimumAmortisingPayment } from '@/utils/paymentValidation';
-import { MAX_LOAN_AMOUNT, MAX_MONTHLY_PAYMENT } from '@amortisation/normalise';
+import { MAX_LOAN_AMOUNT, MAX_MONTHLY_PAYMENT } from '@oskarfigura/amortisation/normalise';
 
 // Kept free of expo-localization / MMKV imports so it can be unit-tested in the
 // node Jest project without native-module shims. useLoanCalculatorForm wires it
