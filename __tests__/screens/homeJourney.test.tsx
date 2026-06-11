@@ -9,6 +9,10 @@ const mockRouter = {
 };
 const mockRefresh = jest.fn();
 const mockSetValue = jest.fn();
+// Stable form reference: react-hook-form returns a stable object, so the focus
+// effect's callback identity stays constant and the effect runs on focus, not
+// on every render. A fresh object each render would re-fire it spuriously.
+const mockForm = { setValue: mockSetValue };
 let mockParams: Record<string, string | undefined> = {};
 let mockLoans: unknown[] = [];
 const originalConsoleError = console.error;
@@ -56,9 +60,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 jest.mock('../../src/hooks/useLoanCalculatorForm', () => ({
   getDefaultCurrency: () => 'GBP',
-  useLoanCalculatorForm: () => ({
-    setValue: mockSetValue,
-  }),
+  useLoanCalculatorForm: () => mockForm,
 }));
 
 jest.mock('../../src/hooks/useSavedLoans', () => ({
@@ -82,6 +84,14 @@ jest.mock('../../src/components/calculator/LoanForm', () => ({
 
 jest.mock('../../src/components/loans/MortgageDashboard', () => ({
   MortgageDashboard: (props: Record<string, unknown>) => React.createElement('MortgageDashboard', props),
+}));
+
+// Stub the journey icons so the test never pulls in react-native-svg.
+jest.mock('../../src/components/loans/LoanIcons', () => ({
+  CalculatorIcon: (props: Record<string, unknown>) => React.createElement('CalculatorIcon', props),
+  TimelineIcon: (props: Record<string, unknown>) => React.createElement('TimelineIcon', props),
+  MortgageIcon: (props: Record<string, unknown>) => React.createElement('MortgageIcon', props),
+  LoanCategoryIcon: (props: Record<string, unknown>) => React.createElement('LoanCategoryIcon', props),
 }));
 
 jest.mock('../../src/components/ui/AppText', () => ({
@@ -144,26 +154,39 @@ describe('Home intent journey', () => {
     const renderer = await renderHome();
 
     expect(findAllByMockType(renderer, 'LoanForm')).toHaveLength(0);
-    expect(textContent(renderer.root)).toContain('journey.planTitle');
-    expect(textContent(renderer.root)).toContain('journey.trackBorrowing');
-    expect(textContent(renderer.root)).not.toContain('journey.borrowingType');
+    // Step 1 is a clean Calculate-vs-Track fork; category cards live on step 2.
+    expect(textContent(renderer.root)).toContain('journey.calculateTitle');
+    expect(textContent(renderer.root)).toContain('journey.trackTitle');
+    expect(textContent(renderer.root)).not.toContain('journey.trackChoiceTitle');
 
     await act(async () => {
-      findTouchableByText(renderer, 'journey.planTitle').props.onPress();
+      findTouchableByText(renderer, 'journey.calculateTitle').props.onPress();
     });
 
     expect(findAllByMockType(renderer, 'LoanForm')).toHaveLength(1);
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it('routes Track one I have straight to the unified track form', async () => {
+  it('routes through the track step 2 to the category-specific form', async () => {
     const renderer = await renderHome();
 
+    // Track my borrowing reveals the category step without navigating away.
     await act(async () => {
-      findTouchableByText(renderer, 'journey.trackBorrowing').props.onPress();
+      findTouchableByText(renderer, 'journey.trackTitle').props.onPress();
     });
+    expect(mockRouter.push).not.toHaveBeenCalled();
+    expect(textContent(renderer.root)).toContain('journey.trackChoiceTitle');
 
-    expect(mockRouter.push).toHaveBeenCalledWith('/saved/track');
+    await act(async () => {
+      findTouchableByText(renderer, 'save.mortgage').props.onPress();
+    });
+    expect(mockRouter.push).toHaveBeenCalledWith('/saved/track?category=mortgage');
+
+    await act(async () => {
+      findTouchableByText(renderer, 'save.loan').props.onPress();
+    });
+    expect(mockRouter.push).toHaveBeenCalledWith('/saved/track?category=loan');
+
     expect(findAllByMockType(renderer, 'LoanForm')).toHaveLength(0);
   });
 });

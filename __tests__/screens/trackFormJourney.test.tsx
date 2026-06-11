@@ -9,6 +9,8 @@ const mockRouter = {
   canGoBack: jest.fn(() => false),
   replace: jest.fn(),
 };
+// Mutable route params — category is now passed in from the intent step.
+let mockParams: Record<string, string> = {};
 const mockAdd = jest.fn();
 const mockUpdate = jest.fn();
 const mockRecordUsefulAction = jest.fn(() => Promise.resolve());
@@ -30,7 +32,7 @@ jest.mock('react-native', () => {
 });
 
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockParams,
   useRouter: () => mockRouter,
 }));
 
@@ -131,7 +133,8 @@ const textContent = (node: ReactTestInstance | string | number | null | undefine
   return node.children.map(child => textContent(child as ReactTestInstance | string | number)).join('');
 };
 
-const renderTrack = async (): Promise<ReactTestRenderer> => {
+const renderTrack = async (params: Record<string, string> = {}): Promise<ReactTestRenderer> => {
+  mockParams = params;
   const TrackScreen = (await import('../../app/saved/track')).default;
   let renderer: ReactTestRenderer | undefined;
 
@@ -146,17 +149,47 @@ const getStartDateField = (renderer: ReactTestRenderer): ReactTestInstance => (
   renderer.root.findAll(node => String(node.type) === 'DatePickerField').find(node => node.props.label === 'track.dealStartDate')!
 );
 
-const getCategoryToggle = (renderer: ReactTestRenderer): ReactTestInstance => (
-  renderer.root.findAll(node => String(node.type) === 'SegmentedControl').find(node => (
-    (node.props.options as Array<{ value: string }>).some(option => option.value === 'loan')
-  ))!
-);
-
 const hasMortgageRepaymentToggle = (renderer: ReactTestRenderer): boolean => (
   renderer.root.findAll(node => String(node.type) === 'SegmentedControl').some(node => (
     (node.props.options as Array<{ value: string }>).some(option => option.value === 'interestOnly')
   ))
 );
+
+const findModeToggle = (renderer: ReactTestRenderer): ReactTestInstance | undefined => (
+  renderer.root.findAll(node => String(node.type) === 'SegmentedControl').find(node => (
+    (node.props.options as Array<{ value: string }>).some(option => option.value === 'beginning')
+  ))
+);
+
+// Locate the first AppTextInput that follows the field label `labelText`. A
+// depth-first walk tracks the most recent FieldLabel, so each input is matched
+// to the label rendered just above it (robust to the surrounding wrapper tree).
+const inputForLabel = (renderer: ReactTestRenderer, labelText: string): ReactTestInstance => {
+  let currentLabel = '';
+  let found: ReactTestInstance | undefined;
+  const walk = (node: ReactTestInstance | string | number | null | undefined): void => {
+    if (found || node === null || node === undefined || typeof node === 'string' || typeof node === 'number') {
+      return;
+    }
+    if (String(node.type) === 'FieldLabel') currentLabel = textContent(node);
+    if (String(node.type) === 'AppTextInput' && currentLabel === labelText) {
+      found = node;
+      return;
+    }
+    node.children.forEach(child => walk(child as ReactTestInstance | string | number));
+  };
+  walk(renderer.root);
+  return found!;
+};
+
+const pressSave = async (renderer: ReactTestRenderer): Promise<void> => {
+  const saveButton = renderer.root
+    .findAll(node => String(node.type) === 'Button')
+    .find(node => node.props.label === 'track.save')!;
+  await act(async () => {
+    (saveButton.props.onPress as () => void)();
+  });
+};
 
 beforeEach(() => {
   jest.spyOn(console, 'error').mockImplementation((message?: unknown, ...args: unknown[]) => {
@@ -170,6 +203,7 @@ beforeEach(() => {
 afterEach(() => {
   jest.restoreAllMocks();
   jest.clearAllMocks();
+  mockParams = {};
 });
 
 describe('Track form journey', () => {
@@ -189,23 +223,100 @@ describe('Track form journey', () => {
     expect(textContent(renderer.root)).toContain('track.startingBalance');
     expect(textContent(renderer.root)).toContain('track.originalTerm');
 
-    await act(async () => {
-      getCategoryToggle(renderer).props.onChange('loan');
-    });
-
-    expect(getStartDateField(renderer).props.hint).toBe('track.dealStartDateHintLoan');
+    // Loan category (passed in from the intent step) uses loan-specific hint copy.
+    const loanRenderer = await renderTrack({ category: 'loan' });
+    expect(getStartDateField(loanRenderer).props.hint).toBe('track.dealStartDateHintLoan');
   });
 
   it('keeps loans on the single-deal path by hiding mortgage-only controls', async () => {
+    const mortgageRenderer = await renderTrack({ category: 'mortgage' });
+    expect(hasMortgageRepaymentToggle(mortgageRenderer)).toBe(true);
+
+    const loanRenderer = await renderTrack({ category: 'loan' });
+    expect(hasMortgageRepaymentToggle(loanRenderer)).toBe(false);
+    expect(loanRenderer.root.findAll(node => String(node.type) === 'DatePickerField').some(node => node.props.label === 'track.dealEndDate')).toBe(false);
+  });
+
+  it('reveals price + deposit and hides the balance field when tracking from the beginning', async () => {
     const renderer = await renderTrack();
 
-    expect(hasMortgageRepaymentToggle(renderer)).toBe(true);
+    // Default mortgage mode is "from today": balance field, no price/deposit.
+    expect(textContent(renderer.root)).toContain('track.currentBalance');
+    expect(textContent(renderer.root)).not.toContain('track.propertyPrice');
 
     await act(async () => {
-      getCategoryToggle(renderer).props.onChange('loan');
+      findModeToggle(renderer)!.props.onChange('beginning');
     });
 
-    expect(hasMortgageRepaymentToggle(renderer)).toBe(false);
-    expect(renderer.root.findAll(node => String(node.type) === 'DatePickerField').some(node => node.props.label === 'track.dealEndDate')).toBe(false);
+    const text = textContent(renderer.root);
+    expect(text).toContain('track.propertyPrice');
+    expect(text).toContain('track.deposit');
+    expect(text).not.toContain('track.currentBalance');
+    expect(text).not.toContain('track.startingBalance');
+  });
+
+  it('saves the derived borrowed balance and records the deposit', async () => {
+    const renderer = await renderTrack();
+
+    await act(async () => {
+      findModeToggle(renderer)!.props.onChange('beginning');
+    });
+    await act(async () => {
+      inputForLabel(renderer, 'track.nickname').props.onChangeText('Family home');
+    });
+    await act(async () => {
+      inputForLabel(renderer, 'track.propertyPrice').props.onChangeText('300000');
+    });
+    await act(async () => {
+      inputForLabel(renderer, 'track.deposit').props.onChangeText('60000');
+    });
+    await act(async () => {
+      inputForLabel(renderer, 'track.rate').props.onChangeText('4.5');
+    });
+    await act(async () => {
+      // First input in the (original) term group is the years field.
+      inputForLabel(renderer, 'track.originalTerm').props.onChangeText('25');
+    });
+
+    await pressSave(renderer);
+
+    expect(mockAdd).toHaveBeenCalledTimes(1);
+    const saved = mockAdd.mock.calls[0][0] as {
+      deals: Array<{ openingBalance: number }>;
+      formSnapshot: { loanAmount: number; downPayment: number };
+    };
+    expect(saved.deals[0].openingBalance).toBe(240000);
+    expect(saved.formSnapshot.loanAmount).toBe(300000);
+    expect(saved.formSnapshot.downPayment).toBe(60000);
+  });
+
+  it('hides the from-today / from-the-beginning toggle for loans', async () => {
+    const mortgageRenderer = await renderTrack({ category: 'mortgage' });
+    expect(findModeToggle(mortgageRenderer)).toBeDefined();
+
+    const loanRenderer = await renderTrack({ category: 'loan' });
+    expect(findModeToggle(loanRenderer)).toBeUndefined();
+  });
+
+  it('caps the purchase date at today and clamps a future date when switching to from-the-beginning', async () => {
+    const renderer = await renderTrack();
+
+    // Pick a future start date while still in from-today mode…
+    await act(async () => {
+      getStartDateField(renderer).props.onChange('2999-01-01');
+    });
+    // …then switch to from-the-beginning.
+    await act(async () => {
+      findModeToggle(renderer)!.props.onChange('beginning');
+    });
+
+    const purchaseField = renderer.root
+      .findAll(node => String(node.type) === 'DatePickerField')
+      .find(node => node.props.label === 'track.purchaseDate')!;
+
+    // Future date is clamped (a historical purchase can't be in the future)…
+    expect(purchaseField.props.value).not.toBe('2999-01-01');
+    // …and the picker is capped so the user can't reselect a future date.
+    expect(purchaseField.props.maximumDate).toBeDefined();
   });
 });

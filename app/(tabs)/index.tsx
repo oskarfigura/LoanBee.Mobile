@@ -12,8 +12,15 @@ import { getLoanCalculations } from '@/core/amortisation';
 import { LoanCalculationType } from '@/core/LoanCalculationType';
 import { DownPaymentType } from '@/core/DownPaymentType';
 import { CurrencyCode } from '@/currency/currencies';
+import { LoanCategory } from '@/types/SavedLoan';
 import { LoanForm } from '@/components/calculator/LoanForm';
 import { MortgageDashboard } from '@/components/loans/MortgageDashboard';
+import {
+  CalculatorIcon,
+  TimelineIcon,
+  MortgageIcon,
+  LoanCategoryIcon,
+} from '@/components/loans/LoanIcons';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppText } from '@/components/ui/AppText';
@@ -23,34 +30,70 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { hasSeenGuide } from '@/onboarding/guideState';
 import { whenConsentFlowComplete } from '@/onboarding/firstRunGate';
 
-type JourneyStep = 'intent' | 'form';
+type JourneyStep = 'intent' | 'trackChoice' | 'form';
 
 interface JourneyOptionProps {
   title: string;
   body: string;
   meta?: string;
+  icon?: React.ReactNode;
   onPress: () => void;
 }
 
-const JourneyOption = ({ title, body, meta, onPress }: JourneyOptionProps) => (
+const JourneyOption = ({ title, body, meta, icon, onPress }: JourneyOptionProps) => (
   <TouchableOpacity
     accessibilityRole="button"
     activeOpacity={0.84}
     onPress={onPress}
     style={styles.optionCard}
   >
-    {meta ? (
-      <AppText variant="labelSm" tone="accent" style={styles.optionMeta}>
-        {meta}
+    {icon ? <View style={styles.optionIcon}>{icon}</View> : null}
+    <View style={styles.optionText}>
+      {meta ? (
+        <AppText variant="labelSm" tone="accent" style={styles.optionMeta}>
+          {meta}
+        </AppText>
+      ) : null}
+      <AppText variant="title2" style={styles.optionTitle}>
+        {title}
       </AppText>
-    ) : null}
-    <AppText variant="title2" style={styles.optionTitle}>
-      {title}
-    </AppText>
-    <AppText variant="bodySm" tone="muted" style={styles.optionBody}>
-      {body}
-    </AppText>
+      <AppText variant="bodySm" tone="muted" style={styles.optionBody}>
+        {body}
+      </AppText>
+    </View>
   </TouchableOpacity>
+);
+
+interface JourneyStepScreenProps {
+  headerTitle: string;
+  backAction?: React.ReactNode;
+  kicker: string;
+  title: string;
+  help: string;
+  children: React.ReactNode;
+}
+
+// Shared chrome for each journey step (header, intro, option list) so the
+// intent and track-choice steps stay in sync.
+const JourneyStepScreen = ({ headerTitle, backAction, kicker, title, help, children }: JourneyStepScreenProps) => (
+  <SafeAreaView style={styles.safe} edges={[]}>
+    <ScreenHeader title={headerTitle} variant="top-level" leftAction={backAction} />
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.journeyIntro}>
+        <AppText variant="labelSm" tone="accent" style={styles.kicker}>
+          {kicker}
+        </AppText>
+        <AppText variant="title1" style={styles.journeyTitle}>
+          {title}
+        </AppText>
+        <AppText variant="bodyLg" tone="muted" style={styles.journeyBody}>
+          {help}
+        </AppText>
+      </View>
+
+      <View style={styles.optionList}>{children}</View>
+    </ScrollView>
+  </SafeAreaView>
 );
 
 interface BorrowingJourneyScreenProps {
@@ -132,6 +175,9 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
   useFocusEffect(
     useCallback(() => {
       refresh();
+      // Returning from the pushed track form should land back on the top intent,
+      // not the track sub-step the user drilled into. Only resets that sub-step.
+      setJourneyStep(step => (step === 'trackChoice' ? 'intent' : step));
       // Don't clobber an edited calc's currency while we're hydrating it.
       if (params.editValues) return;
       form.setValue('currency', getDefaultCurrency(), {
@@ -168,8 +214,16 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
     setJourneyStep('form');
   }, []);
 
-  const openTrackForm = useCallback(() => {
-    router.push('/saved/track');
+  // Track is a two-step branch: pick "track" here, then choose the category on
+  // the next step. Keeps the first decision a clean Calculate-vs-Track fork.
+  const openTrackBorrowing = useCallback(() => {
+    setJourneyStep('trackChoice');
+  }, []);
+
+  // Category is chosen on the track step, so the track form is single-purpose
+  // (no in-form Loan/Mortgage toggle).
+  const openTrackForm = useCallback((category: LoanCategory) => {
+    router.push(`/saved/track?category=${category}` as never);
   }, [router]);
 
   const handleSubmit = (values: LoanCalculatorFormValues) => {
@@ -205,41 +259,53 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
     );
   }
 
-  if (journeyStep !== 'form') {
+  if (journeyStep === 'intent') {
     return (
-      <SafeAreaView style={styles.safe} edges={[]}>
-        <ScreenHeader
-          title={t('journey.title')}
-          variant="top-level"
-          leftAction={journeyBackAction}
+      <JourneyStepScreen
+        headerTitle={t('journey.title')}
+        backAction={journeyBackAction}
+        kicker={t('journey.stepIntent')}
+        title={t('journey.intentTitle')}
+        help={t('journey.intentHelp')}
+      >
+        <JourneyOption
+          title={t('journey.calculateTitle')}
+          body={t('journey.calculateHelp')}
+          icon={<CalculatorIcon color={colours.primary} size={24} />}
+          onPress={openPlanForm}
         />
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          <View style={styles.journeyIntro}>
-            <AppText variant="labelSm" tone="accent" style={styles.kicker}>
-              {t('journey.stepIntent')}
-            </AppText>
-            <AppText variant="title1" style={styles.journeyTitle}>
-              {t('journey.intentTitle')}
-            </AppText>
-            <AppText variant="bodyLg" tone="muted" style={styles.journeyBody}>
-              {t('journey.intentHelp')}
-            </AppText>
-          </View>
+        <JourneyOption
+          title={t('journey.trackTitle')}
+          body={t('journey.trackIntentHelp')}
+          icon={<TimelineIcon color={colours.primary} size={24} />}
+          onPress={openTrackBorrowing}
+        />
+      </JourneyStepScreen>
+    );
+  }
 
-          <View style={styles.optionList}>
-            <JourneyOption
-              title={t('journey.planTitle')}
-              body={t('journey.scenarioHelp')}
-              onPress={openPlanForm}
-            />
-            <JourneyOption
-              title={t('journey.trackBorrowing')}
-              body={t('journey.trackHelp')}
-              onPress={openTrackForm}
-            />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+  if (journeyStep === 'trackChoice') {
+    return (
+      <JourneyStepScreen
+        headerTitle={t('journey.title')}
+        backAction={journeyBackAction}
+        kicker={t('journey.stepTrack')}
+        title={t('journey.trackChoiceTitle')}
+        help={t('journey.trackChoiceHelp')}
+      >
+        <JourneyOption
+          title={t('save.mortgage')}
+          body={t('journey.trackMortgageHelp')}
+          icon={<MortgageIcon color={colours.primary} size={24} />}
+          onPress={() => openTrackForm('mortgage')}
+        />
+        <JourneyOption
+          title={t('save.loan')}
+          body={t('journey.trackLoanHelp')}
+          icon={<LoanCategoryIcon color={colours.primary} size={24} />}
+          onPress={() => openTrackForm('loan')}
+        />
+      </JourneyStepScreen>
     );
   }
 
@@ -293,13 +359,27 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     backgroundColor: colours.surfaceRaised,
     borderColor: colours.borderSoft,
     borderWidth: 1,
     borderRadius: radii.card,
     padding: layout.cardPadding,
-    gap: spacing.xs,
     ...elevation.level1,
+  },
+  optionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colours.surfaceAccent,
+  },
+  optionText: {
+    flex: 1,
+    gap: spacing.xxs,
   },
   optionMeta: {
     textTransform: 'uppercase',
