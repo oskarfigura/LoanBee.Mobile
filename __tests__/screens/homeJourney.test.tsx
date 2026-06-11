@@ -144,30 +144,36 @@ describe('Home intent journey', () => {
     const renderer = await renderHome();
 
     expect(findAllByMockType(renderer, 'LoanForm')).toHaveLength(0);
-    expect(textContent(renderer.root)).toContain('journey.planTitle');
-    // Track is split into category-specific cards chosen up front.
-    expect(textContent(renderer.root)).toContain('journey.trackMortgageTitle');
-    expect(textContent(renderer.root)).toContain('journey.trackLoanTitle');
-    expect(textContent(renderer.root)).not.toContain('journey.borrowingType');
+    // Step 1 is a clean Calculate-vs-Track fork; category cards live on step 2.
+    expect(textContent(renderer.root)).toContain('journey.calculateTitle');
+    expect(textContent(renderer.root)).toContain('journey.trackTitle');
+    expect(textContent(renderer.root)).not.toContain('journey.trackChoiceTitle');
 
     await act(async () => {
-      findTouchableByText(renderer, 'journey.planTitle').props.onPress();
+      findTouchableByText(renderer, 'journey.calculateTitle').props.onPress();
     });
 
     expect(findAllByMockType(renderer, 'LoanForm')).toHaveLength(1);
     expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it('routes each track card to the category-specific track form', async () => {
+  it('routes through the track step 2 to the category-specific form', async () => {
     const renderer = await renderHome();
 
+    // Track my borrowing reveals the category step without navigating away.
     await act(async () => {
-      findTouchableByText(renderer, 'journey.trackMortgageTitle').props.onPress();
+      findTouchableByText(renderer, 'journey.trackTitle').props.onPress();
+    });
+    expect(mockRouter.push).not.toHaveBeenCalled();
+    expect(textContent(renderer.root)).toContain('journey.trackChoiceTitle');
+
+    await act(async () => {
+      findTouchableByText(renderer, 'save.mortgage').props.onPress();
     });
     expect(mockRouter.push).toHaveBeenCalledWith('/saved/track?category=mortgage');
 
     await act(async () => {
-      findTouchableByText(renderer, 'journey.trackLoanTitle').props.onPress();
+      findTouchableByText(renderer, 'save.loan').props.onPress();
     });
     expect(mockRouter.push).toHaveBeenCalledWith('/saved/track?category=loan');
 

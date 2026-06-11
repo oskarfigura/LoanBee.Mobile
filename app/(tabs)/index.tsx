@@ -24,7 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { hasSeenGuide } from '@/onboarding/guideState';
 import { whenConsentFlowComplete } from '@/onboarding/firstRunGate';
 
-type JourneyStep = 'intent' | 'form';
+type JourneyStep = 'intent' | 'trackChoice' | 'form';
 
 interface JourneyOptionProps {
   title: string;
@@ -169,8 +169,14 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
     setJourneyStep('form');
   }, []);
 
-  // Category is chosen here, at the intent step, so the track form is
-  // single-purpose (no in-form Loan/Mortgage toggle).
+  // Track is a two-step branch: pick "track" here, then choose the category on
+  // the next step. Keeps the first decision a clean Calculate-vs-Track fork.
+  const openTrackBorrowing = useCallback(() => {
+    setJourneyStep('trackChoice');
+  }, []);
+
+  // Category is chosen on the track step, so the track form is single-purpose
+  // (no in-form Loan/Mortgage toggle).
   const openTrackForm = useCallback((category: LoanCategory) => {
     router.push(`/saved/track?category=${category}` as never);
   }, [router]);
@@ -208,7 +214,7 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
     );
   }
 
-  if (journeyStep !== 'form') {
+  if (journeyStep === 'intent') {
     return (
       <SafeAreaView style={styles.safe} edges={[]}>
         <ScreenHeader
@@ -231,17 +237,50 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
 
           <View style={styles.optionList}>
             <JourneyOption
-              title={t('journey.planTitle')}
-              body={t('journey.scenarioHelp')}
+              title={t('journey.calculateTitle')}
+              body={t('journey.calculateHelp')}
               onPress={openPlanForm}
             />
             <JourneyOption
-              title={t('journey.trackMortgageTitle')}
+              title={t('journey.trackTitle')}
+              body={t('journey.trackIntentHelp')}
+              onPress={openTrackBorrowing}
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (journeyStep === 'trackChoice') {
+    return (
+      <SafeAreaView style={styles.safe} edges={[]}>
+        <ScreenHeader
+          title={t('journey.title')}
+          variant="top-level"
+          leftAction={journeyBackAction}
+        />
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          <View style={styles.journeyIntro}>
+            <AppText variant="labelSm" tone="accent" style={styles.kicker}>
+              {t('journey.stepTrack')}
+            </AppText>
+            <AppText variant="title1" style={styles.journeyTitle}>
+              {t('journey.trackChoiceTitle')}
+            </AppText>
+            <AppText variant="bodyLg" tone="muted" style={styles.journeyBody}>
+              {t('journey.trackChoiceHelp')}
+            </AppText>
+          </View>
+
+          <View style={styles.optionList}>
+            <JourneyOption
+              title={t('save.mortgage')}
               body={t('journey.trackMortgageHelp')}
               onPress={() => openTrackForm('mortgage')}
             />
             <JourneyOption
-              title={t('journey.trackLoanTitle')}
+              title={t('save.loan')}
               body={t('journey.trackLoanHelp')}
               onPress={() => openTrackForm('loan')}
             />
