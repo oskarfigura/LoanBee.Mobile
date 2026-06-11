@@ -15,6 +15,12 @@ import { CurrencyCode } from '@/currency/currencies';
 import { LoanCategory } from '@/types/SavedLoan';
 import { LoanForm } from '@/components/calculator/LoanForm';
 import { MortgageDashboard } from '@/components/loans/MortgageDashboard';
+import {
+  CalculatorIcon,
+  TimelineIcon,
+  MortgageIcon,
+  LoanCategoryIcon,
+} from '@/components/loans/LoanIcons';
 import { HeaderBackAction } from '@/components/ui/HeaderBackAction';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AppText } from '@/components/ui/AppText';
@@ -30,27 +36,31 @@ interface JourneyOptionProps {
   title: string;
   body: string;
   meta?: string;
+  icon?: React.ReactNode;
   onPress: () => void;
 }
 
-const JourneyOption = ({ title, body, meta, onPress }: JourneyOptionProps) => (
+const JourneyOption = ({ title, body, meta, icon, onPress }: JourneyOptionProps) => (
   <TouchableOpacity
     accessibilityRole="button"
     activeOpacity={0.84}
     onPress={onPress}
     style={styles.optionCard}
   >
-    {meta ? (
-      <AppText variant="labelSm" tone="accent" style={styles.optionMeta}>
-        {meta}
+    {icon ? <View style={styles.optionIcon}>{icon}</View> : null}
+    <View style={styles.optionText}>
+      {meta ? (
+        <AppText variant="labelSm" tone="accent" style={styles.optionMeta}>
+          {meta}
+        </AppText>
+      ) : null}
+      <AppText variant="title2" style={styles.optionTitle}>
+        {title}
       </AppText>
-    ) : null}
-    <AppText variant="title2" style={styles.optionTitle}>
-      {title}
-    </AppText>
-    <AppText variant="bodySm" tone="muted" style={styles.optionBody}>
-      {body}
-    </AppText>
+      <AppText variant="bodySm" tone="muted" style={styles.optionBody}>
+        {body}
+      </AppText>
+    </View>
   </TouchableOpacity>
 );
 
@@ -239,11 +249,13 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
             <JourneyOption
               title={t('journey.calculateTitle')}
               body={t('journey.calculateHelp')}
+              icon={<CalculatorIcon color={colours.primary} size={24} />}
               onPress={openPlanForm}
             />
             <JourneyOption
               title={t('journey.trackTitle')}
               body={t('journey.trackIntentHelp')}
+              icon={<TimelineIcon color={colours.primary} size={24} />}
               onPress={openTrackBorrowing}
             />
           </View>
@@ -277,11 +289,13 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
             <JourneyOption
               title={t('save.mortgage')}
               body={t('journey.trackMortgageHelp')}
+              icon={<MortgageIcon color={colours.primary} size={24} />}
               onPress={() => openTrackForm('mortgage')}
             />
             <JourneyOption
               title={t('save.loan')}
               body={t('journey.trackLoanHelp')}
+              icon={<LoanCategoryIcon color={colours.primary} size={24} />}
               onPress={() => openTrackForm('loan')}
             />
           </View>
@@ -340,13 +354,27 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     backgroundColor: colours.surfaceRaised,
     borderColor: colours.borderSoft,
     borderWidth: 1,
     borderRadius: radii.card,
     padding: layout.cardPadding,
-    gap: spacing.xs,
     ...elevation.level1,
+  },
+  optionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.input,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colours.surfaceAccent,
+  },
+  optionText: {
+    flex: 1,
+    gap: spacing.xxs,
   },
   optionMeta: {
     textTransform: 'uppercase',

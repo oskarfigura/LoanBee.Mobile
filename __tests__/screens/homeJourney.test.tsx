@@ -84,6 +84,14 @@ jest.mock('../../src/components/loans/MortgageDashboard', () => ({
   MortgageDashboard: (props: Record<string, unknown>) => React.createElement('MortgageDashboard', props),
 }));
 
+// Stub the journey icons so the test never pulls in react-native-svg.
+jest.mock('../../src/components/loans/LoanIcons', () => ({
+  CalculatorIcon: (props: Record<string, unknown>) => React.createElement('CalculatorIcon', props),
+  TimelineIcon: (props: Record<string, unknown>) => React.createElement('TimelineIcon', props),
+  MortgageIcon: (props: Record<string, unknown>) => React.createElement('MortgageIcon', props),
+  LoanCategoryIcon: (props: Record<string, unknown>) => React.createElement('LoanCategoryIcon', props),
+}));
+
 jest.mock('../../src/components/ui/AppText', () => ({
   AppText: ({ children, ...props }: { children?: React.ReactNode }) => (
     React.createElement('AppText', props, children)
