@@ -64,6 +64,38 @@ const JourneyOption = ({ title, body, meta, icon, onPress }: JourneyOptionProps)
   </TouchableOpacity>
 );
 
+interface JourneyStepScreenProps {
+  headerTitle: string;
+  backAction?: React.ReactNode;
+  kicker: string;
+  title: string;
+  help: string;
+  children: React.ReactNode;
+}
+
+// Shared chrome for each journey step (header, intro, option list) so the
+// intent and track-choice steps stay in sync.
+const JourneyStepScreen = ({ headerTitle, backAction, kicker, title, help, children }: JourneyStepScreenProps) => (
+  <SafeAreaView style={styles.safe} edges={[]}>
+    <ScreenHeader title={headerTitle} variant="top-level" leftAction={backAction} />
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.journeyIntro}>
+        <AppText variant="labelSm" tone="accent" style={styles.kicker}>
+          {kicker}
+        </AppText>
+        <AppText variant="title1" style={styles.journeyTitle}>
+          {title}
+        </AppText>
+        <AppText variant="bodyLg" tone="muted" style={styles.journeyBody}>
+          {help}
+        </AppText>
+      </View>
+
+      <View style={styles.optionList}>{children}</View>
+    </ScrollView>
+  </SafeAreaView>
+);
+
 interface BorrowingJourneyScreenProps {
   mode?: 'home' | 'calculate';
 }
@@ -143,6 +175,9 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
   useFocusEffect(
     useCallback(() => {
       refresh();
+      // Returning from the pushed track form should land back on the top intent,
+      // not the track sub-step the user drilled into. Only resets that sub-step.
+      setJourneyStep(step => (step === 'trackChoice' ? 'intent' : step));
       // Don't clobber an edited calc's currency while we're hydrating it.
       if (params.editValues) return;
       form.setValue('currency', getDefaultCurrency(), {
@@ -226,81 +261,51 @@ export function BorrowingJourneyScreen({ mode = 'home' }: BorrowingJourneyScreen
 
   if (journeyStep === 'intent') {
     return (
-      <SafeAreaView style={styles.safe} edges={[]}>
-        <ScreenHeader
-          title={t('journey.title')}
-          variant="top-level"
-          leftAction={journeyBackAction}
+      <JourneyStepScreen
+        headerTitle={t('journey.title')}
+        backAction={journeyBackAction}
+        kicker={t('journey.stepIntent')}
+        title={t('journey.intentTitle')}
+        help={t('journey.intentHelp')}
+      >
+        <JourneyOption
+          title={t('journey.calculateTitle')}
+          body={t('journey.calculateHelp')}
+          icon={<CalculatorIcon color={colours.primary} size={24} />}
+          onPress={openPlanForm}
         />
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          <View style={styles.journeyIntro}>
-            <AppText variant="labelSm" tone="accent" style={styles.kicker}>
-              {t('journey.stepIntent')}
-            </AppText>
-            <AppText variant="title1" style={styles.journeyTitle}>
-              {t('journey.intentTitle')}
-            </AppText>
-            <AppText variant="bodyLg" tone="muted" style={styles.journeyBody}>
-              {t('journey.intentHelp')}
-            </AppText>
-          </View>
-
-          <View style={styles.optionList}>
-            <JourneyOption
-              title={t('journey.calculateTitle')}
-              body={t('journey.calculateHelp')}
-              icon={<CalculatorIcon color={colours.primary} size={24} />}
-              onPress={openPlanForm}
-            />
-            <JourneyOption
-              title={t('journey.trackTitle')}
-              body={t('journey.trackIntentHelp')}
-              icon={<TimelineIcon color={colours.primary} size={24} />}
-              onPress={openTrackBorrowing}
-            />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+        <JourneyOption
+          title={t('journey.trackTitle')}
+          body={t('journey.trackIntentHelp')}
+          icon={<TimelineIcon color={colours.primary} size={24} />}
+          onPress={openTrackBorrowing}
+        />
+      </JourneyStepScreen>
     );
   }
 
   if (journeyStep === 'trackChoice') {
     return (
-      <SafeAreaView style={styles.safe} edges={[]}>
-        <ScreenHeader
-          title={t('journey.title')}
-          variant="top-level"
-          leftAction={journeyBackAction}
+      <JourneyStepScreen
+        headerTitle={t('journey.title')}
+        backAction={journeyBackAction}
+        kicker={t('journey.stepTrack')}
+        title={t('journey.trackChoiceTitle')}
+        help={t('journey.trackChoiceHelp')}
+      >
+        <JourneyOption
+          title={t('save.mortgage')}
+          body={t('journey.trackMortgageHelp')}
+          icon={<MortgageIcon color={colours.primary} size={24} />}
+          onPress={() => openTrackForm('mortgage')}
         />
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-          <View style={styles.journeyIntro}>
-            <AppText variant="labelSm" tone="accent" style={styles.kicker}>
-              {t('journey.stepTrack')}
-            </AppText>
-            <AppText variant="title1" style={styles.journeyTitle}>
-              {t('journey.trackChoiceTitle')}
-            </AppText>
-            <AppText variant="bodyLg" tone="muted" style={styles.journeyBody}>
-              {t('journey.trackChoiceHelp')}
-            </AppText>
-          </View>
-
-          <View style={styles.optionList}>
-            <JourneyOption
-              title={t('save.mortgage')}
-              body={t('journey.trackMortgageHelp')}
-              icon={<MortgageIcon color={colours.primary} size={24} />}
-              onPress={() => openTrackForm('mortgage')}
-            />
-            <JourneyOption
-              title={t('save.loan')}
-              body={t('journey.trackLoanHelp')}
-              icon={<LoanCategoryIcon color={colours.primary} size={24} />}
-              onPress={() => openTrackForm('loan')}
-            />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+        <JourneyOption
+          title={t('save.loan')}
+          body={t('journey.trackLoanHelp')}
+          icon={<LoanCategoryIcon color={colours.primary} size={24} />}
+          onPress={() => openTrackForm('loan')}
+        />
+      </JourneyStepScreen>
     );
   }
 

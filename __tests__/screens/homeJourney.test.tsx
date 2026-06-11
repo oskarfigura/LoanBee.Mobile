@@ -9,6 +9,10 @@ const mockRouter = {
 };
 const mockRefresh = jest.fn();
 const mockSetValue = jest.fn();
+// Stable form reference: react-hook-form returns a stable object, so the focus
+// effect's callback identity stays constant and the effect runs on focus, not
+// on every render. A fresh object each render would re-fire it spuriously.
+const mockForm = { setValue: mockSetValue };
 let mockParams: Record<string, string | undefined> = {};
 let mockLoans: unknown[] = [];
 const originalConsoleError = console.error;
@@ -56,9 +60,7 @@ jest.mock('react-native-safe-area-context', () => ({
 
 jest.mock('../../src/hooks/useLoanCalculatorForm', () => ({
   getDefaultCurrency: () => 'GBP',
-  useLoanCalculatorForm: () => ({
-    setValue: mockSetValue,
-  }),
+  useLoanCalculatorForm: () => mockForm,
 }));
 
 jest.mock('../../src/hooks/useSavedLoans', () => ({
