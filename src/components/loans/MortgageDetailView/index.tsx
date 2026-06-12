@@ -6,7 +6,6 @@ import { runOnJS } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { AmortisationTable } from '@/components/calculator/AmortisationTable';
 import { ChartHelpButton, ChartHelpDrawer, type ChartHelpContent } from '@/components/charts/ChartHelp';
@@ -441,7 +440,7 @@ export const MortgageDetailView = ({
                   accessibilityRole="button"
                   activeOpacity={0.8}
                 >
-                  <FullscreenIcon />
+                  <Icon icon={IconName.Maximize01Icon} size={18} color={colours.primary} />
                 </TouchableOpacity>
               </View>
               <AmortisationTable
@@ -543,18 +542,6 @@ export const MortgageDetailView = ({
     </GestureDetector>
   );
 };
-
-const FullscreenIcon = () => (
-  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M14 10L21 3M21 3H16.5M21 3V7.5M10 14L3 21M3 21H7.5M3 21L3 16.5"
-      stroke={colours.primary}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
 
 const getRemainingTermCaptionKey = (monthsRemaining: number) => {
   if (monthsRemaining <= 0) return 'mortgage.remainingTermComplete';
@@ -1194,7 +1181,7 @@ const ProjectionChartCard = ({
             accessibilityLabel={helpAccessibilityLabel}
             onPress={onHelpPress}
           />
-          {interactive ? <FullscreenIcon /> : null}
+          {interactive ? <Icon icon={IconName.Maximize01Icon} size={18} color={colours.primary} /> : null}
         </View>
       </View>
       {children}
