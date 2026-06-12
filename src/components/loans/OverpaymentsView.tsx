@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import { savedLoansStorage } from '@/storage/savedLoans';
 import { formatCurrency } from '@/currency/format';
 import { OverpaymentImpact, OverpaymentScope } from '@/loans/overpaymentScope';
@@ -23,18 +22,6 @@ import { Icon, IconName } from '@/components/ui/Icon';
 import { MortgageEvent, SavedLoan } from '@/types/SavedLoan';
 import { formatFriendlyDate } from '@/utils/date';
 import { colours, layout, radii, spacing } from '@/theme';
-
-const FullscreenIcon = () => (
-  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M14 10L21 3M21 3H16.5M21 3V7.5M10 14L3 21M3 21H7.5M3 21L3 16.5"
-      stroke={colours.primary}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </Svg>
-);
 
 interface Props {
   id: string;
@@ -290,7 +277,7 @@ export const OverpaymentsView = ({ id, notFoundTitleKey, createScope }: Props) =
                     onPress={() => setChartHelpVisible(true)}
                   />
                   <View style={styles.fullscreenButton}>
-                    <FullscreenIcon />
+                    <Icon icon={IconName.Maximize01Icon} size={18} color={colours.primary} />
                   </View>
                 </View>
               </View>
