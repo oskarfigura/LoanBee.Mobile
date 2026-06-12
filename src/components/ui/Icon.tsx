@@ -1,5 +1,5 @@
 import { renderIconElements } from '@oskarfigura/icons/react';
-import { IconName, icons } from '@oskarfigura/icons';
+import { IconName, icons } from '@oskarfigura/icons/all';
 import { Circle, G, Path, Svg, SvgProps } from './Svg';
 
 // Re-exported so call sites can `import { Icon, IconName } from '@/components/ui/Icon'`.
