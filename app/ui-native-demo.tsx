@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Badge,
@@ -18,9 +18,19 @@ import { loanBeeNativeTheme } from '@/dev/uiNativeDemoTheme';
 
 /**
  * Dev/demo route showcasing the shared @oskarfigura/ui-native components themed with the
- * LoanBee palette. Reachable at /ui-native-demo; not linked in navigation.
+ * LoanBee palette. Reachable at /ui-native-demo in dev builds; not linked in navigation.
+ *
+ * Gated to `__DEV__` so release builds redirect away — this is a proof-of-consumption
+ * spike, not a user-facing screen.
  */
 export default function UiNativeDemoScreen() {
+  if (!__DEV__) {
+    return <Redirect href="/" />;
+  }
+  return <UiNativeDemo />;
+}
+
+function UiNativeDemo() {
   const [agreed, setAgreed] = useState(false);
   const [email, setEmail] = useState('');
   const emailError = email.length > 0 && !email.includes('@') ? 'Enter a valid email' : undefined;
@@ -28,7 +38,7 @@ export default function UiNativeDemoScreen() {
   return (
     <ThemeProvider theme={loanBeeNativeTheme}>
       <SafeAreaView style={styles.safe}>
-        <Stack.Screen options={{ title: 'ui-native demo' }} />
+        <Stack.Screen options={{ title: 'ui-native demo', headerShown: true }} />
         <ScrollView contentContainerStyle={styles.content}>
           <Heading>@oskarfigura/ui-native</Heading>
           <P>Shared cross-platform components, themed with the LoanBee palette via createTheme.</P>
